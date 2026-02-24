@@ -1,0 +1,88 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "next": "Next",
+    "back": "Back",
+    "or": "or"
+  },
+  "welcome": {
+    "tagline": "Your health, your control",
+    "description": "Manage your digital health records securely, anywhere in Cameroon.",
+    "login": "Sign in",
+    "register": "Create an account"
+  },
+  "login": {
+    "title": "Welcome back",
+    "subtitle": "Sign in to your account",
+    "email": "Email address",
+    "emailPlaceholder": "your@email.com",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "forgotPassword": "Forgot password?",
+    "submit": "Sign in",
+    "noAccount": "Don't have an account?",
+    "register": "Create an account",
+    "errorInvalidCredentials": "Invalid email or password",
+    "errorGeneric": "An error occurred. Please try again."
+  },
+  "register": {
+    "title": "Create an account",
+    "subtitle": "Join CAREPASS in a few steps",
+    "step1Title": "Personal information",
+    "step2Title": "Security",
+    "step3Title": "Medical information",
+    "firstName": "First name",
+    "firstNamePlaceholder": "Your first name",
+    "lastName": "Last name",
+    "lastNamePlaceholder": "Your last name",
+    "email": "Email address",
+    "emailPlaceholder": "your@email.com",
+    "phone": "Phone number",
+    "phonePlaceholder": "+237 6XX XXX XXX",
+    "password": "Password",
+    "passwordPlaceholder": "Minimum 8 characters",
+    "confirmPassword": "Confirm password",
+    "confirmPasswordPlaceholder": "Re-enter your password",
+    "bloodGroup": "Blood group (optional)",
+    "bloodGroupPlaceholder": "Select your blood group",
+    "gender": "Gender",
+    "genderMale": "Male",
+    "genderFemale": "Female",
+    "genderOther": "Other",
+    "dateOfBirth": "Date of birth",
+    "dateOfBirthPlaceholder": "DD/MM/YYYY",
+    "submit": "Create my account",
+    "hasAccount": "Already have an account?",
+    "login": "Sign in",
+    "stepOf": "Step {{current}} of {{total}}"
+  },
+  "forgotPassword": {
+    "title": "Forgot password",
+    "subtitle": "Enter your email address to receive a verification code",
+    "email": "Email address",
+    "emailPlaceholder": "your@email.com",
+    "submit": "Send code",
+    "successTitle": "Email sent!",
+    "successMessage": "A verification code has been sent to your email address.",
+    "backToLogin": "Back to login"
+  },
+  "otp": {
+    "title": "Verification",
+    "subtitle": "Enter the 6-digit code sent to your email",
+    "resend": "Resend code",
+    "resendIn": "Resend in {{seconds}}s",
+    "verify": "Verify",
+    "invalidCode": "Invalid code. Please try again."
+  },
+  "tabs": {
+    "home": "Home",
+    "records": "Records",
+    "emergency": "Emergency",
+    "profile": "Profile"
+  }
+}

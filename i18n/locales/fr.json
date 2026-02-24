@@ -1,0 +1,88 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "save": "Enregistrer",
+    "next": "Suivant",
+    "back": "Retour",
+    "or": "ou"
+  },
+  "welcome": {
+    "tagline": "Votre santé, votre contrôle",
+    "description": "Gérez vos dossiers de santé numériques en toute sécurité, partout au Cameroun.",
+    "login": "Se connecter",
+    "register": "Créer un compte"
+  },
+  "login": {
+    "title": "Bienvenue",
+    "subtitle": "Connectez-vous à votre compte",
+    "email": "Adresse email",
+    "emailPlaceholder": "votre@email.com",
+    "password": "Mot de passe",
+    "passwordPlaceholder": "Entrez votre mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "submit": "Se connecter",
+    "noAccount": "Pas encore de compte ?",
+    "register": "Créer un compte",
+    "errorInvalidCredentials": "Email ou mot de passe incorrect",
+    "errorGeneric": "Une erreur est survenue. Veuillez réessayer."
+  },
+  "register": {
+    "title": "Créer un compte",
+    "subtitle": "Rejoignez CAREPASS en quelques étapes",
+    "step1Title": "Informations personnelles",
+    "step2Title": "Sécurité",
+    "step3Title": "Informations médicales",
+    "firstName": "Prénom",
+    "firstNamePlaceholder": "Votre prénom",
+    "lastName": "Nom",
+    "lastNamePlaceholder": "Votre nom",
+    "email": "Adresse email",
+    "emailPlaceholder": "votre@email.com",
+    "phone": "Téléphone",
+    "phonePlaceholder": "+237 6XX XXX XXX",
+    "password": "Mot de passe",
+    "passwordPlaceholder": "Minimum 8 caractères",
+    "confirmPassword": "Confirmer le mot de passe",
+    "confirmPasswordPlaceholder": "Retapez votre mot de passe",
+    "bloodGroup": "Groupe sanguin (optionnel)",
+    "bloodGroupPlaceholder": "Sélectionnez votre groupe sanguin",
+    "gender": "Genre",
+    "genderMale": "Homme",
+    "genderFemale": "Femme",
+    "genderOther": "Autre",
+    "dateOfBirth": "Date de naissance",
+    "dateOfBirthPlaceholder": "JJ/MM/AAAA",
+    "submit": "Créer mon compte",
+    "hasAccount": "Déjà un compte ?",
+    "login": "Se connecter",
+    "stepOf": "Étape {{current}} sur {{total}}"
+  },
+  "forgotPassword": {
+    "title": "Mot de passe oublié",
+    "subtitle": "Entrez votre adresse email pour recevoir un code de vérification",
+    "email": "Adresse email",
+    "emailPlaceholder": "votre@email.com",
+    "submit": "Envoyer le code",
+    "successTitle": "Email envoyé !",
+    "successMessage": "Un code de vérification a été envoyé à votre adresse email.",
+    "backToLogin": "Retour à la connexion"
+  },
+  "otp": {
+    "title": "Vérification",
+    "subtitle": "Entrez le code à 6 chiffres envoyé à votre email",
+    "resend": "Renvoyer le code",
+    "resendIn": "Renvoyer dans {{seconds}}s",
+    "verify": "Vérifier",
+    "invalidCode": "Code invalide. Veuillez réessayer."
+  },
+  "tabs": {
+    "home": "Accueil",
+    "records": "Dossier",
+    "emergency": "Urgence",
+    "profile": "Profil"
+  }
+}
