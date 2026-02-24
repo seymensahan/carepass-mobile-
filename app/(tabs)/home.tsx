@@ -281,21 +281,21 @@ export default function HomeScreen() {
         </View>
 
         {/* ─── Upcoming Appointments ─── */}
-        {(appointments.data?.length ?? 0) > 0 && (
-          <View className="mb-7">
-            <View className="flex-row items-center justify-between px-6 mb-4">
-              <Text className="text-lg font-bold text-foreground">
-                Prochains rendez-vous
+        <View className="mb-7">
+          <View className="flex-row items-center justify-between px-6 mb-4">
+            <Text className="text-lg font-bold text-foreground">
+              Prochains rendez-vous
+            </Text>
+            <Pressable
+              onPress={() => router.push("/appointments" as any)}
+              className="px-3 py-1.5 rounded-full bg-primary/8"
+            >
+              <Text className="text-primary text-xs font-semibold">
+                Voir tout
               </Text>
-              <Pressable
-                onPress={() => router.push("/appointments" as any)}
-                className="px-3 py-1.5 rounded-full bg-primary/8"
-              >
-                <Text className="text-primary text-xs font-semibold">
-                  Voir tout
-                </Text>
-              </Pressable>
-            </View>
+            </Pressable>
+          </View>
+          {(appointments.data?.length ?? 0) > 0 ? (
             <FlatList
               data={appointments.data}
               renderItem={renderAppointmentCard}
@@ -304,26 +304,31 @@ export default function HomeScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ paddingHorizontal: 24 }}
             />
-          </View>
-        )}
+          ) : (
+            <View className="mx-6 bg-white rounded-2xl p-5 items-center" style={s.card}>
+              <Feather name="calendar" size={28} color="#adb5bd" />
+              <Text className="text-sm text-muted mt-2">Aucun rendez-vous à venir</Text>
+            </View>
+          )}
+        </View>
 
         {/* ─── Recent Consultations ─── */}
-        {(consultations.data?.length ?? 0) > 0 && (
-          <View className="px-6 mb-7">
-            <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-lg font-bold text-foreground">
-                Dernières consultations
+        <View className="px-6 mb-7">
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-lg font-bold text-foreground">
+              Dernières consultations
+            </Text>
+            <Pressable
+              onPress={() => router.push("/records/consultations" as any)}
+              className="px-3 py-1.5 rounded-full bg-primary/8"
+            >
+              <Text className="text-primary text-xs font-semibold">
+                Voir tout
               </Text>
-              <Pressable
-                onPress={() => router.push("/records/consultations" as any)}
-                className="px-3 py-1.5 rounded-full bg-primary/8"
-              >
-                <Text className="text-primary text-xs font-semibold">
-                  Voir tout
-                </Text>
-              </Pressable>
-            </View>
-            {consultations.data?.map((item) => (
+            </Pressable>
+          </View>
+          {(consultations.data?.length ?? 0) > 0 ? (
+            consultations.data?.map((item) => (
               <Pressable
                 key={item.id}
                 onPress={() => router.push(`/records/consultations/${item.id}` as any)}
@@ -353,17 +358,22 @@ export default function HomeScreen() {
                   </Text>
                 </View>
               </Pressable>
-            ))}
-          </View>
-        )}
+            ))
+          ) : (
+            <View className="bg-white rounded-2xl p-5 items-center" style={s.card}>
+              <Feather name="clipboard" size={28} color="#adb5bd" />
+              <Text className="text-sm text-muted mt-2">Aucune consultation récente</Text>
+            </View>
+          )}
+        </View>
 
         {/* ─── Vaccination Reminders ─── */}
-        {(vaccinations.data?.length ?? 0) > 0 && (
-          <View className="px-6">
-            <Text className="text-lg font-bold text-foreground mb-4">
-              Vaccinations à venir
-            </Text>
-            {vaccinations.data?.map((item) => (
+        <View className="px-6">
+          <Text className="text-lg font-bold text-foreground mb-4">
+            Vaccinations à venir
+          </Text>
+          {(vaccinations.data?.length ?? 0) > 0 ? (
+            vaccinations.data?.map((item) => (
               <View
                 key={item.id}
                 className="flex-row items-center bg-white rounded-2xl p-4 mb-3"
@@ -386,9 +396,14 @@ export default function HomeScreen() {
                   </Text>
                 </View>
               </View>
-            ))}
-          </View>
-        )}
+            ))
+          ) : (
+            <View className="bg-white rounded-2xl p-5 items-center" style={s.card}>
+              <Feather name="shield" size={28} color="#adb5bd" />
+              <Text className="text-sm text-muted mt-2">Aucune vaccination prévue</Text>
+            </View>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
