@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -14,6 +15,7 @@ import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Feather } from "@expo/vector-icons";
+import { Calendar } from "react-native-calendars";
 import { useAuth } from "../../contexts/AuthContext";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -33,7 +35,11 @@ const registerSchema = z
     password: z
       .string()
       .min(1, "Le mot de passe est requis")
-      .min(8, "Minimum 8 caractères"),
+      .min(8, "Minimum 8 caractères")
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/,
+        "Doit contenir 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&)"
+      ),
     confirmPassword: z.string().min(1, "La confirmation est requise"),
     bloodGroup: z.string().optional(),
     gender: z.enum(["M", "F", "other"], {
@@ -56,6 +62,13 @@ export default function RegisterScreen() {
   const { register: registerUser } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [calYear, setCalYear] = useState(2000);
+  const [calMonth, setCalMonth] = useState(1);
+  const MONTH_NAMES = [
+    "Janvier","Février","Mars","Avril","Mai","Juin",
+    "Juillet","Août","Septembre","Octobre","Novembre","Décembre",
+  ];
 
   const {
     control,
@@ -298,16 +311,130 @@ export default function RegisterScreen() {
       <Controller
         control={control}
         name="dateOfBirth"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            label="Date de naissance"
-            placeholder="AAAA-MM-JJ"
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            error={errors.dateOfBirth?.message}
-            iconLeft="calendar"
-          />
+        render={({ field: { onChange, value } }) => (
+          <>
+            <Text className="text-sm font-medium text-foreground mb-2">
+              Date de naissance
+            </Text>
+            <Pressable
+              onPress={() => {
+                if (value) {
+                  const [y, m] = value.split("-").map(Number);
+                  setCalYear(y);
+                  setCalMonth(m);
+                }
+                setShowCalendar(true);
+              }}
+              className={`flex-row items-center h-14 px-4 rounded-xl border mb-1 ${
+                errors.dateOfBirth ? "border-danger" : "border-border"
+              } bg-white`}
+            >
+              <Feather name="calendar" size={18} color="#6c757d" />
+              <Text
+                className={`ml-3 text-base ${
+                  value ? "text-foreground" : "text-muted"
+                }`}
+              >
+                {value || "Sélectionnez votre date de naissance"}
+              </Text>
+            </Pressable>
+            {errors.dateOfBirth && (
+              <Text className="text-xs text-danger mb-2">
+                {errors.dateOfBirth.message}
+              </Text>
+            )}
+
+            <Modal
+              visible={showCalendar}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setShowCalendar(false)}
+            >
+              <Pressable
+                onPress={() => setShowCalendar(false)}
+                className="flex-1 bg-black/50 justify-center px-6"
+              >
+                <Pressable
+                  onPress={() => {}}
+                  className="bg-white rounded-2xl p-4"
+                >
+                  <Text className="text-lg font-semibold text-foreground mb-3 text-center">
+                    Date de naissance
+                  </Text>
+
+                  {/* Year & Month selectors */}
+                  <View className="flex-row justify-between items-center mb-2">
+                    {/* Year */}
+                    <View className="flex-row items-center">
+                      <Pressable
+                        onPress={() => setCalYear((y) => Math.max(y - 1, 1926))}
+                        className="w-9 h-9 rounded-full bg-gray-100 items-center justify-center"
+                      >
+                        <Feather name="chevron-left" size={18} color="#0066FF" />
+                      </Pressable>
+                      <Text className="text-base font-bold text-foreground mx-3 w-12 text-center">
+                        {calYear}
+                      </Text>
+                      <Pressable
+                        onPress={() => setCalYear((y) => Math.min(y + 1, new Date().getFullYear()))}
+                        className="w-9 h-9 rounded-full bg-gray-100 items-center justify-center"
+                      >
+                        <Feather name="chevron-right" size={18} color="#0066FF" />
+                      </Pressable>
+                    </View>
+
+                    {/* Month */}
+                    <View className="flex-row items-center">
+                      <Pressable
+                        onPress={() => setCalMonth((m) => (m <= 1 ? 12 : m - 1))}
+                        className="w-9 h-9 rounded-full bg-gray-100 items-center justify-center"
+                      >
+                        <Feather name="chevron-left" size={18} color="#0066FF" />
+                      </Pressable>
+                      <Text className="text-sm font-semibold text-foreground mx-2 w-20 text-center">
+                        {MONTH_NAMES[calMonth - 1]}
+                      </Text>
+                      <Pressable
+                        onPress={() => setCalMonth((m) => (m >= 12 ? 1 : m + 1))}
+                        className="w-9 h-9 rounded-full bg-gray-100 items-center justify-center"
+                      >
+                        <Feather name="chevron-right" size={18} color="#0066FF" />
+                      </Pressable>
+                    </View>
+                  </View>
+
+                  <Calendar
+                    key={`${calYear}-${calMonth}`}
+                    maxDate={new Date().toISOString().split("T")[0]}
+                    initialDate={`${calYear}-${String(calMonth).padStart(2, "0")}-01`}
+                    hideArrows
+                    hideExtraDays
+                    renderHeader={() => null}
+                    onDayPress={(day: { dateString: string }) => {
+                      onChange(day.dateString);
+                      setShowCalendar(false);
+                    }}
+                    markedDates={
+                      value
+                        ? { [value]: { selected: true, selectedColor: "#0066FF" } }
+                        : {}
+                    }
+                    theme={{
+                      todayTextColor: "#0066FF",
+                      textDayFontSize: 15,
+                      textDayHeaderFontSize: 13,
+                    }}
+                  />
+                  <Pressable
+                    onPress={() => setShowCalendar(false)}
+                    className="mt-3 h-12 bg-primary rounded-xl items-center justify-center"
+                  >
+                    <Text className="text-white font-semibold">Fermer</Text>
+                  </Pressable>
+                </Pressable>
+              </Pressable>
+            </Modal>
+          </>
         )}
       />
 

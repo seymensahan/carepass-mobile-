@@ -1,3 +1,4 @@
+import { api } from "../lib/api-client";
 import type {
   Appointment,
   ConsultationPreview,
@@ -5,110 +6,179 @@ import type {
   VaccinationReminder,
 } from "../types/dashboard";
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+// ── Backend response types ──────────────────────────
 
-const DUMMY_SUMMARY: DashboardSummary = {
-  bloodGroup: "O+",
-  allergiesCount: 2,
-  consultationsCount: 12,
-  activeMedicationsCount: 3,
-};
+interface BackendDashboardResponse {
+  success: boolean;
+  data: {
+    totalConsultations: number;
+    totalLabResults: number;
+    totalVaccinations: number;
+    totalAllergies: number;
+    upcomingAppointments: BackendAppointment[];
+    unreadNotifications: number;
+    recentConsultations: BackendConsultation[];
+  };
+}
 
-const DUMMY_APPOINTMENTS: Appointment[] = [
-  {
-    id: "apt_001",
-    date: "2026-02-25",
-    time: "09:30",
-    doctorName: "Dr. Nguemo",
-    specialty: "Médecine générale",
-    hospital: "Hôpital Central de Yaoundé",
-    status: "confirmé",
-  },
-  {
-    id: "apt_002",
-    date: "2026-03-05",
-    time: "14:00",
-    doctorName: "Dr. Fotso",
-    specialty: "Cardiologie",
-    hospital: "Clinique du Lac, Douala",
-    status: "en_attente",
-  },
-  {
-    id: "apt_003",
-    date: "2026-03-18",
-    time: "10:15",
-    doctorName: "Dr. Mbarga",
-    specialty: "Ophtalmologie",
-    hospital: "Centre Médical La Cathédrale",
-    status: "confirmé",
-  },
-];
+interface BackendAppointment {
+  id: string;
+  date: string;
+  duration: number;
+  type: string;
+  reason: string;
+  status: string;
+  doctor: {
+    specialty?: string;
+    user: { id: string; firstName: string; lastName: string; email: string };
+  };
+}
 
-const DUMMY_CONSULTATIONS: ConsultationPreview[] = [
-  {
-    id: "cons_001",
-    date: "2026-02-15",
-    doctorName: "Dr. Nguemo",
-    specialty: "Médecine générale",
-    diagnosis: "Bilan annuel — résultats normaux, légère carence en vitamine D",
-    hospital: "Hôpital Central de Yaoundé",
-  },
-  {
-    id: "cons_002",
-    date: "2026-02-10",
-    doctorName: "Dr. Fotso",
-    specialty: "Cardiologie",
-    diagnosis:
-      "Contrôle tension artérielle — suivi trait drépanocytaire, ECG normal",
-    hospital: "Clinique du Lac, Douala",
-  },
-  {
-    id: "cons_003",
-    date: "2026-01-22",
-    doctorName: "Dr. Mbarga",
-    specialty: "Ophtalmologie",
-    diagnosis: "Examen visuel de routine — acuité 10/10, pas de correction",
-    hospital: "Centre Médical La Cathédrale",
-  },
-];
+interface BackendConsultation {
+  id: string;
+  date: string;
+  type: string;
+  motif: string;
+  diagnosis: string;
+  doctor: {
+    specialty?: string;
+    user: { id: string; firstName: string; lastName: string; email: string };
+  };
+}
 
-const DUMMY_VACCINATIONS: VaccinationReminder[] = [
-  {
-    id: "vacc_001",
-    vaccineName: "DTC (Diphtérie-Tétanos-Coqueluche)",
-    childName: "Léa Kamga",
-    scheduledDate: "2026-02-24",
-    daysUntil: 5,
-  },
-  {
-    id: "vacc_002",
-    vaccineName: "ROR (Rougeole-Oreillons-Rubéole)",
-    childName: "Léa Kamga",
-    scheduledDate: "2026-03-15",
-    daysUntil: 24,
-  },
-];
+interface BackendVaccination {
+  id: string;
+  vaccineName?: string;
+  date: string;
+  boosterDate: string | null;
+  status: string;
+  child: { id: string; firstName?: string; lastName?: string } | null;
+}
+
+interface PaginatedResponse<T> {
+  success: boolean;
+  message: string;
+  data: T[];
+  meta: { total: number; page: number; limit: number; totalPages: number };
+}
+
+// ── Mappers ─────────────────────────────────────────
+
+function mapAppointmentStatus(status: string): "confirmé" | "en_attente" | "annulé" {
+  if (status === "confirmed") return "confirmé";
+  if (status === "cancelled") return "annulé";
+  return "en_attente";
+}
+
+function mapAppointment(a: BackendAppointment): Appointment {
+  const d = new Date(a.date);
+  return {
+    id: a.id,
+    date: d.toISOString().split("T")[0],
+    time: d.toTimeString().slice(0, 5),
+    doctorName: `Dr. ${a.doctor.user.lastName}`,
+    specialty: a.doctor.specialty || a.type || "Médecine générale",
+    hospital: a.reason || "—",
+    status: mapAppointmentStatus(a.status),
+  };
+}
+
+function mapConsultation(c: BackendConsultation): ConsultationPreview {
+  return {
+    id: c.id,
+    date: new Date(c.date).toISOString().split("T")[0],
+    doctorName: `Dr. ${c.doctor.user.lastName}`,
+    specialty: c.doctor.specialty || c.type || "Médecine générale",
+    diagnosis: c.diagnosis || c.motif || "—",
+    hospital: "—",
+  };
+}
+
+function mapVaccination(v: BackendVaccination): VaccinationReminder {
+  const scheduled = v.boosterDate || v.date;
+  const daysUntil = Math.max(
+    0,
+    Math.ceil((new Date(scheduled).getTime() - Date.now()) / 86400000)
+  );
+  return {
+    id: v.id,
+    vaccineName: v.vaccineName || "Vaccin",
+    childName: v.child
+      ? `${v.child.firstName || ""} ${v.child.lastName || ""}`.trim()
+      : "—",
+    scheduledDate: new Date(scheduled).toISOString().split("T")[0],
+    daysUntil,
+  };
+}
+
+// ── Service functions ───────────────────────────────
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
-  await delay(800);
-  return { ...DUMMY_SUMMARY };
+  const response = await api.get<BackendDashboardResponse>("/dashboard/patient");
+
+  if (response.data?.success && response.data.data) {
+    const d = response.data.data;
+    return {
+      bloodGroup: "O+", // Not returned by dashboard endpoint — use patient profile later
+      allergiesCount: d.totalAllergies,
+      consultationsCount: d.totalConsultations,
+      activeMedicationsCount: d.totalLabResults, // Best available metric
+    };
+  }
+
+  // Fallback if API fails
+  return { bloodGroup: "—", allergiesCount: 0, consultationsCount: 0, activeMedicationsCount: 0 };
 }
 
 export async function getUpcomingAppointments(): Promise<Appointment[]> {
-  await delay(800);
-  return DUMMY_APPOINTMENTS.map((a) => ({ ...a }));
+  // Try dashboard endpoint first (already includes upcoming appointments)
+  const response = await api.get<BackendDashboardResponse>("/dashboard/patient");
+
+  if (response.data?.success && response.data.data?.upcomingAppointments?.length) {
+    return response.data.data.upcomingAppointments.map(mapAppointment);
+  }
+
+  // Fallback: direct appointments endpoint
+  const fallback = await api.get<PaginatedResponse<BackendAppointment>>(
+    "/appointments?limit=5"
+  );
+  if (fallback.data?.data) {
+    const items = Array.isArray(fallback.data.data) ? fallback.data.data : [];
+    return items.map(mapAppointment);
+  }
+
+  return [];
 }
 
-export async function getRecentConsultations(): Promise<
-  ConsultationPreview[]
-> {
-  await delay(800);
-  return DUMMY_CONSULTATIONS.map((c) => ({ ...c }));
+export async function getRecentConsultations(): Promise<ConsultationPreview[]> {
+  // Try dashboard endpoint first
+  const response = await api.get<BackendDashboardResponse>("/dashboard/patient");
+
+  if (response.data?.success && response.data.data?.recentConsultations?.length) {
+    return response.data.data.recentConsultations.map(mapConsultation);
+  }
+
+  // Fallback: direct consultations endpoint
+  const fallback = await api.get<PaginatedResponse<BackendConsultation>>(
+    "/consultations?limit=5"
+  );
+  if (fallback.data?.data) {
+    const items = Array.isArray(fallback.data.data) ? fallback.data.data : [];
+    return items.map(mapConsultation);
+  }
+
+  return [];
 }
 
-export async function getVaccinationReminders(): Promise<
-  VaccinationReminder[]
-> {
-  await delay(800);
-  return DUMMY_VACCINATIONS.map((v) => ({ ...v }));
+export async function getVaccinationReminders(): Promise<VaccinationReminder[]> {
+  const response = await api.get<PaginatedResponse<BackendVaccination>>(
+    "/vaccinations?status=scheduled&limit=5"
+  );
+
+  if (response.data?.data) {
+    const items = Array.isArray(response.data.data) ? response.data.data : [];
+    return items.map(mapVaccination);
+  }
+
+  return [];
 }

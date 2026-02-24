@@ -1,6 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 
-const BASE_URL = "https://api.carepass.cm/v1";
+const BASE_URL = "https://carepass-backend.zylo-platform.cloud/api";
 const TOKEN_KEY = "carepass_access_token";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -51,10 +51,19 @@ export async function apiRequest<T>(
       body: body ? JSON.stringify(body) : undefined,
     });
 
-    const data = response.ok ? ((await response.json()) as T) : null;
-    const error = response.ok ? null : `Erreur ${response.status}`;
+    const json = await response.json().catch(() => null);
 
-    return { data, error, status: response.status };
+    if (response.ok) {
+      return { data: json as T, error: null, status: response.status };
+    }
+
+    // Parse backend error message (can be string or array)
+    const rawMsg = json?.message;
+    const errorMsg = Array.isArray(rawMsg)
+      ? rawMsg.join(". ")
+      : rawMsg || `Erreur ${response.status}`;
+
+    return { data: json as T, error: errorMsg, status: response.status };
   } catch {
     return { data: null, error: "Erreur de connexion au serveur", status: 0 };
   }

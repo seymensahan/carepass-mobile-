@@ -1,3 +1,4 @@
+import { api } from "../lib/api-client";
 import type {
   AuthResponse,
   ForgotPasswordResponse,
@@ -8,82 +9,119 @@ import type {
   User,
 } from "../types";
 
-const DUMMY_USER: User = {
-  id: "usr_001",
-  firstName: "Yvan",
-  lastName: "Kamga",
-  email: "yvan@carepass.cm",
-  phone: "+237 6XX XXX XXX",
-  bloodGroup: "O+",
-  gender: "M",
-  dateOfBirth: "1995-03-15",
-  role: "patient",
-  avatarUrl: null,
-  createdAt: "2025-01-15T10:00:00Z",
-};
+// Backend returns a limited user object in auth responses
+interface BackendAuthUser {
+  id: string;
+  email: string;
+  role: string;
+  firstName: string;
+  lastName: string;
+}
 
-const VALID_EMAIL = "yvan@carepass.cm";
-const VALID_PASSWORD = "test1234";
-const VALID_OTP = "123456";
+interface BackendAuthResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    accessToken: string;
+    refreshToken: string;
+    user: BackendAuthUser;
+  };
+}
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+interface BackendRefreshResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    accessToken: string;
+    refreshToken: string;
+  };
+}
+
+function mapRole(backendRole: string): "patient" | "doctor" | "admin" {
+  if (backendRole === "doctor") return "doctor";
+  if (backendRole === "admin" || backendRole === "super_admin" || backendRole === "institution_admin") return "admin";
+  return "patient";
+}
+
+function mapBackendUser(u: BackendAuthUser): User {
+  return {
+    id: u.id,
+    firstName: u.firstName,
+    lastName: u.lastName,
+    email: u.email,
+    phone: "",
+    bloodGroup: null,
+    gender: "M",
+    dateOfBirth: "",
+    role: mapRole(u.role),
+    avatarUrl: null,
+    createdAt: new Date().toISOString(),
+  };
+}
 
 export async function loginUser(data: LoginRequest): Promise<AuthResponse> {
-  await delay(800);
+  const response = await api.post<BackendAuthResponse>("/auth/login", {
+    body: { email: data.email, password: data.password },
+    authenticated: false,
+  });
 
-  if (data.email === VALID_EMAIL && data.password === VALID_PASSWORD) {
+  if (response.data?.success && response.data.data) {
+    const { accessToken, refreshToken, user } = response.data.data;
     return {
       success: true,
-      message: "Connexion réussie",
+      message: response.data.message || "Connexion réussie",
       data: {
-        user: DUMMY_USER,
-        accessToken: "dummy_access_token_abc123",
-        refreshToken: "dummy_refresh_token_xyz789",
+        user: mapBackendUser(user),
+        accessToken,
+        refreshToken,
       },
     };
   }
 
   return {
     success: false,
-    message: "Email ou mot de passe incorrect",
+    message: response.data?.message || response.error || "Email ou mot de passe incorrect",
   };
 }
 
 export async function registerUser(
   data: RegisterRequest
 ): Promise<AuthResponse> {
-  await delay(800);
+  const response = await api.post<BackendAuthResponse>("/auth/register", {
+    body: {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      password: data.password,
+      role: "patient",
+    },
+    authenticated: false,
+  });
 
-  const newUser: User = {
-    id: "usr_002",
-    firstName: data.firstName,
-    lastName: data.lastName,
-    email: data.email,
-    phone: data.phone,
-    bloodGroup: data.bloodGroup ?? null,
-    gender: data.gender,
-    dateOfBirth: data.dateOfBirth,
-    role: "patient",
-    avatarUrl: null,
-    createdAt: new Date().toISOString(),
-  };
+  if (response.data?.success && response.data.data) {
+    const { accessToken, refreshToken, user } = response.data.data;
+    return {
+      success: true,
+      message: response.data.message || "Compte créé avec succès",
+      data: {
+        user: mapBackendUser(user),
+        accessToken,
+        refreshToken,
+      },
+    };
+  }
 
   return {
-    success: true,
-    message: "Compte créé avec succès",
-    data: {
-      user: newUser,
-      accessToken: "dummy_access_token_new_abc123",
-      refreshToken: "dummy_refresh_token_new_xyz789",
-    },
+    success: false,
+    message: response.data?.message || response.error || "Erreur lors de l'inscription",
   };
 }
 
 export async function forgotPassword(
   email: string
 ): Promise<ForgotPasswordResponse> {
-  await delay(800);
-
+  // Not yet implemented on backend — keep mock
   return {
     success: true,
     message: "Un code de vérification a été envoyé à votre adresse email.",
@@ -93,8 +131,8 @@ export async function forgotPassword(
 export async function verifyOtp(
   code: string
 ): Promise<OtpVerificationResponse> {
-  await delay(800);
-
+  // Not yet implemented on backend — keep mock
+  const VALID_OTP = "123456";
   if (code === VALID_OTP) {
     return {
       success: true,
@@ -102,7 +140,6 @@ export async function verifyOtp(
       data: { verified: true },
     };
   }
-
   return {
     success: false,
     message: "Code invalide. Veuillez réessayer.",
@@ -110,13 +147,21 @@ export async function verifyOtp(
 }
 
 export async function refreshToken(): Promise<RefreshTokenResponse> {
-  await delay(800);
+  const response = await api.post<BackendRefreshResponse>("/auth/refresh-token", {
+    authenticated: true,
+  });
+
+  if (response.data?.success && response.data.data) {
+    return {
+      success: true,
+      data: {
+        accessToken: response.data.data.accessToken,
+        refreshToken: response.data.data.refreshToken,
+      },
+    };
+  }
 
   return {
-    success: true,
-    data: {
-      accessToken: "dummy_access_token_refreshed_abc123",
-      refreshToken: "dummy_refresh_token_refreshed_xyz789",
-    },
+    success: false,
   };
 }
