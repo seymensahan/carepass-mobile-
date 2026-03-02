@@ -63,7 +63,7 @@ export default function QrFullscreenScreen() {
     <View className="flex-1 bg-white items-center justify-center">
       {/* Back button */}
       <Pressable
-        onPress={() => router.back()}
+        onPress={() => router.navigate("/(tabs)/emergency" as any)}
         className="absolute top-14 left-6 w-10 h-10 rounded-full bg-background border border-border items-center justify-center z-10"
       >
         <Feather name="x" size={20} color="#212529" />

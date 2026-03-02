@@ -45,7 +45,7 @@ export default function LabResultsListScreen() {
       {/* Header */}
       <View className="flex-row items-center px-6 pt-6 pb-2">
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => router.navigate("/(tabs)/records" as any)}
           className="w-10 h-10 rounded-full bg-white border border-border items-center justify-center mr-3"
         >
           <Feather name="arrow-left" size={20} color="#212529" />
@@ -80,11 +80,7 @@ export default function LabResultsListScreen() {
       </View>
 
       {/* Category filters */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 12 }}
-      >
+      <View className="px-6 pb-3">
         <View className="flex-row gap-2">
           {CATEGORY_FILTERS.map((f) => (
             <Pressable
@@ -106,7 +102,7 @@ export default function LabResultsListScreen() {
             </Pressable>
           ))}
         </View>
-      </ScrollView>
+      </View>
 
       {/* List */}
       {isLoading ? (

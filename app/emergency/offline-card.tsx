@@ -52,7 +52,7 @@ export default function OfflineCardScreen() {
           Ouvrez l'onglet Urgence en étant connecté pour mettre en cache vos
           données.
         </Text>
-        <Pressable onPress={() => router.back()} className="mt-6">
+        <Pressable onPress={() => router.navigate("/(tabs)/emergency" as any)} className="mt-6">
           <Text className="text-primary font-medium">Retour</Text>
         </Pressable>
       </SafeAreaView>
@@ -69,7 +69,7 @@ export default function OfflineCardScreen() {
         {/* Header */}
         <View className="flex-row items-center px-6 pt-6 pb-2">
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => router.navigate("/(tabs)/emergency" as any)}
             className="w-10 h-10 rounded-full bg-white border border-border items-center justify-center mr-3"
           >
             <Feather name="arrow-left" size={20} color="#212529" />

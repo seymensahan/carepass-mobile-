@@ -93,7 +93,7 @@ export default function EditProfileScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["patient-profile"] });
       Alert.alert("Succès", "Profil mis à jour avec succès.", [
-        { text: "OK", onPress: () => router.back() },
+        { text: "OK", onPress: () => router.navigate("/(tabs)/profile" as any) },
       ]);
     },
   });
@@ -166,7 +166,7 @@ export default function EditProfileScreen() {
           {/* ─── Header ─── */}
           <View className="flex-row items-center px-6 pt-6 pb-4">
             <Pressable
-              onPress={() => router.back()}
+              onPress={() => router.navigate("/(tabs)/profile" as any)}
               className="w-10 h-10 rounded-full bg-white border border-border items-center justify-center mr-3"
             >
               <Feather name="arrow-left" size={20} color="#212529" />

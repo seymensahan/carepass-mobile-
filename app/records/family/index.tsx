@@ -40,7 +40,7 @@ export default function FamilyListScreen() {
       {/* Header */}
       <View className="flex-row items-center px-6 pt-6 pb-4">
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => router.navigate("/(tabs)/records" as any)}
           className="w-10 h-10 rounded-full bg-white border border-border items-center justify-center mr-3"
         >
           <Feather name="arrow-left" size={20} color="#212529" />

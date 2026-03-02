@@ -57,7 +57,7 @@ export default function ChildProfileScreen() {
         <Text className="text-foreground font-semibold mt-4">
           Enfant non trouvé
         </Text>
-        <Pressable onPress={() => router.back()} className="mt-4">
+        <Pressable onPress={() => router.navigate("/(tabs)/profile" as any)} className="mt-4">
           <Text className="text-primary font-medium">Retour</Text>
         </Pressable>
       </SafeAreaView>
@@ -76,7 +76,7 @@ export default function ChildProfileScreen() {
         {/* Header */}
         <View className="flex-row items-center px-6 pt-6 pb-2">
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => router.navigate("/(tabs)/profile" as any)}
             className="w-10 h-10 rounded-full bg-white border border-border items-center justify-center mr-3"
           >
             <Feather name="arrow-left" size={20} color="#212529" />

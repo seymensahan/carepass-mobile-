@@ -81,7 +81,7 @@ export default function ConfigureScreen() {
     mutationFn: updateEmergencyConfig,
     onSuccess: () => {
       Alert.alert("Succès", "Configuration sauvegardée.", [
-        { text: "OK", onPress: () => router.back() },
+        { text: "OK", onPress: () => router.navigate("/(tabs)/emergency" as any) },
       ]);
     },
   });
@@ -101,7 +101,7 @@ export default function ConfigureScreen() {
         {/* Header */}
         <View className="flex-row items-center px-6 pt-6 pb-2">
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => router.navigate("/(tabs)/emergency" as any)}
             className="w-10 h-10 rounded-full bg-white border border-border items-center justify-center mr-3"
           >
             <Feather name="arrow-left" size={20} color="#212529" />
