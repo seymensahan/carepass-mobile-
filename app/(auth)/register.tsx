@@ -42,7 +42,7 @@ const registerSchema = z
       ),
     confirmPassword: z.string().min(1, "La confirmation est requise"),
     bloodGroup: z.string().optional(),
-    gender: z.enum(["M", "F", "other"], {
+    gender: z.enum(["M", "F"], {
       message: "Le genre est requis",
     }),
     dateOfBirth: z.string().min(1, "La date de naissance est requise"),
@@ -277,7 +277,6 @@ export default function RegisterScreen() {
               [
                 { key: "M", label: "Homme" },
                 { key: "F", label: "Femme" },
-                { key: "other", label: "Autre" },
               ] as const
             ).map((option) => (
               <Pressable

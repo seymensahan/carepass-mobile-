@@ -26,7 +26,7 @@ const editProfileSchema = z.object({
   lastName: z.string().min(1, "Le nom est requis"),
   phone: z.string().min(9, "Numéro de téléphone invalide"),
   dateOfBirth: z.string().min(1, "La date de naissance est requise"),
-  gender: z.enum(["M", "F", "other"]),
+  gender: z.enum(["M", "F"]),
   bloodGroup: z.string().optional(),
   genotype: z.string().optional(),
 });
@@ -262,7 +262,6 @@ export default function EditProfileScreen() {
                     [
                       { key: "M", label: "Homme" },
                       { key: "F", label: "Femme" },
-                      { key: "other", label: "Autre" },
                     ] as const
                   ).map((option) => (
                     <Pressable
