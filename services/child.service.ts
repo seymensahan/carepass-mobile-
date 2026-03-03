@@ -24,6 +24,7 @@ let CHILDREN: Child[] = [
     weightKg: 14.2,
     heightCm: 96,
     avatarUrl: null,
+    dependentType: "child",
     allergies: [
       { id: "ca_001", name: "Lait de vache", severity: "modérée" },
     ],
@@ -73,6 +74,56 @@ let CHILDREN: Child[] = [
         updatedAt: "2024-08-10T09:30:00.000Z",
       },
     ],
+  },
+  {
+    id: "child_002",
+    firstName: "Emmanuel",
+    lastName: "Kamga",
+    dateOfBirth: "1948-03-15",
+    gender: "M",
+    bloodGroup: "O+",
+    genotype: "AA",
+    weightKg: 72,
+    heightCm: 175,
+    avatarUrl: null,
+    dependentType: "elderly",
+    allergies: [
+      { id: "ca_002", name: "Pénicilline", severity: "sévère" },
+    ],
+    emergencyContacts: [
+      {
+        id: "cec_003",
+        name: "Yvan Kamga",
+        relation: "Fils",
+        phone: "+237 691 234 567",
+      },
+    ],
+    growthData: [],
+    protocols: [],
+  },
+  {
+    id: "child_003",
+    firstName: "Solange",
+    lastName: "Nkeng",
+    dateOfBirth: "1990-07-22",
+    gender: "F",
+    bloodGroup: "B+",
+    genotype: "AS",
+    weightKg: 58,
+    heightCm: 163,
+    avatarUrl: null,
+    dependentType: "disabled",
+    allergies: [],
+    emergencyContacts: [
+      {
+        id: "cec_004",
+        name: "Yvan Kamga",
+        relation: "Tuteur légal",
+        phone: "+237 691 234 567",
+      },
+    ],
+    growthData: [],
+    protocols: [],
   },
 ];
 
@@ -220,6 +271,8 @@ const CHILD_VACCINATIONS: Record<string, Vaccination[]> = {
 };
 
 const CHILD_CONSULTATIONS: Record<string, Consultation[]> = {
+  child_002: [],
+  child_003: [],
   child_001: [
     {
       id: "cons_child_001",
@@ -302,6 +355,7 @@ export async function addChild(data: AddChildData): Promise<Child> {
     weightKg: data.weightKg,
     heightCm: data.heightCm,
     avatarUrl: null,
+    dependentType: data.dependentType ?? "child",
     allergies: (data.allergies ?? []).map((a, i) => ({
       id: `ca_new_${i}`,
       ...a,

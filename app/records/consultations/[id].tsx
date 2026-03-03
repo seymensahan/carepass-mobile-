@@ -135,15 +135,56 @@ export default function ConsultationDetailScreen() {
           </View>
         </View>
 
+        {/* Paramètres vitaux */}
+        {consultation.vitals && (
+          <View className="mx-6 mb-4">
+            <Text className="text-base font-semibold text-foreground mb-2">
+              Paramètres vitaux
+            </Text>
+            <View className="bg-white rounded-xl border border-border p-4">
+              <View className="flex-row flex-wrap gap-2">
+                {consultation.vitals.temperatureCelsius !== undefined && (
+                  <VitalCard icon="thermometer" color="#dc3545" label="Température" value={`${consultation.vitals.temperatureCelsius}°C`} />
+                )}
+                {consultation.vitals.heartRate !== undefined && (
+                  <VitalCard icon="heart" color="#dc3545" label="Fréq. card." value={`${consultation.vitals.heartRate} bpm`} />
+                )}
+                {consultation.vitals.bloodPressure !== undefined && (
+                  <VitalCard icon="activity" color="#007bff" label="Tension art." value={consultation.vitals.bloodPressure} />
+                )}
+                {consultation.vitals.bloodSugar !== undefined && (
+                  <VitalCard icon="droplet" color="#fd7e14" label="Glycémie" value={`${consultation.vitals.bloodSugar} g/L`} />
+                )}
+                {consultation.vitals.weightKg !== undefined && (
+                  <VitalCard icon="tag" color="#28a745" label="Poids" value={`${consultation.vitals.weightKg} kg`} />
+                )}
+                {consultation.vitals.heightCm !== undefined && (
+                  <VitalCard icon="bar-chart-2" color="#28a745" label="Taille" value={`${consultation.vitals.heightCm} cm`} />
+                )}
+              </View>
+              {consultation.vitals.symptoms && consultation.vitals.symptoms.length > 0 && (
+                <View className="mt-3 pt-3 border-t border-border">
+                  <Text className="text-xs font-semibold text-muted mb-2">Symptômes signalés</Text>
+                  <View className="flex-row flex-wrap gap-1.5">
+                    {consultation.vitals.symptoms.map((s, i) => (
+                      <View key={i} className="px-2.5 py-1 rounded-full bg-danger/10">
+                        <Text className="text-xs text-danger font-medium">{s}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Notes du médecin */}
         <View className="mx-6 mb-4">
           <Text className="text-base font-semibold text-foreground mb-2">
             Notes du médecin
           </Text>
           <View className="bg-white rounded-xl border border-border p-4">
-            <Text className="text-sm text-foreground leading-5">
-              {consultation.doctorNotes}
-            </Text>
+            <FormattedNotes text={consultation.doctorNotes} />
           </View>
         </View>
 
@@ -173,6 +214,48 @@ export default function ConsultationDetailScreen() {
               )}
           </View>
         </View>
+
+        {/* Examens prescrits */}
+        {consultation.examOrders && consultation.examOrders.length > 0 && (
+          <View className="mx-6 mb-4">
+            <Text className="text-base font-semibold text-foreground mb-2">
+              Examens prescrits
+            </Text>
+            {consultation.examOrders.map((exam, index) => (
+              <View
+                key={exam.id}
+                className={`bg-white rounded-xl border border-border p-4 ${
+                  index < consultation.examOrders!.length - 1 ? "mb-2" : ""
+                }`}
+              >
+                <View className="flex-row items-center">
+                  <View
+                    className={`w-7 h-7 rounded-lg items-center justify-center mr-2 ${
+                      exam.urgent ? "bg-danger/10" : "bg-accent/10"
+                    }`}
+                  >
+                    <Feather
+                      name="activity"
+                      size={14}
+                      color={exam.urgent ? "#dc3545" : "#fd7e14"}
+                    />
+                  </View>
+                  <Text className="text-sm font-semibold text-foreground flex-1">
+                    {exam.examType}
+                  </Text>
+                  {exam.urgent && (
+                    <View className="px-2 py-0.5 rounded-full bg-danger/10">
+                      <Text className="text-[10px] text-danger font-bold">URGENT</Text>
+                    </View>
+                  )}
+                </View>
+                {exam.notes && (
+                  <Text className="text-xs text-muted ml-9 mt-1">{exam.notes}</Text>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Prescriptions */}
         {consultation.prescriptions.length > 0 && (
@@ -279,5 +362,70 @@ export default function ConsultationDetailScreen() {
         )}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function VitalCard({
+  icon,
+  color,
+  label,
+  value,
+}: {
+  icon: React.ComponentProps<typeof Feather>["name"];
+  color: string;
+  label: string;
+  value: string;
+}) {
+  return (
+    <View
+      className="bg-background rounded-xl p-3 items-center"
+      style={{ flex: 1, minWidth: "28%" }}
+    >
+      <Feather name={icon} size={18} color={color} />
+      <Text className="text-sm font-bold text-foreground mt-1">{value}</Text>
+      <Text className="text-[10px] text-muted text-center mt-0.5">{label}</Text>
+    </View>
+  );
+}
+
+function FormattedNotes({ text }: { text: string }) {
+  const lines = text.split("\n");
+  return (
+    <>
+      {lines.map((line, i) => {
+        const numberedMatch = line.match(/^(\d+)\.\s(.+)/);
+        const bulletMatch = line.match(/^-\s(.+)/);
+        if (numberedMatch) {
+          return (
+            <View key={i} className="flex-row mb-1">
+              <Text className="text-sm text-primary font-semibold w-5 mr-1">
+                {numberedMatch[1]}.
+              </Text>
+              <Text className="text-sm text-foreground leading-5 flex-1">
+                {numberedMatch[2]}
+              </Text>
+            </View>
+          );
+        }
+        if (bulletMatch) {
+          return (
+            <View key={i} className="flex-row mb-1">
+              <Text className="text-sm text-muted mr-2">•</Text>
+              <Text className="text-sm text-foreground leading-5 flex-1">
+                {bulletMatch[1]}
+              </Text>
+            </View>
+          );
+        }
+        if (line.trim() === "") {
+          return <View key={i} className="h-2" />;
+        }
+        return (
+          <Text key={i} className="text-sm text-foreground leading-5 mb-1">
+            {line}
+          </Text>
+        );
+      })}
+    </>
   );
 }

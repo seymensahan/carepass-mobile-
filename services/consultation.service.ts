@@ -11,11 +11,24 @@ const CONSULTATIONS: Consultation[] = [
     hospital: "Hôpital Général de Douala",
     type: "consultation",
     reason: "Bilan annuel de santé — contrôle de routine",
+    vitals: {
+      weightKg: 78,
+      heightCm: 175,
+      bloodPressure: "120/80",
+      temperatureCelsius: 37.1,
+      heartRate: 72,
+      bloodSugar: 5.2,
+      symptoms: ["Fatigue légère"],
+    },
     doctorNotes:
-      "Patient en bon état général. Tension artérielle 120/80 mmHg. Poids stable à 78 kg. Légère carence en vitamine D détectée lors du bilan sanguin. Prescription de supplémentation en vitamine D 1000 UI/jour pendant 3 mois. Prochain contrôle dans 6 mois.",
+      "Patient en bon état général. Légère carence en vitamine D détectée lors du bilan sanguin.\n- Prescription de supplémentation en vitamine D 1000 UI/jour pendant 3 mois\n- Prochain contrôle dans 6 mois\n- Continuer l'activité physique régulière",
     diagnosis:
       "Bilan annuel normal — carence légère en vitamine D (25-OH vit D : 18 ng/mL)",
     diagnosisCodes: ["Z00.0", "E55.9"],
+    examOrders: [
+      { id: "exam_001", examType: "Bilan sanguin complet (NFS)", urgent: false },
+      { id: "exam_002", examType: "25-OH Vitamine D", urgent: false, notes: "Contrôle dans 3 mois" },
+    ],
     prescriptions: [
       {
         id: "rx_001",
@@ -39,11 +52,22 @@ const CONSULTATIONS: Consultation[] = [
     type: "suivi",
     reason:
       "Suivi cardiologique — contrôle tension et trait drépanocytaire AS",
+    vitals: {
+      weightKg: 75,
+      bloodPressure: "135/88",
+      temperatureCelsius: 36.8,
+      heartRate: 82,
+      symptoms: ["Léger essoufflement à l'effort", "Céphalées matinales"],
+    },
     doctorNotes:
-      "Suivi semestriel du trait drépanocytaire AS. ECG normal, pas de signe d'hypertrophie ventriculaire. Tension artérielle légèrement élevée 135/88 mmHg. Mise sous Amlodipine 5mg. Conseils hygiéno-diététiques : réduire la consommation de sel, activité physique modérée régulière.",
+      "Suivi semestriel du trait drépanocytaire AS :\n1. ECG normal, pas de signe d'hypertrophie ventriculaire\n2. Tension artérielle légèrement élevée — mise sous Amlodipine 5mg\n3. Trait drépanocytaire AS stable\n\nConseils hygiéno-diététiques :\n- Réduire la consommation de sel\n- Activité physique modérée régulière\n- Éviter les efforts intenses prolongés",
     diagnosis:
       "Hypertension artérielle stade 1 — trait drépanocytaire AS stable",
     diagnosisCodes: ["I10", "D57.3"],
+    examOrders: [
+      { id: "exam_003", examType: "ECG de repos", urgent: false },
+      { id: "exam_004", examType: "Holter tensionnel 24h", urgent: false, notes: "À réaliser avant la prochaine consultation" },
+    ],
     prescriptions: [
       {
         id: "rx_002",
@@ -113,8 +137,16 @@ const CONSULTATIONS: Consultation[] = [
     hospital: "Hôpital Général de Douala",
     type: "urgence",
     reason: "Crise de paludisme — fièvre élevée, frissons, céphalées",
+    vitals: {
+      weightKg: 78,
+      temperatureCelsius: 39.8,
+      bloodPressure: "95/60",
+      heartRate: 112,
+      bloodSugar: 4.8,
+      symptoms: ["Fièvre élevée", "Frissons intenses", "Céphalées", "Myalgies", "Nausées"],
+    },
     doctorNotes:
-      "Patient admis aux urgences avec fièvre à 39.8°C, frissons, céphalées intenses et myalgies. TDR paludisme positif (Plasmodium falciparum). Traitement par Artéméther-Luméfantrine débuté. Perfusion de sérum physiologique. Surveillance pendant 6h. Amélioration clinique. Sortie avec traitement per os.",
+      "Patient admis aux urgences. TDR paludisme positif (Plasmodium falciparum).\n1. Traitement par Artéméther-Luméfantrine débuté\n2. Perfusion de sérum physiologique 500ml\n3. Surveillance pendant 6h — amélioration clinique\n4. Sortie avec traitement per os\n\n- Éviter toute automédication\n- Consulter en urgence si fièvre récidive dans les 3 jours",
     diagnosis: "Paludisme à Plasmodium falciparum — accès simple",
     diagnosisCodes: ["B50.9"],
     prescriptions: [

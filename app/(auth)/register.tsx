@@ -446,7 +446,7 @@ export default function RegisterScreen() {
         control={control}
         name="bloodGroup"
         render={({ field: { onChange, value } }) => (
-          <View className="flex-row flex-wrap gap-2 mb-4">
+          <View className="flex-row flex-wrap gap-2 mb-2">
             {BLOOD_GROUPS.map((bg) => (
               <Pressable
                 key={bg}
@@ -467,6 +467,16 @@ export default function RegisterScreen() {
               </Pressable>
             ))}
           </View>
+          <Pressable
+            onPress={() => onChange("")}
+            className={`w-full py-2.5 rounded-xl items-center border mb-4 ${
+              !value ? "bg-gray-100 border-gray-300" : "bg-white border-border"
+            }`}
+          >
+            <Text className={`text-sm ${!value ? "font-semibold text-gray-600" : "text-muted"}`}>
+              Je ne sais pas encore
+            </Text>
+          </Pressable>
         )}
       />
     </>

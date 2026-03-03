@@ -11,6 +11,23 @@ export interface Prescription {
   notes?: string;
 }
 
+export interface ConsultationVitals {
+  weightKg?: number;
+  heightCm?: number;
+  bloodPressure?: string;
+  temperatureCelsius?: number;
+  bloodSugar?: number;
+  heartRate?: number;
+  symptoms?: string[];
+}
+
+export interface ExamOrder {
+  id: string;
+  examType: string;
+  notes?: string;
+  urgent: boolean;
+}
+
 export interface Consultation {
   id: string;
   date: string;
@@ -19,9 +36,11 @@ export interface Consultation {
   hospital: string;
   type: ConsultationType;
   reason: string;
+  vitals?: ConsultationVitals;
   doctorNotes: string;
   diagnosis: string;
   diagnosisCodes?: string[];
+  examOrders?: ExamOrder[];
   prescriptions: Prescription[];
   linkedLabResultIds: string[];
   nextAppointmentDate?: string;
@@ -107,6 +126,8 @@ export interface Vaccination {
   notes?: string;
 }
 
+export type DependentType = "child" | "elderly" | "disabled";
+
 export interface ChildProfile {
   id: string;
   firstName: string;
@@ -116,6 +137,7 @@ export interface ChildProfile {
   bloodGroup: string | null;
   genotype: string | null;
   avatarUrl: string | null;
+  dependentType?: DependentType;
   vaccinations: Vaccination[];
   consultations: Consultation[];
   tutors: Tutor[];

@@ -18,6 +18,8 @@ export interface EmergencyProtocol {
   updatedAt: string;
 }
 
+export type DependentType = "child" | "elderly" | "disabled";
+
 export interface Child {
   id: string;
   firstName: string;
@@ -29,6 +31,7 @@ export interface Child {
   weightKg?: number;
   heightCm?: number;
   avatarUrl: string | null;
+  dependentType?: DependentType;
   allergies: ChildAllergy[];
   emergencyContacts: ChildEmergencyContact[];
   growthData: GrowthData[];
@@ -62,6 +65,7 @@ export interface AddChildData {
   genotype?: string;
   weightKg?: number;
   heightCm?: number;
+  dependentType?: DependentType;
   allergies?: { name: string; severity: "légère" | "modérée" | "sévère" }[];
   emergencyContacts?: { name: string; relation: string; phone: string }[];
 }

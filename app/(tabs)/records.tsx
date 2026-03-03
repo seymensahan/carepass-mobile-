@@ -39,9 +39,9 @@ const SECTIONS = [
   },
   {
     icon: "users" as const,
-    title: "Profils Famille",
-    subtitle: "Dossiers de vos enfants",
-    count: "1 enfant",
+    title: "Personnes à charge",
+    subtitle: "Enfants, personnes âgées, handicapées",
+    count: "3",
     color: "#6f42c1",
     route: "/records/family",
   },

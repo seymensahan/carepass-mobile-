@@ -20,6 +20,21 @@ export default function FamilyListScreen() {
     queryClient.invalidateQueries({ queryKey: ["children"] });
   }, [queryClient]);
 
+  const getPersonConfig = (person: { dependentType?: string; gender: "M" | "F" }) => {
+    switch (person.dependentType) {
+      case "elderly":
+        return { icon: "users" as const, color: "#fd7e14", label: "Personne âgée" };
+      case "disabled":
+        return { icon: "heart" as const, color: "#20c997", label: "Personne handicapée" };
+      default:
+        return {
+          icon: "user" as const,
+          color: "#6c757d",
+          label: person.gender === "F" ? "Fille" : "Garçon",
+        };
+    }
+  };
+
   const getAge = (dateStr: string) => {
     const today = new Date();
     const birth = new Date(dateStr);
@@ -47,10 +62,10 @@ export default function FamilyListScreen() {
         </Pressable>
         <View className="flex-1">
           <Text className="text-xl font-bold text-foreground">
-            Profils Famille
+            Personnes à charge
           </Text>
           <Text className="text-xs text-muted">
-            {data?.length ?? 0} enfant{(data?.length ?? 0) > 1 ? "s" : ""}
+            {data?.length ?? 0} personne{(data?.length ?? 0) > 1 ? "s" : ""} à charge
           </Text>
         </View>
       </View>
@@ -66,10 +81,10 @@ export default function FamilyListScreen() {
             <Feather name="users" size={32} color="#6f42c1" />
           </View>
           <Text className="text-lg font-semibold text-foreground mb-2">
-            Aucun profil famille
+            Aucune personne à charge
           </Text>
           <Text className="text-sm text-muted text-center">
-            Les profils de vos enfants apparaîtront ici.
+            Les profils de vos personnes à charge apparaîtront ici.
           </Text>
         </View>
       ) : (
@@ -91,6 +106,7 @@ export default function FamilyListScreen() {
               (v) => v.status === "fait"
             ).length;
             const vaccTotal = child.vaccinations.length;
+            const config = getPersonConfig(child);
 
             return (
               <Pressable
@@ -102,15 +118,18 @@ export default function FamilyListScreen() {
               >
                 <View className="flex-row items-center mb-3">
                   {/* Avatar */}
-                  <View className="w-14 h-14 rounded-full bg-accent/15 items-center justify-center mr-4">
-                    <Feather name="user" size={24} color="#6c757d" />
+                  <View
+                    className="w-14 h-14 rounded-full items-center justify-center mr-4"
+                    style={{ backgroundColor: config.color + "20" }}
+                  >
+                    <Feather name={config.icon} size={24} color={config.color} />
                   </View>
                   <View className="flex-1">
                     <Text className="text-base font-bold text-foreground">
                       {child.firstName} {child.lastName}
                     </Text>
                     <Text className="text-xs text-muted mt-0.5">
-                      {getAge(child.dateOfBirth)} · {child.gender === "F" ? "Fille" : "Garçon"}
+                      {getAge(child.dateOfBirth)} · {config.label}
                     </Text>
                   </View>
                   <Feather name="chevron-right" size={18} color="#6c757d" />

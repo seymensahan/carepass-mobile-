@@ -31,6 +31,7 @@ export default function AddChildScreen() {
   const [step, setStep] = useState(0);
 
   // Step 1 — Identity
+  const [dependentType, setDependentType] = useState<"child" | "elderly" | "disabled">("child");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
@@ -93,6 +94,7 @@ export default function AddChildScreen() {
       gender,
       bloodGroup: bloodGroup || undefined,
       genotype: genotype || undefined,
+      dependentType,
       weightKg: weight ? parseFloat(weight) : undefined,
       heightCm: height ? parseFloat(height) : undefined,
       allergies: allergies.length > 0 ? allergies : undefined,
@@ -184,6 +186,39 @@ export default function AddChildScreen() {
           {/* Step 1 — Identity */}
           {step === 0 && (
             <>
+              <Text className="text-sm font-semibold text-foreground mb-2">
+                Type de personne à charge
+              </Text>
+              <View className="flex-row gap-2 mb-4">
+                {([
+                  { key: "child", label: "Enfant", icon: "smile" },
+                  { key: "elderly", label: "Âgée", icon: "users" },
+                  { key: "disabled", label: "Handicap", icon: "heart" },
+                ] as const).map((opt) => (
+                  <Pressable
+                    key={opt.key}
+                    onPress={() => setDependentType(opt.key)}
+                    className={`flex-1 py-2.5 rounded-xl items-center justify-center border ${
+                      dependentType === opt.key
+                        ? "bg-primary border-primary"
+                        : "bg-white border-border"
+                    }`}
+                  >
+                    <Feather
+                      name={opt.icon}
+                      size={16}
+                      color={dependentType === opt.key ? "#ffffff" : "#6c757d"}
+                    />
+                    <Text
+                      className={`text-xs font-semibold mt-1 ${
+                        dependentType === opt.key ? "text-white" : "text-foreground"
+                      }`}
+                    >
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
               <FormField label="Prénom *" value={firstName} onChange={setFirstName} placeholder="Prénom de l'enfant" />
               <FormField label="Nom *" value={lastName} onChange={setLastName} placeholder="Nom de famille" />
               <FormField
@@ -238,7 +273,7 @@ export default function AddChildScreen() {
               <Text className="text-sm font-semibold text-foreground mb-2">
                 Groupe sanguin
               </Text>
-              <View className="flex-row flex-wrap gap-2 mb-4">
+              <View className="flex-row flex-wrap gap-2 mb-2">
                 {BLOOD_GROUPS.map((bg) => (
                   <Pressable
                     key={bg}
@@ -259,6 +294,16 @@ export default function AddChildScreen() {
                   </Pressable>
                 ))}
               </View>
+              <Pressable
+                onPress={() => setBloodGroup("")}
+                className={`w-full py-2.5 rounded-xl items-center border mb-4 ${
+                  !bloodGroup ? "bg-gray-100 border-gray-300" : "bg-white border-border"
+                }`}
+              >
+                <Text className={`text-sm ${!bloodGroup ? "font-semibold text-gray-600" : "text-muted"}`}>
+                  Je ne sais pas encore
+                </Text>
+              </Pressable>
 
               <Text className="text-sm font-semibold text-foreground mb-2">
                 Génotype
