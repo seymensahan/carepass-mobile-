@@ -445,37 +445,39 @@ export default function RegisterScreen() {
         control={control}
         name="bloodGroup"
         render={({ field: { onChange, value } }) => (
-          <View className="flex-row flex-wrap gap-2 mb-2">
-            {BLOOD_GROUPS.map((bg) => (
-              <Pressable
-                key={bg}
-                onPress={() => onChange(value === bg ? "" : bg)}
-                className={`px-4 h-10 rounded-xl items-center justify-center border ${
-                  value === bg
-                    ? "bg-primary border-primary"
-                    : "bg-white border-border"
-                }`}
-              >
-                <Text
-                  className={`text-sm font-medium ${
-                    value === bg ? "text-white" : "text-foreground"
+          <>
+            <View className="flex-row flex-wrap gap-2 mb-2">
+              {BLOOD_GROUPS.map((bg) => (
+                <Pressable
+                  key={bg}
+                  onPress={() => onChange(value === bg ? "" : bg)}
+                  className={`px-4 h-10 rounded-xl items-center justify-center border ${
+                    value === bg
+                      ? "bg-primary border-primary"
+                      : "bg-white border-border"
                   }`}
                 >
-                  {bg}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          <Pressable
-            onPress={() => onChange("")}
-            className={`w-full py-2.5 rounded-xl items-center border mb-4 ${
-              !value ? "bg-gray-100 border-gray-300" : "bg-white border-border"
-            }`}
-          >
-            <Text className={`text-sm ${!value ? "font-semibold text-gray-600" : "text-muted"}`}>
-              Je ne sais pas encore
-            </Text>
-          </Pressable>
+                  <Text
+                    className={`text-sm font-medium ${
+                      value === bg ? "text-white" : "text-foreground"
+                    }`}
+                  >
+                    {bg}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <Pressable
+              onPress={() => onChange("")}
+              className={`w-full py-2.5 rounded-xl items-center border mb-4 ${
+                !value ? "bg-gray-100 border-gray-300" : "bg-white border-border"
+              }`}
+            >
+              <Text className={`text-sm ${!value ? "font-semibold text-gray-600" : "text-muted"}`}>
+                Je ne sais pas encore
+              </Text>
+            </Pressable>
+          </>
         )}
       />
     </>
