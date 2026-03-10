@@ -1,63 +1,79 @@
+import { api } from "../lib/api-client";
 import type { Medication } from "../types/medical";
 
-const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Any = any;
 
-const MEDICATIONS: Medication[] = [
-  {
-    id: "med_001",
-    name: "Paracétamol",
-    dosage: "1g",
-    frequency: "3 fois par jour si douleur",
-    prescribedBy: "Dr. Nguemo Eric",
-    startDate: "2026-02-15",
-    endDate: "2026-02-28",
-    status: "en_cours",
-    reason: "Douleurs et fièvre",
-  },
-  {
-    id: "med_002",
-    name: "Amlodipine",
-    dosage: "5 mg",
-    frequency: "1 fois par jour le matin",
-    prescribedBy: "Dr. Fotso Christelle",
-    startDate: "2026-02-10",
-    status: "en_cours",
-    reason: "Hypertension artérielle stade 1",
-  },
-  {
-    id: "med_003",
-    name: "Artéméther-Luméfantrine (Coartem)",
-    dosage: "80/480 mg",
-    frequency: "2 fois par jour",
-    prescribedBy: "Dr. Tagne Maurice",
-    startDate: "2025-11-18",
-    endDate: "2025-11-21",
-    status: "terminé",
-    reason: "Paludisme à P. falciparum",
-  },
-  {
-    id: "med_004",
-    name: "Bétaméthasone 0.05% crème",
-    dosage: "Application fine",
-    frequency: "2 fois par jour",
-    prescribedBy: "Dr. Nkoulou Viviane",
-    startDate: "2025-12-05",
-    endDate: "2025-12-19",
-    status: "terminé",
-    reason: "Eczéma de contact",
-    allergyInteraction:
-      "Vérifier tolérance cutanée — patient allergique à la Pénicilline",
-  },
-];
+function mapMedication(item: Any, prescription: Any): Medication {
+  const doctorName = prescription.consultation?.doctor?.user
+    ? `Dr. ${prescription.consultation.doctor.user.firstName} ${prescription.consultation.doctor.user.lastName}`
+    : prescription.prescribedBy || "";
+
+  const startDate = prescription.consultation?.date
+    ? new Date(prescription.consultation.date).toISOString().split("T")[0]
+    : prescription.createdAt?.split("T")[0] || "";
+
+  // Try to compute end date from duration
+  let endDate: string | undefined;
+  if (item.duration && startDate) {
+    const durationMatch = item.duration.match(/(\d+)/);
+    if (durationMatch) {
+      const num = parseInt(durationMatch[1]);
+      const dur = item.duration.toLowerCase();
+      const days =
+        num *
+        (dur.includes("mois")
+          ? 30
+          : dur.includes("semaine")
+            ? 7
+            : 1);
+      const end = new Date(startDate);
+      end.setDate(end.getDate() + days);
+      endDate = end.toISOString().split("T")[0];
+    }
+  }
+
+  // Determine status: ongoing if no end date or "continu" or end in future
+  const isOngoing =
+    !endDate ||
+    item.duration?.toLowerCase().includes("continu") ||
+    new Date(endDate) >= new Date();
+
+  return {
+    id: item.id || `${prescription.id}_${item.name}`,
+    name: item.name || item.medicationName || "",
+    dosage: item.dosage || "",
+    frequency: item.frequency || "",
+    prescribedBy: doctorName,
+    startDate,
+    endDate,
+    status: isOngoing ? "en_cours" : "terminé",
+    reason:
+      prescription.consultation?.diagnosis ||
+      prescription.consultation?.reason ||
+      "",
+  };
+}
 
 export async function getMedications(): Promise<Medication[]> {
-  await delay(800);
-  return MEDICATIONS.map((m) => ({ ...m }));
+  const response = await api.get<Any>("/prescriptions?limit=50");
+  const list =
+    Array.isArray(response.data) ? response.data : [];
+
+  const medications: Medication[] = [];
+  for (const p of list) {
+    for (const item of p.items || []) {
+      medications.push(mapMedication(item, p));
+    }
+  }
+
+  return medications.sort(
+    (a, b) =>
+      new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+  );
 }
 
 export async function getCurrentMedications(): Promise<Medication[]> {
-  await delay(800);
-  return MEDICATIONS.filter((m) => m.status === "en_cours").map((m) => ({
-    ...m,
-  }));
+  const all = await getMedications();
+  return all.filter((m) => m.status === "en_cours");
 }

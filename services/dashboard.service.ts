@@ -9,16 +9,13 @@ import type {
 // ── Backend response types ──────────────────────────
 
 interface BackendDashboardResponse {
-  success: boolean;
-  data: {
-    totalConsultations: number;
-    totalLabResults: number;
-    totalVaccinations: number;
-    totalAllergies: number;
-    upcomingAppointments: BackendAppointment[];
-    unreadNotifications: number;
-    recentConsultations: BackendConsultation[];
-  };
+  totalConsultations: number;
+  totalLabResults: number;
+  totalVaccinations: number;
+  totalAllergies: number;
+  upcomingAppointments: BackendAppointment[];
+  unreadNotifications: number;
+  recentConsultations: BackendConsultation[];
 }
 
 interface BackendAppointment {
@@ -56,8 +53,6 @@ interface BackendVaccination {
 }
 
 interface PaginatedResponse<T> {
-  success: boolean;
-  message: string;
   data: T[];
   meta: { total: number; page: number; limit: number; totalPages: number };
 }
@@ -116,8 +111,8 @@ function mapVaccination(v: BackendVaccination): VaccinationReminder {
 export async function getDashboardSummary(): Promise<DashboardSummary> {
   const response = await api.get<BackendDashboardResponse>("/dashboard/patient");
 
-  if (response.data?.success && response.data.data) {
-    const d = response.data.data;
+  if (response.data) {
+    const d = response.data;
     return {
       bloodGroup: "O+", // Not returned by dashboard endpoint — use patient profile later
       allergiesCount: d.totalAllergies,
@@ -134,38 +129,32 @@ export async function getUpcomingAppointments(): Promise<Appointment[]> {
   // Try dashboard endpoint first (already includes upcoming appointments)
   const response = await api.get<BackendDashboardResponse>("/dashboard/patient");
 
-  if (response.data?.success && response.data.data?.upcomingAppointments?.length) {
-    return response.data.data.upcomingAppointments.map(mapAppointment);
+  if (response.data?.upcomingAppointments?.length) {
+    return response.data.upcomingAppointments.map(mapAppointment);
   }
 
   // Fallback: direct appointments endpoint
   const fallback = await api.get<PaginatedResponse<BackendAppointment>>(
     "/appointments?limit=5"
   );
-  if (fallback.data?.data) {
-    const items = Array.isArray(fallback.data.data) ? fallback.data.data : [];
-    return items.map(mapAppointment);
-  }
-
-  return [];
+  const items = Array.isArray(fallback.data) ? fallback.data : [];
+  return items.map(mapAppointment);
 }
 
 export async function getRecentConsultations(): Promise<ConsultationPreview[]> {
   // Try dashboard endpoint first
   const response = await api.get<BackendDashboardResponse>("/dashboard/patient");
 
-  if (response.data?.success && response.data.data?.recentConsultations?.length) {
-    return response.data.data.recentConsultations.map(mapConsultation);
+  if (response.data?.recentConsultations?.length) {
+    return response.data.recentConsultations.map(mapConsultation);
   }
 
   // Fallback: direct consultations endpoint
   const fallback = await api.get<PaginatedResponse<BackendConsultation>>(
     "/consultations?limit=5"
   );
-  if (fallback.data?.data) {
-    const items = Array.isArray(fallback.data.data) ? fallback.data.data : [];
-    return items.map(mapConsultation);
-  }
+  const items = Array.isArray(fallback.data) ? fallback.data : [];
+  return items.map(mapConsultation);
 
   return [];
 }
@@ -175,10 +164,6 @@ export async function getVaccinationReminders(): Promise<VaccinationReminder[]> 
     "/vaccinations?status=scheduled&limit=5"
   );
 
-  if (response.data?.data) {
-    const items = Array.isArray(response.data.data) ? response.data.data : [];
-    return items.map(mapVaccination);
-  }
-
-  return [];
+  const items = Array.isArray(response.data) ? response.data : [];
+  return items.map(mapVaccination);
 }

@@ -1,57 +1,67 @@
+import { api } from "../lib/api-client";
 import type { MedicalAllergy, ChronicCondition } from "../types/medical";
 
-const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Any = any;
 
-let ALLERGIES: MedicalAllergy[] = [
-  {
-    id: "allg_001",
-    name: "Pénicilline",
-    severity: "sévère",
-    diagnosedDate: "2015-03-10",
-    notes: "Réaction anaphylactique documentée — port du bracelet d'alerte recommandé",
-  },
-  {
-    id: "allg_002",
-    name: "Arachides",
-    severity: "modérée",
-    diagnosedDate: "2018-07-22",
-    notes: "Urticaire et gonflement des lèvres — éviter tous les produits à base d'arachide",
-  },
-];
-
-const CONDITIONS: ChronicCondition[] = [
-  {
-    id: "cc_001",
-    name: "Trait drépanocytaire AS",
-    diagnosedDate: "2010-06-20",
-    status: "actif",
-    notes: "Porteur sain — surveillance cardiologique annuelle, conseil génétique avant procréation",
-  },
-];
+function mapSeverity(s: string): MedicalAllergy["severity"] {
+  if (s === "severe" || s === "sévère") return "sévère";
+  if (s === "mild" || s === "légère") return "légère";
+  return "modérée";
+}
 
 export async function getAllergies(): Promise<MedicalAllergy[]> {
-  await delay(800);
-  return ALLERGIES.map((a) => ({ ...a }));
+  const response = await api.get<Any>("/allergies");
+  const list =
+    Array.isArray(response.data) ? response.data : [];
+
+  return list.map((a: Any) => ({
+    id: a.id,
+    name: a.allergen || a.name || "",
+    severity: mapSeverity(a.severity),
+    diagnosedDate: a.diagnosedDate || a.createdAt?.split("T")[0] || "",
+    notes: a.notes,
+  }));
 }
 
 export async function addAllergy(
   data: Omit<MedicalAllergy, "id">
 ): Promise<MedicalAllergy> {
-  await delay(800);
-  const newAllergy: MedicalAllergy = {
-    ...data,
-    id: `allg_${Date.now()}`,
+  const response = await api.post<Any>("/allergies", {
+    body: {
+      allergen: data.name,
+      severity: data.severity,
+      diagnosedDate: data.diagnosedDate,
+      notes: data.notes,
+    },
+  });
+  const a = response.data;
+  return {
+    id: a?.id || `allg_${Date.now()}`,
+    name: a?.allergen || data.name,
+    severity: data.severity,
+    diagnosedDate: data.diagnosedDate,
+    notes: data.notes,
   };
-  ALLERGIES = [...ALLERGIES, newAllergy];
-  return newAllergy;
 }
 
 export async function deleteAllergy(id: string): Promise<void> {
-  await delay(800);
-  ALLERGIES = ALLERGIES.filter((a) => a.id !== id);
+  await api.delete(`/allergies/${id}`);
 }
 
 export async function getChronicConditions(): Promise<ChronicCondition[]> {
-  await delay(800);
-  return CONDITIONS.map((c) => ({ ...c }));
+  const response = await api.get<Any>("/medical-conditions");
+  const list =
+    Array.isArray(response.data) ? response.data : [];
+
+  return list.map((c: Any) => ({
+    id: c.id,
+    name: c.name || "",
+    diagnosedDate: c.diagnosedDate || "",
+    status:
+      c.status === "en_rémission"
+        ? ("en_rémission" as const)
+        : ("actif" as const),
+    notes: c.notes,
+  }));
 }

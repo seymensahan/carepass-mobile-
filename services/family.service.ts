@@ -1,176 +1,69 @@
+import { api } from "../lib/api-client";
 import type { ChildProfile } from "../types/medical";
 
-const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-const CHILDREN: ChildProfile[] = [
-  {
-    id: "child_001",
-    firstName: "Léa",
-    lastName: "Kamga",
-    dateOfBirth: "2023-01-10",
-    gender: "F",
-    bloodGroup: "A+",
-    genotype: "AA",
-    avatarUrl: null,
-    dependentType: "child",
-    vaccinations: [
-      {
-        id: "vacc_001",
-        name: "BCG (Tuberculose)",
-        date: "2023-01-12",
-        status: "fait",
-        administeredBy: "Dr. Atangana Rose",
-        batchNumber: "BCG-2023-0456",
-        notes: "Administré à la naissance — cicatrice visible",
-      },
-      {
-        id: "vacc_002",
-        name: "Polio (VPO)",
-        date: "2023-03-10",
-        status: "fait",
-        administeredBy: "Dr. Atangana Rose",
-        batchNumber: "VPO-2023-1122",
-      },
-      {
-        id: "vacc_003",
-        name: "ROR (Rougeole-Oreillons-Rubéole)",
-        date: "2024-01-15",
-        status: "fait",
-        administeredBy: "Dr. Atangana Rose",
-        batchNumber: "ROR-2024-0089",
-      },
-      {
-        id: "vacc_004",
-        name: "Hépatite B (3ème dose)",
-        date: "2023-07-10",
-        status: "fait",
-        administeredBy: "Dr. Atangana Rose",
-        batchNumber: "HBV-2023-3341",
-      },
-      {
-        id: "vacc_005",
-        name: "Fièvre Jaune",
-        date: "2026-03-05",
-        status: "planifié",
-        notes: "Prévu à la clinique de la Cathédrale — apporter le carnet de vaccination",
-      },
-    ],
-    consultations: [
-      {
-        id: "cons_child_001",
-        date: "2025-10-08",
-        doctorName: "Dr. Atangana Rose",
-        specialty: "Pédiatrie",
-        hospital: "Clinique de la Cathédrale",
-        type: "consultation",
-        reason: "Visite de contrôle pédiatrique — 2 ans",
-        doctorNotes:
-          "Enfant en bonne santé générale. Courbe de croissance normale P50-P75. Développement psychomoteur adéquat. Vaccination à jour.",
-        diagnosis: "Examen pédiatrique normal",
-        diagnosisCodes: ["Z00.1"],
-        prescriptions: [],
-        linkedLabResultIds: [],
-        nextAppointmentDate: "2026-04-08",
-        nextAppointmentNote: "Visite des 3 ans + rappel vaccinal",
-      },
-    ],
-    tutors: [
-      {
-        id: "tutor_001",
-        name: "Yvan Kamga",
-        relation: "Père",
-        phone: "+237 691 234 567",
-        canEdit: true,
-      },
-      {
-        id: "tutor_002",
-        name: "Marie Kamga",
-        relation: "Grand-mère",
-        phone: "+237 677 890 123",
-        canEdit: false,
-      },
-    ],
-  },
-  {
-    id: "child_002",
-    firstName: "Emmanuel",
-    lastName: "Kamga",
-    dateOfBirth: "1948-03-15",
-    gender: "M",
-    bloodGroup: "O+",
-    genotype: "AA",
-    avatarUrl: null,
-    dependentType: "elderly",
-    vaccinations: [],
-    consultations: [
-      {
-        id: "cons_eld_001",
-        date: "2026-01-15",
-        doctorName: "Dr. Fotso Christelle",
-        specialty: "Cardiologie",
-        hospital: "Clinique de la Cathédrale",
-        type: "suivi",
-        reason: "Suivi hypertension artérielle et bilan semestriel",
-        doctorNotes:
-          "Tension artérielle stable sous traitement. ECG normal. Continuer Amlodipine 5mg. Réduire le sel.",
-        diagnosis: "Hypertension artérielle contrôlée",
-        diagnosisCodes: ["I10"],
-        prescriptions: [
-          {
-            id: "presc_eld_01",
-            medicationName: "Amlodipine",
-            dosage: "5mg",
-            frequency: "1 fois par jour le matin",
-            duration: "Traitement continu",
-          },
-        ],
-        linkedLabResultIds: [],
-        nextAppointmentDate: "2026-07-15",
-        nextAppointmentNote: "Contrôle tension dans 6 mois",
-      },
-    ],
-    tutors: [
-      {
-        id: "tutor_eld_001",
-        name: "Yvan Kamga",
-        relation: "Fils",
-        phone: "+237 691 234 567",
-        canEdit: true,
-      },
-    ],
-  },
-  {
-    id: "child_003",
-    firstName: "Solange",
-    lastName: "Nkeng",
-    dateOfBirth: "1990-07-22",
-    gender: "F",
-    bloodGroup: "B+",
-    genotype: "AS",
-    avatarUrl: null,
-    dependentType: "disabled",
-    vaccinations: [],
-    consultations: [],
-    tutors: [
-      {
-        id: "tutor_dis_001",
-        name: "Yvan Kamga",
-        relation: "Tuteur légal",
-        phone: "+237 691 234 567",
-        canEdit: true,
-      },
-    ],
-  },
-];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Any = any;
 
 export async function getChildren(): Promise<ChildProfile[]> {
-  await delay(800);
-  return CHILDREN.map((c) => ({ ...c }));
+  const response = await api.get<Any>("/children");
+  const list =
+    Array.isArray(response.data) ? response.data : [];
+
+  return list.map((c: Any) => ({
+    id: c.id,
+    firstName: c.firstName || "",
+    lastName: c.lastName || "",
+    dateOfBirth: c.dateOfBirth || "",
+    gender: (c.gender as "M" | "F") || "M",
+    bloodGroup: c.bloodGroup || null,
+    genotype: c.genotype || null,
+    avatarUrl: c.avatarUrl || null,
+    dependentType: c.dependentType,
+    vaccinations: [],
+    consultations: [],
+    tutors: [],
+  }));
 }
 
 export async function getChildById(
   id: string
 ): Promise<ChildProfile | null> {
-  await delay(800);
-  return CHILDREN.find((c) => c.id === id) ?? null;
+  const [childRes, vaccRes] = await Promise.all([
+    api.get<Any>(`/children/${id}`),
+    api.get<Any>(`/children/${id}/vaccinations`),
+  ]);
+
+  const c = childRes.data;
+  if (!c || childRes.error) return null;
+
+  const vaccList =
+    Array.isArray(vaccRes.data) ? vaccRes.data : [];
+
+  return {
+    id: c.id,
+    firstName: c.firstName || "",
+    lastName: c.lastName || "",
+    dateOfBirth: c.dateOfBirth || "",
+    gender: (c.gender as "M" | "F") || "M",
+    bloodGroup: c.bloodGroup || null,
+    genotype: c.genotype || null,
+    avatarUrl: c.avatarUrl || null,
+    dependentType: c.dependentType,
+    vaccinations: vaccList.map((v: Any) => ({
+      id: v.id,
+      name: v.vaccineName || v.name || "",
+      date: v.date ? new Date(v.date).toISOString().split("T")[0] : "",
+      status:
+        v.status === "completed"
+          ? ("fait" as const)
+          : v.status === "overdue"
+            ? ("en_retard" as const)
+            : ("planifié" as const),
+      administeredBy: v.administeredBy,
+      batchNumber: v.batchNumber,
+      notes: v.notes,
+    })),
+    consultations: [],
+    tutors: [],
+  };
 }

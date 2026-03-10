@@ -1,3 +1,4 @@
+import { api } from "../lib/api-client";
 import type {
   AddVaccinationData,
   Vaccination,
@@ -5,7 +6,8 @@ import type {
   VaccineInfo,
 } from "../types/vaccination";
 
-const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Any = any;
 
 // ─── PEV Cameroun vaccine list ───
 
@@ -26,222 +28,78 @@ export const PEV_VACCINES: VaccineInfo[] = [
   { name: "Typhoïde", category: "voyage", totalDoses: 1 },
 ];
 
-// ─── Dummy data ───
+function mapStatus(status: string): Vaccination["status"] {
+  if (status === "completed" || status === "fait") return "fait";
+  if (status === "overdue" || status === "en_retard") return "en_retard";
+  return "planifié";
+}
 
-const now = Date.now();
-const DAY = 86400000;
-
-let VACCINATIONS: Vaccination[] = [
-  // ── Léa Kamga (child_001) ──
-  {
-    id: "vacc_l01",
-    name: "BCG (Tuberculose)",
-    date: "2023-01-12",
-    status: "fait",
-    location: "Hôpital Central de Yaoundé",
-    administeredBy: "Dr. Atangana Rose",
-    batchNumber: "BCG-2023-0456",
-    notes: "Administré à la naissance — cicatrice visible bras gauche",
-    patientId: "child_001",
-  },
-  {
-    id: "vacc_l02",
-    name: "Polio (VPO)",
-    date: "2023-01-12",
-    status: "fait",
-    location: "Hôpital Central de Yaoundé",
-    administeredBy: "Dr. Atangana Rose",
-    batchNumber: "VPO-2023-0011",
-    doseInfo: "0/4",
-    notes: "Dose naissance",
-    patientId: "child_001",
-  },
-  {
-    id: "vacc_l03",
-    name: "Pentavalent (DTC-HepB-Hib)",
-    date: "2023-02-21",
-    status: "fait",
-    location: "Clinique de la Cathédrale",
-    administeredBy: "Dr. Atangana Rose",
-    batchNumber: "PENTA-2023-1189",
-    doseInfo: "1/3",
-    patientId: "child_001",
-  },
-  {
-    id: "vacc_l04",
-    name: "Pentavalent (DTC-HepB-Hib)",
-    date: "2023-03-21",
-    status: "fait",
-    location: "Clinique de la Cathédrale",
-    administeredBy: "Dr. Atangana Rose",
-    batchNumber: "PENTA-2023-1204",
-    doseInfo: "2/3",
-    patientId: "child_001",
-  },
-  {
-    id: "vacc_l05",
-    name: "Pentavalent (DTC-HepB-Hib)",
-    date: "2023-04-18",
-    status: "fait",
-    location: "Clinique de la Cathédrale",
-    administeredBy: "Dr. Atangana Rose",
-    batchNumber: "PENTA-2023-1220",
-    doseInfo: "3/3",
-    patientId: "child_001",
-  },
-  {
-    id: "vacc_l06",
-    name: "Pneumocoque",
-    date: "2023-02-21",
-    status: "fait",
-    location: "Clinique de la Cathédrale",
-    administeredBy: "Dr. Atangana Rose",
-    batchNumber: "PCV-2023-0334",
-    doseInfo: "1/3",
-    patientId: "child_001",
-  },
-  {
-    id: "vacc_l07",
-    name: "Pneumocoque",
-    date: "2023-03-21",
-    status: "fait",
-    location: "Clinique de la Cathédrale",
-    administeredBy: "Dr. Atangana Rose",
-    batchNumber: "PCV-2023-0398",
-    doseInfo: "2/3",
-    patientId: "child_001",
-  },
-  {
-    id: "vacc_l08",
-    name: "Pneumocoque",
-    date: "2023-04-18",
-    status: "fait",
-    location: "Clinique de la Cathédrale",
-    administeredBy: "Dr. Atangana Rose",
-    batchNumber: "PCV-2023-0412",
-    doseInfo: "3/3",
-    patientId: "child_001",
-  },
-  {
-    id: "vacc_l09",
-    name: "Rotavirus",
-    date: "2023-02-21",
-    status: "fait",
-    location: "Clinique de la Cathédrale",
-    administeredBy: "Dr. Atangana Rose",
-    batchNumber: "ROTA-2023-0087",
-    doseInfo: "1/2",
-    patientId: "child_001",
-  },
-  {
-    id: "vacc_l10",
-    name: "Rotavirus",
-    date: "2023-03-21",
-    status: "fait",
-    location: "Clinique de la Cathédrale",
-    administeredBy: "Dr. Atangana Rose",
-    batchNumber: "ROTA-2023-0099",
-    doseInfo: "2/2",
-    patientId: "child_001",
-  },
-  {
-    id: "vacc_l11",
-    name: "ROR (Rougeole-Oreillons-Rubéole)",
-    date: "2023-10-10",
-    status: "fait",
-    location: "Hôpital Central de Yaoundé",
-    administeredBy: "Dr. Atangana Rose",
-    batchNumber: "ROR-2023-0776",
-    patientId: "child_001",
-  },
-  {
-    id: "vacc_l12",
-    name: "Fièvre Jaune",
-    date: "2023-10-10",
-    status: "fait",
-    location: "Hôpital Central de Yaoundé",
-    administeredBy: "Dr. Atangana Rose",
-    batchNumber: "FJ-2023-1543",
-    patientId: "child_001",
-  },
-  {
-    id: "vacc_l13",
-    name: "Méningite A",
-    date: new Date(now + 14 * DAY).toISOString().split("T")[0],
-    status: "planifié",
-    location: "Clinique de la Cathédrale",
-    notes: "Prévu — apporter le carnet de vaccination",
-    patientId: "child_001",
-  },
-  {
-    id: "vacc_l14",
-    name: "Rappel DTC",
-    date: new Date(now - 30 * DAY).toISOString().split("T")[0],
-    status: "en_retard",
-    location: "Clinique de la Cathédrale",
-    notes: "En retard d'un mois — contacter le pédiatre",
-    patientId: "child_001",
-  },
-
-  // ── Yvan Kamga (patient adulte) ──
-  {
-    id: "vacc_y01",
-    name: "Fièvre Jaune",
-    date: "2020-03-15",
-    status: "fait",
-    location: "Centre de Vaccination Internationale, Douala",
-    administeredBy: "Dr. Ngo Bassa Martin",
-    batchNumber: "FJ-2020-8821",
-    notes: "Certificat international délivré — valide 10 ans",
-    patientId: null,
-  },
-  {
-    id: "vacc_y02",
-    name: "COVID-19 (J&J)",
-    date: "2021-09-20",
-    status: "fait",
-    location: "Palais des Sports, Yaoundé",
-    administeredBy: "Dr. Fouda Emmanuel",
-    batchNumber: "JJ-2021-CM-44291",
-    doseInfo: "1/1",
-    notes: "Dose unique Johnson & Johnson",
-    patientId: null,
-  },
-  {
-    id: "vacc_y03",
-    name: "Hépatite B",
-    date: new Date(now + 35 * DAY).toISOString().split("T")[0],
-    status: "planifié",
-    location: "Hôpital Central de Yaoundé",
-    doseInfo: "1/3",
-    notes: "Première dose prévue — série de 3 doses",
-    patientId: null,
-  },
-];
-
-// ─── Service functions ───
+function mapVaccination(v: Any): Vaccination {
+  return {
+    id: v.id,
+    name: v.vaccineName || v.name || "",
+    date: v.date ? new Date(v.date).toISOString().split("T")[0] : "",
+    status: mapStatus(v.status),
+    location: v.location,
+    administeredBy: v.administeredBy,
+    batchNumber: v.batchNumber,
+    notes: v.notes,
+    doseInfo:
+      v.doseNumber && v.totalDoses
+        ? `${v.doseNumber}/${v.totalDoses}`
+        : v.doseInfo,
+    patientId: v.childId || null,
+    isManual: v.isManual,
+  };
+}
 
 export async function getVaccinations(
   patientId?: string | null
 ): Promise<Vaccination[]> {
-  await delay(800);
-  if (patientId === undefined) return [...VACCINATIONS];
-  return VACCINATIONS.filter((v) => v.patientId === patientId);
+  const params = new URLSearchParams();
+  params.set("limit", "100");
+  if (patientId !== undefined && patientId !== null) {
+    params.set("childId", patientId);
+  }
+
+  const response = await api.get<Any>(`/vaccinations?${params.toString()}`);
+  const list =
+    Array.isArray(response.data) ? response.data : [];
+
+  const vaccinations = list.map(mapVaccination);
+
+  if (patientId === undefined) return vaccinations;
+  return vaccinations.filter((v: Vaccination) => v.patientId === patientId);
 }
 
 export async function getVaccinationById(
   id: string
 ): Promise<Vaccination | null> {
-  await delay(800);
-  return VACCINATIONS.find((v) => v.id === id) ?? null;
+  const response = await api.get<Any>(`/vaccinations/${id}`);
+  const v = response.data;
+  if (!v || response.error) return null;
+  return mapVaccination(v);
 }
 
 export async function addVaccination(
   data: AddVaccinationData
 ): Promise<Vaccination> {
-  await delay(800);
-  const newVacc: Vaccination = {
-    id: `vacc_${Date.now()}`,
+  const response = await api.post<Any>("/vaccinations", {
+    body: {
+      vaccineName: data.name,
+      date: data.date,
+      location: data.location,
+      administeredBy: data.administeredBy,
+      batchNumber: data.batchNumber,
+      notes: data.notes,
+      childId: data.patientId,
+      status: "completed",
+      isManual: true,
+    },
+  });
+  const v = response.data;
+  return {
+    id: v?.id || `vacc_${Date.now()}`,
     name: data.name,
     date: data.date,
     status: "fait",
@@ -252,42 +110,30 @@ export async function addVaccination(
     patientId: data.patientId,
     isManual: true,
   };
-  VACCINATIONS = [newVacc, ...VACCINATIONS];
-  return newVacc;
 }
 
 export async function markAsDone(id: string): Promise<Vaccination> {
-  await delay(800);
-  const idx = VACCINATIONS.findIndex((v) => v.id === id);
-  if (idx === -1) throw new Error("Vaccination non trouvée");
-  VACCINATIONS[idx] = {
-    ...VACCINATIONS[idx],
-    status: "fait",
-    date: new Date().toISOString().split("T")[0],
-  };
-  return VACCINATIONS[idx];
+  const response = await api.patch<Any>(`/vaccinations/${id}`, {
+    body: { status: "completed", date: new Date().toISOString().split("T")[0] },
+  });
+  const v = response.data;
+  if (!v) throw new Error("Vaccination non trouvée");
+  return mapVaccination(v);
 }
 
 export async function deleteVaccination(id: string): Promise<void> {
-  await delay(800);
-  VACCINATIONS = VACCINATIONS.filter((v) => v.id !== id);
+  await api.delete(`/vaccinations/${id}`);
 }
 
 export async function getVaccinationSchedule(
   patientId: string | null
 ): Promise<VaccinationSchedule> {
-  await delay(400);
-  const patientVaccinations = VACCINATIONS.filter(
-    (v) => v.patientId === patientId
-  );
+  const vaccinations = await getVaccinations(patientId);
   return {
     vaccineInfos: PEV_VACCINES,
-    totalRequired: patientVaccinations.length,
-    completedCount: patientVaccinations.filter((v) => v.status === "fait")
-      .length,
-    pendingCount: patientVaccinations.filter((v) => v.status === "planifié")
-      .length,
-    overdueCount: patientVaccinations.filter((v) => v.status === "en_retard")
-      .length,
+    totalRequired: vaccinations.length,
+    completedCount: vaccinations.filter((v) => v.status === "fait").length,
+    pendingCount: vaccinations.filter((v) => v.status === "planifié").length,
+    overdueCount: vaccinations.filter((v) => v.status === "en_retard").length,
   };
 }

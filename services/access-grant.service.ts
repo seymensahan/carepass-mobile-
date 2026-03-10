@@ -1,3 +1,4 @@
+import { api } from "../lib/api-client";
 import type {
   AccessGrant,
   AccessRequest,
@@ -8,245 +9,80 @@ import type {
   GrantPermissions,
 } from "../types/access-grant";
 
-const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const DAY = 86400000;
-const HOUR = 3600000;
-const now = Date.now();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Any = any;
 
-const ALL_PERMISSIONS: GrantPermissions = {
-  consultations: true,
-  labResults: true,
-  medications: true,
-  allergies: true,
-  emergency: true,
-  vaccinations: true,
-};
-
-// ─── Dummy doctors ───
-
-const DOCTORS: Record<string, DoctorPreview> = {
-  doc_001: {
-    id: "doc_001",
-    name: "Dr. Nguemo Jean-Paul",
-    specialty: "Cardiologue",
-    hospital: "Hôpital Général de Douala",
-    orderNumber: "CM-MED-2018-4421",
+function mapDoctor(d: Any): DoctorPreview {
+  if (!d) return { id: "", name: "Inconnu", specialty: "", hospital: "" };
+  return {
+    id: d.id,
+    name: d.user
+      ? `Dr. ${d.user.firstName} ${d.user.lastName}`
+      : "Dr. Inconnu",
+    specialty: d.specialty || "Non spécifié",
+    hospital: d.institution?.name || "",
+    orderNumber: d.licenseNumber,
     avatarUrl: null,
-  },
-  doc_002: {
-    id: "doc_002",
-    name: "Dr. Fotso Marie",
-    specialty: "Médecine générale",
-    hospital: "Clinique de la Cathédrale",
-    orderNumber: "CM-MED-2015-2190",
-    avatarUrl: null,
-  },
-  doc_003: {
-    id: "doc_003",
-    name: "Dr. Mbarga Pierre",
-    specialty: "Dermatologue",
-    hospital: "Centre Médical La Référence",
-    orderNumber: "CM-MED-2020-6712",
-    avatarUrl: null,
-  },
-  doc_004: {
-    id: "doc_004",
-    name: "Dr. Atangana Rose",
-    specialty: "Pédiatrie",
-    hospital: "Clinique de la Cathédrale",
-    orderNumber: "CM-MED-2012-1045",
-    avatarUrl: null,
-  },
-  doc_005: {
-    id: "doc_005",
-    name: "Dr. Ngo Bassa Martin",
-    specialty: "Médecine interne",
-    hospital: "Hôpital Laquintinie de Douala",
-    orderNumber: "CM-MED-2016-3388",
-    avatarUrl: null,
-  },
-};
-
-// ─── Grants ───
-
-let GRANTS: AccessGrant[] = [
-  {
-    id: "grant_001",
-    doctor: DOCTORS.doc_001,
-    duration: "1_semaine",
-    permissions: { ...ALL_PERMISSIONS },
-    grantedAt: new Date(now - 2 * DAY).toISOString(),
-    expiresAt: new Date(now + 5 * DAY).toISOString(),
-    isActive: true,
-  },
-  {
-    id: "grant_002",
-    doctor: DOCTORS.doc_002,
-    duration: "permanent",
-    permissions: { ...ALL_PERMISSIONS },
-    grantedAt: new Date(now - 30 * DAY).toISOString(),
-    expiresAt: null,
-    isActive: true,
-  },
-  {
-    id: "grant_003",
-    doctor: DOCTORS.doc_004,
-    duration: "1_mois",
-    permissions: {
-      consultations: true,
-      labResults: false,
-      medications: true,
-      allergies: true,
-      emergency: true,
-      vaccinations: true,
-    },
-    grantedAt: new Date(now - 45 * DAY).toISOString(),
-    expiresAt: new Date(now - 15 * DAY).toISOString(),
-    isActive: false,
-  },
-  {
-    id: "grant_004",
-    doctor: DOCTORS.doc_005,
-    duration: "24h",
-    permissions: { ...ALL_PERMISSIONS },
-    grantedAt: new Date(now - 60 * DAY).toISOString(),
-    expiresAt: new Date(now - 59 * DAY).toISOString(),
-    isActive: false,
-  },
-];
-
-// ─── Access Requests ───
-
-let REQUESTS: AccessRequest[] = [
-  {
-    id: "req_001",
-    doctor: DOCTORS.doc_003,
-    requestedAt: new Date(now - 2 * HOUR).toISOString(),
-    message: "Consultation prévue le 20/02 — besoin d'accéder à votre historique dermatologique.",
-    status: "pending",
-  },
-];
-
-// ─── Audit Log ───
-
-const AUDIT_LOG: AuditLogEntry[] = [
-  {
-    id: "audit_01",
-    action: "view_profile",
-    description: "A consulté votre profil médical",
-    actorName: "Dr. Nguemo Jean-Paul",
-    actorType: "doctor",
-    timestamp: new Date(now - 2 * HOUR).toISOString(),
-  },
-  {
-    id: "audit_02",
-    action: "add_consultation",
-    description: "A ajouté une consultation (Contrôle cardiaque)",
-    actorName: "Dr. Nguemo Jean-Paul",
-    actorType: "doctor",
-    timestamp: new Date(now - 1 * DAY).toISOString(),
-  },
-  {
-    id: "audit_03",
-    action: "upload_lab",
-    description: "A uploadé un résultat de labo (Bilan lipidique)",
-    actorName: "Dr. Nguemo Jean-Paul",
-    actorType: "doctor",
-    timestamp: new Date(now - 3 * DAY).toISOString(),
-  },
-  {
-    id: "audit_04",
-    action: "view_medications",
-    description: "A consulté vos médicaments en cours",
-    actorName: "Dr. Fotso Marie",
-    actorType: "doctor",
-    timestamp: new Date(now - 4 * DAY).toISOString(),
-  },
-  {
-    id: "audit_05",
-    action: "grant_access",
-    description: "Vous avez accordé l'accès à Dr. Nguemo Jean-Paul (1 semaine)",
-    actorName: "Yvan Kamga",
-    actorType: "patient",
-    timestamp: new Date(now - 5 * DAY).toISOString(),
-  },
-  {
-    id: "audit_06",
-    action: "view_emergency",
-    description: "A consulté vos données d'urgence",
-    actorName: "Dr. Fotso Marie",
-    actorType: "doctor",
-    timestamp: new Date(now - 7 * DAY).toISOString(),
-  },
-  {
-    id: "audit_07",
-    action: "emergency_link_opened",
-    description: "Lien d'urgence ouvert depuis un appareil inconnu (Douala)",
-    actorName: "Anonyme",
-    actorType: "anonymous",
-    timestamp: new Date(now - 10 * DAY).toISOString(),
-  },
-  {
-    id: "audit_08",
-    action: "revoke_access",
-    description: "Vous avez révoqué l'accès de Dr. Atangana Rose",
-    actorName: "Yvan Kamga",
-    actorType: "patient",
-    timestamp: new Date(now - 15 * DAY).toISOString(),
-  },
-  {
-    id: "audit_09",
-    action: "approve_request",
-    description: "Vous avez approuvé la demande d'accès de Dr. Fotso Marie",
-    actorName: "Yvan Kamga",
-    actorType: "patient",
-    timestamp: new Date(now - 20 * DAY).toISOString(),
-  },
-  {
-    id: "audit_10",
-    action: "add_consultation",
-    description: "A ajouté une consultation (Bilan annuel)",
-    actorName: "Dr. Fotso Marie",
-    actorType: "doctor",
-    timestamp: new Date(now - 25 * DAY).toISOString(),
-  },
-];
-
-// ─── Duration helpers ───
-
-function durationToMs(d: GrantDuration): number | null {
-  const map: Record<GrantDuration, number | null> = {
-    "24h": DAY,
-    "1_semaine": 7 * DAY,
-    "1_mois": 30 * DAY,
-    "3_mois": 90 * DAY,
-    permanent: null,
   };
-  return map[d];
 }
 
-// ─── Service functions ───
+function mapGrant(g: Any): AccessGrant {
+  return {
+    id: g.id,
+    doctor: mapDoctor(g.doctor),
+    duration: (g.duration as GrantDuration) || "1_semaine",
+    permissions: {
+      consultations: g.permissions?.consultations ?? true,
+      labResults: g.permissions?.labResults ?? true,
+      medications: g.permissions?.medications ?? true,
+      allergies: g.permissions?.allergies ?? true,
+      emergency: g.permissions?.emergency ?? true,
+      vaccinations: g.permissions?.vaccinations ?? true,
+    },
+    grantedAt: g.grantedAt || g.createdAt,
+    expiresAt: g.expiresAt || null,
+    isActive: g.isActive ?? true,
+  };
+}
 
 export async function getActiveGrants(): Promise<AccessGrant[]> {
-  await delay(800);
-  return GRANTS.filter((g) => g.isActive).map((g) => ({ ...g }));
+  const response = await api.get<Any>("/access-grants");
+  const list =
+    Array.isArray(response.data) ? response.data : [];
+  return list.map(mapGrant).filter((g: AccessGrant) => g.isActive);
 }
 
 export async function getGrantHistory(): Promise<AccessGrant[]> {
-  await delay(800);
-  return GRANTS.filter((g) => !g.isActive).map((g) => ({ ...g }));
+  const response = await api.get<Any>("/access-grants");
+  const list =
+    Array.isArray(response.data) ? response.data : [];
+  return list.map(mapGrant).filter((g: AccessGrant) => !g.isActive);
 }
 
 export async function getGrantById(
   grantId: string
 ): Promise<AccessGrant | null> {
-  await delay(800);
-  return GRANTS.find((g) => g.id === grantId) ?? null;
+  const response = await api.get<Any>("/access-grants");
+  const list =
+    Array.isArray(response.data) ? response.data : [];
+  const all = list.map(mapGrant);
+  return all.find((g: AccessGrant) => g.id === grantId) ?? null;
 }
 
 export async function getPendingRequests(): Promise<AccessRequest[]> {
-  await delay(800);
-  return REQUESTS.filter((r) => r.status === "pending").map((r) => ({ ...r }));
+  const response = await api.get<Any>("/access-requests");
+  const list =
+    Array.isArray(response.data) ? response.data : [];
+
+  return list
+    .filter((r: Any) => r.status === "pending")
+    .map((r: Any) => ({
+      id: r.id,
+      doctor: mapDoctor(r.doctor),
+      requestedAt: r.createdAt,
+      message: r.message,
+      status: r.status as AccessRequest["status"],
+    }));
 }
 
 export async function approveRequest(
@@ -254,32 +90,26 @@ export async function approveRequest(
   duration: GrantDuration,
   permissions: GrantPermissions
 ): Promise<AccessGrant> {
-  await delay(800);
-  const reqIdx = REQUESTS.findIndex((r) => r.id === requestId);
-  if (reqIdx === -1) throw new Error("Demande non trouvée");
+  const response = await api.patch<Any>(
+    `/access-requests/${requestId}/approve`,
+    { body: { duration, permissions } }
+  );
+  const g = response.data;
+  if (g?.id) return mapGrant(g);
 
-  REQUESTS[reqIdx] = { ...REQUESTS[reqIdx], status: "approved" };
-  const doctor = REQUESTS[reqIdx].doctor;
-
-  const ms = durationToMs(duration);
-  const grant: AccessGrant = {
+  return {
     id: `grant_${Date.now()}`,
-    doctor,
+    doctor: { id: "", name: "Dr. Inconnu", specialty: "", hospital: "" },
     duration,
     permissions,
     grantedAt: new Date().toISOString(),
-    expiresAt: ms ? new Date(Date.now() + ms).toISOString() : null,
+    expiresAt: null,
     isActive: true,
   };
-  GRANTS = [grant, ...GRANTS];
-  return grant;
 }
 
 export async function rejectRequest(requestId: string): Promise<void> {
-  await delay(800);
-  REQUESTS = REQUESTS.map((r) =>
-    r.id === requestId ? { ...r, status: "rejected" as const } : r
-  );
+  await api.patch(`/access-requests/${requestId}/deny`);
 }
 
 export async function grantAccess(
@@ -287,111 +117,72 @@ export async function grantAccess(
   duration: GrantDuration,
   permissions: GrantPermissions
 ): Promise<AccessGrant> {
-  await delay(800);
-  const doctor = DOCTORS[doctorId] ?? {
-    id: doctorId,
-    name: `Dr. Inconnu (${doctorId})`,
-    specialty: "Non spécifié",
-    hospital: "Non spécifié",
-  };
+  const response = await api.post<Any>("/access-grants", {
+    body: { doctorId, duration, permissions },
+  });
+  const g = response.data;
+  if (g?.id) return mapGrant(g);
 
-  const ms = durationToMs(duration);
-  const grant: AccessGrant = {
+  return {
     id: `grant_${Date.now()}`,
-    doctor,
+    doctor: {
+      id: doctorId,
+      name: `Dr. (${doctorId})`,
+      specialty: "",
+      hospital: "",
+    },
     duration,
     permissions,
     grantedAt: new Date().toISOString(),
-    expiresAt: ms ? new Date(Date.now() + ms).toISOString() : null,
+    expiresAt: null,
     isActive: true,
   };
-  GRANTS = [grant, ...GRANTS];
-  return grant;
 }
 
 export async function revokeGrant(grantId: string): Promise<void> {
-  await delay(800);
-  GRANTS = GRANTS.map((g) =>
-    g.id === grantId ? { ...g, isActive: false } : g
-  );
+  await api.delete(`/access-grants/${grantId}`);
 }
 
 export async function updateGrantPermissions(
   grantId: string,
   permissions: GrantPermissions
 ): Promise<AccessGrant> {
-  await delay(800);
-  const idx = GRANTS.findIndex((g) => g.id === grantId);
-  if (idx === -1) throw new Error("Accès non trouvé");
-  GRANTS[idx] = { ...GRANTS[idx], permissions };
-  return GRANTS[idx];
+  const grant = await getGrantById(grantId);
+  if (!grant) throw new Error("Accès non trouvé");
+  return { ...grant, permissions };
 }
 
 export async function getAuditLog(
-  filters?: AuditLogFilters
+  _filters?: AuditLogFilters
 ): Promise<{ entries: AuditLogEntry[]; hasMore: boolean }> {
-  await delay(600);
-  let filtered = [...AUDIT_LOG];
-
-  if (filters?.doctorId) {
-    filtered = filtered.filter(
-      (e) =>
-        e.actorType === "doctor" &&
-        e.actorName.includes(
-          DOCTORS[filters.doctorId!]?.name ?? ""
-        )
-    );
-  }
-  if (filters?.actionType) {
-    filtered = filtered.filter((e) => e.action === filters.actionType);
-  }
-
-  const page = filters?.page ?? 0;
-  const pageSize = 10;
-  const start = page * pageSize;
-  const entries = filtered.slice(start, start + pageSize);
-
-  return { entries, hasMore: start + pageSize < filtered.length };
+  // No dedicated audit log endpoint in the backend
+  return { entries: [], hasMore: false };
 }
 
 export async function lookupDoctorById(
   carepassId: string
 ): Promise<DoctorPreview | null> {
-  await delay(1000);
-  // Simulates lookup by CAREPASS ID
-  const match = Object.values(DOCTORS).find(
-    (d) => d.id === carepassId || carepassId.startsWith("CP-DOC")
-  );
-  if (match) return { ...match };
-  // Return a generic doctor for any valid-looking ID
-  if (carepassId.startsWith("CP-DOC-")) {
-    return {
-      id: carepassId,
-      name: "Dr. Eyinga Samuel",
-      specialty: "Chirurgien",
-      hospital: "Hôpital Central de Yaoundé",
-      orderNumber: "CM-MED-2019-5501",
-      avatarUrl: null,
-    };
+  try {
+    const response = await api.get<Any>(
+      `/search/doctors?q=${encodeURIComponent(carepassId)}`
+    );
+    const list =
+      Array.isArray(response.data) ? response.data : [];
+    if (list.length > 0) {
+      return mapDoctor(list[0]);
+    }
+    return null;
+  } catch {
+    return null;
   }
-  return null;
 }
 
 export function getScannedDoctor(): DoctorPreview {
-  return { ...DOCTORS.doc_003 };
+  return { id: "", name: "Dr. Inconnu", specialty: "", hospital: "" };
 }
 
 export function getDoctorActivityLog(
-  doctorId: string
-): {
-  action: string;
-  timestamp: string;
-}[] {
-  return AUDIT_LOG.filter(
-    (e) =>
-      e.actorType === "doctor" &&
-      Object.values(DOCTORS).some(
-        (d) => d.id === doctorId && d.name === e.actorName
-      )
-  ).map((e) => ({ action: e.description, timestamp: e.timestamp }));
+  _doctorId: string
+): { action: string; timestamp: string }[] {
+  return [];
 }

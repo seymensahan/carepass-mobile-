@@ -1,3 +1,4 @@
+import { api } from "../lib/api-client";
 import { storage } from "../lib/storage";
 import type {
   EmergencyConfig,
@@ -7,40 +8,8 @@ import type {
   SharedLink,
 } from "../types/emergency";
 
-const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-const DUMMY_EMERGENCY_DATA: EmergencyData = {
-  patientName: "Yvan Kamga",
-  carepassId: "CP-2025-00142",
-  bloodGroup: "O+",
-  genotype: "AS",
-  allergies: [
-    { name: "Pénicilline", severity: "sévère" },
-    { name: "Arachides", severity: "modérée" },
-  ],
-  conditions: ["Trait drépanocytaire AS"],
-  currentMedications: [
-    { name: "Paracétamol", dosage: "1g" },
-    { name: "Amlodipine", dosage: "5mg" },
-  ],
-  emergencyContacts: [
-    { name: "Marie Kamga", relation: "Mère", phone: "+237677890123" },
-    { name: "Paul Kamga", relation: "Frère", phone: "+237699456789" },
-  ],
-  children: [
-    {
-      id: "child_001",
-      firstName: "Léa",
-      lastName: "Kamga",
-      age: "3 ans",
-      bloodGroup: "A+",
-      allergies: [],
-      conditions: [],
-    },
-  ],
-  qrToken: "emer_token_abc123_signed",
-  lastUpdated: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Any = any;
 
 const DEFAULT_CONFIG: EmergencyConfig = {
   bloodGroup: true,
@@ -52,37 +21,93 @@ const DEFAULT_CONFIG: EmergencyConfig = {
   labResults: false,
 };
 
-let sharedLinks: SharedLink[] = [
-  {
-    id: "link_001",
-    url: "https://carepass.cm/emergency/eyJhbGciOiJIUzI1NiJ9.abc123",
-    token: "share_tok_abc123",
-    duration: "24h",
-    createdAt: new Date(Date.now() - 19 * 60 * 60 * 1000).toISOString(),
-    expiresAt: new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(),
-    isExpired: false,
-  },
-  {
-    id: "link_002",
-    url: "https://carepass.cm/emergency/eyJhbGciOiJIUzI1NiJ9.def456",
-    token: "share_tok_def456",
-    duration: "6h",
-    createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-    expiresAt: new Date(Date.now() - 42 * 60 * 60 * 1000).toISOString(),
-    isExpired: true,
-  },
-];
-
 export async function getEmergencyData(): Promise<EmergencyData> {
-  await delay(800);
-  return { ...DUMMY_EMERGENCY_DATA };
+  try {
+    // Assemble emergency data from user profile + related data
+    const [profileRes, childrenRes, prescRes] = await Promise.all([
+      api.get<Any>("/users/profile"),
+      api.get<Any>("/children"),
+      api.get<Any>("/prescriptions?limit=20"),
+    ]);
+
+    const p = profileRes.data;
+    const pat = p?.patient;
+
+    const childrenList =
+      Array.isArray(childrenRes.data) ? childrenRes.data : [];
+    const prescList =
+      Array.isArray(prescRes.data) ? prescRes.data : [];
+
+    // Extract current medications from prescriptions
+    const medications: { name: string; dosage: string }[] = [];
+    for (const pr of prescList) {
+      for (const item of pr.items || []) {
+        medications.push({ name: item.name || "", dosage: item.dosage || "" });
+      }
+    }
+
+    const data: EmergencyData = {
+      patientName: `${p?.firstName || ""} ${p?.lastName || ""}`.trim(),
+      carepassId: pat?.carepassId || "",
+      bloodGroup: pat?.bloodGroup || "",
+      genotype: pat?.genotype || "",
+      allergies: (pat?.allergies || []).map((a: Any) => ({
+        name: a.allergen || a.name || "",
+        severity: a.severity || "modérée",
+      })),
+      conditions: (pat?.conditions || []).map((c: Any) => c.name || ""),
+      currentMedications: medications,
+      emergencyContacts: (pat?.emergencyContacts || []).map((e: Any) => ({
+        name: e.name || "",
+        relation: e.relation || e.relationship || "",
+        phone: e.phone || "",
+      })),
+      children: childrenList.map((c: Any) => {
+        const dob = new Date(c.dateOfBirth);
+        const ageYears = Math.floor(
+          (Date.now() - dob.getTime()) / (365.25 * 86400000)
+        );
+        return {
+          id: c.id,
+          firstName: c.firstName || "",
+          lastName: c.lastName || "",
+          age: `${ageYears} ans`,
+          bloodGroup: c.bloodGroup || null,
+          allergies: [],
+          conditions: [],
+        };
+      }),
+      qrToken: pat?.carepassId || "",
+      lastUpdated: new Date().toISOString(),
+    };
+
+    // Cache locally for offline use
+    cacheEmergencyDataLocally(data);
+    return data;
+  } catch {
+    // Fallback to cached data
+    return (
+      getOfflineEmergencyData() || {
+        patientName: "",
+        carepassId: "",
+        bloodGroup: "",
+        genotype: "",
+        allergies: [],
+        conditions: [],
+        currentMedications: [],
+        emergencyContacts: [],
+        children: [],
+        qrToken: "",
+        lastUpdated: "",
+      }
+    );
+  }
 }
 
 export async function generateEmergencyLink(
   duration: ShareDuration
 ): Promise<EmergencyToken> {
-  await delay(800);
-
+  // No backend endpoint for generating emergency links — local operation
   const durationMs: Record<ShareDuration, number> = {
     "1h": 3600000,
     "6h": 21600000,
@@ -92,8 +117,10 @@ export async function generateEmergencyLink(
 
   const token = `share_tok_${Date.now()}`;
   const expiresAt = new Date(Date.now() + durationMs[duration]).toISOString();
-  const url = `https://carepass.cm/emergency/eyJhbGciOiJIUzI1NiJ9.${token}`;
+  const url = `https://carepass.cm/emergency/${token}`;
 
+  // Store shared link locally
+  const existingLinks = await getSharedLinks();
   const newLink: SharedLink = {
     id: `link_${Date.now()}`,
     url,
@@ -103,23 +130,30 @@ export async function generateEmergencyLink(
     expiresAt,
     isExpired: false,
   };
-  sharedLinks = [newLink, ...sharedLinks];
+  storage.set("shared_links", JSON.stringify([newLink, ...existingLinks]));
 
   return { token, url, expiresAt };
 }
 
 export async function getSharedLinks(): Promise<SharedLink[]> {
-  await delay(800);
-  return sharedLinks.map((l) => ({
-    ...l,
-    isExpired: new Date(l.expiresAt) < new Date(),
-  }));
+  const stored = storage.getString("shared_links");
+  if (stored) {
+    try {
+      const links = JSON.parse(stored) as SharedLink[];
+      return links.map((l) => ({
+        ...l,
+        isExpired: new Date(l.expiresAt) < new Date(),
+      }));
+    } catch {
+      return [];
+    }
+  }
+  return [];
 }
 
 export async function updateEmergencyConfig(
   config: EmergencyConfig
 ): Promise<EmergencyConfig> {
-  await delay(800);
   storage.set("emergency_config", JSON.stringify(config));
   return config;
 }

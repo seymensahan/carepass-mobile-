@@ -3,6 +3,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useAuth } from "../../contexts/AuthContext";
 
 const SECTIONS = [
   {
@@ -47,8 +48,31 @@ const SECTIONS = [
   },
 ];
 
+const FEMININE_SECTIONS = [
+  {
+    icon: "droplet" as const,
+    title: "Cycle menstruel",
+    subtitle: "Règles, ovulation et prédictions",
+    count: "",
+    color: "#e91e8a",
+    route: "/health/cycle",
+  },
+  {
+    icon: "heart" as const,
+    title: "Suivi de grossesse",
+    subtitle: "Rendez-vous, constantes et progression",
+    count: "",
+    color: "#9b59b6",
+    route: "/health/pregnancy",
+  },
+];
+
 export default function RecordsScreen() {
   const router = useRouter();
+  const { user } = useAuth();
+
+  // Show feminine health sections for female patients
+  const isFemale = user?.gender === "F";
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -112,6 +136,47 @@ export default function RecordsScreen() {
             <Feather name="chevron-right" size={18} color="#6c757d" />
           </Pressable>
         ))}
+
+        {/* Feminine Health (shown for female patients) */}
+        {isFemale && (
+          <>
+            <View className="mt-4 mb-3">
+              <Text className="text-lg font-bold text-foreground">
+                Santé féminine
+              </Text>
+              <Text className="text-xs text-muted mt-0.5">
+                Suivi menstruel et grossesse
+              </Text>
+            </View>
+            {FEMININE_SECTIONS.map((section, index) => (
+              <Pressable
+                key={`fem-${index}`}
+                onPress={() => router.push(section.route as never)}
+                className="flex-row items-center bg-white rounded-2xl p-4 mb-3 border border-border active:opacity-80"
+              >
+                <View
+                  className="w-12 h-12 rounded-xl items-center justify-center mr-4"
+                  style={{ backgroundColor: section.color + "15" }}
+                >
+                  <Feather
+                    name={section.icon}
+                    size={22}
+                    color={section.color}
+                  />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-base font-semibold text-foreground">
+                    {section.title}
+                  </Text>
+                  <Text className="text-xs text-muted mt-0.5">
+                    {section.subtitle}
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={18} color="#6c757d" />
+              </Pressable>
+            ))}
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
