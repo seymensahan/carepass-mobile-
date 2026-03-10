@@ -9,33 +9,19 @@ import type {
   User,
 } from "../types";
 
-// Backend returns a limited user object in auth responses
+// Backend user object in auth responses (includes patient data when applicable)
 interface BackendAuthUser {
   id: string;
   email: string;
   role: string;
   firstName: string;
   lastName: string;
+  phone?: string;
+  gender?: string | null;
+  dateOfBirth?: string | null;
+  bloodGroup?: string | null;
 }
 
-interface BackendAuthResponse {
-  success: boolean;
-  message: string;
-  data?: {
-    accessToken: string;
-    refreshToken: string;
-    user: BackendAuthUser;
-  };
-}
-
-interface BackendRefreshResponse {
-  success: boolean;
-  message: string;
-  data?: {
-    accessToken: string;
-    refreshToken: string;
-  };
-}
 
 function mapRole(backendRole: string): "patient" | "doctor" | "admin" {
   if (backendRole === "doctor") return "doctor";
@@ -49,10 +35,10 @@ function mapBackendUser(u: BackendAuthUser): User {
     firstName: u.firstName,
     lastName: u.lastName,
     email: u.email,
-    phone: "",
-    bloodGroup: null,
-    gender: "M",
-    dateOfBirth: "",
+    phone: u.phone || "",
+    bloodGroup: u.bloodGroup || null,
+    gender: (u.gender as "M" | "F") || "M",
+    dateOfBirth: u.dateOfBirth || "",
     role: mapRole(u.role),
     avatarUrl: null,
     createdAt: new Date().toISOString(),
@@ -60,16 +46,16 @@ function mapBackendUser(u: BackendAuthUser): User {
 }
 
 export async function loginUser(data: LoginRequest): Promise<AuthResponse> {
-  const response = await api.post<BackendAuthResponse>("/auth/login", {
+  const response = await api.post<{ accessToken: string; refreshToken: string; user: BackendAuthUser }>("/auth/login", {
     body: { email: data.email, password: data.password },
     authenticated: false,
   });
 
-  if (response.data?.success && response.data.data) {
-    const { accessToken, refreshToken, user } = response.data.data;
+  if (response.data?.accessToken) {
+    const { accessToken, refreshToken, user } = response.data;
     return {
       success: true,
-      message: response.data.message || "Connexion réussie",
+      message: "Connexion réussie",
       data: {
         user: mapBackendUser(user),
         accessToken,
@@ -80,14 +66,14 @@ export async function loginUser(data: LoginRequest): Promise<AuthResponse> {
 
   return {
     success: false,
-    message: response.data?.message || response.error || "Email ou mot de passe incorrect",
+    message: response.error || "Email ou mot de passe incorrect",
   };
 }
 
 export async function registerUser(
   data: RegisterRequest
 ): Promise<AuthResponse> {
-  const response = await api.post<BackendAuthResponse>("/auth/register", {
+  const response = await api.post<{ accessToken: string; refreshToken: string; user: BackendAuthUser }>("/auth/register", {
     body: {
       firstName: data.firstName,
       lastName: data.lastName,
@@ -95,15 +81,18 @@ export async function registerUser(
       phone: data.phone,
       password: data.password,
       role: "patient",
+      gender: data.gender || undefined,
+      dateOfBirth: data.dateOfBirth || undefined,
+      bloodGroup: data.bloodGroup || undefined,
     },
     authenticated: false,
   });
 
-  if (response.data?.success && response.data.data) {
-    const { accessToken, refreshToken, user } = response.data.data;
+  if (response.data?.accessToken) {
+    const { accessToken, refreshToken, user } = response.data;
     return {
       success: true,
-      message: response.data.message || "Compte créé avec succès",
+      message: "Compte créé avec succès",
       data: {
         user: mapBackendUser(user),
         accessToken,
@@ -114,18 +103,29 @@ export async function registerUser(
 
   return {
     success: false,
-    message: response.data?.message || response.error || "Erreur lors de l'inscription",
+    message: response.error || "Erreur lors de l'inscription",
   };
 }
 
 export async function forgotPassword(
   email: string
 ): Promise<ForgotPasswordResponse> {
-  // Not yet implemented on backend — keep mock
-  return {
-    success: true,
-    message: "Un code de vérification a été envoyé à votre adresse email.",
-  };
+  try {
+    const response = await api.post<{ message: string }>("/auth/forgot-password", {
+      body: { email },
+      authenticated: false,
+    });
+    return {
+      success: true,
+      message: response.data?.message || "Si un compte existe avec cet email, un lien de réinitialisation a été envoyé.",
+    };
+  } catch {
+    // Always return success to prevent email enumeration
+    return {
+      success: true,
+      message: "Si un compte existe avec cet email, un lien de réinitialisation a été envoyé.",
+    };
+  }
 }
 
 export async function verifyOtp(
@@ -147,16 +147,16 @@ export async function verifyOtp(
 }
 
 export async function refreshToken(): Promise<RefreshTokenResponse> {
-  const response = await api.post<BackendRefreshResponse>("/auth/refresh-token", {
+  const response = await api.post<{ accessToken: string; refreshToken: string }>("/auth/refresh-token", {
     authenticated: true,
   });
 
-  if (response.data?.success && response.data.data) {
+  if (response.data?.accessToken) {
     return {
       success: true,
       data: {
-        accessToken: response.data.data.accessToken,
-        refreshToken: response.data.data.refreshToken,
+        accessToken: response.data.accessToken,
+        refreshToken: response.data.refreshToken,
       },
     };
   }

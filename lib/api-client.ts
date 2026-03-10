@@ -1,6 +1,28 @@
 import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
+import Constants from "expo-constants";
 
-const BASE_URL = "https://carepass-backend.zylo-platform.cloud/api";
+const PROD_URL = "https://carepass-backend.zylo-platform.cloud/api";
+
+// Resolve the dev server URL dynamically:
+// - Physical device (Expo Go): use the debuggerHost IP (the machine running Metro)
+// - Android emulator: 10.0.2.2 reaches host machine
+// - iOS simulator: localhost
+function getDevUrl(): string {
+  // expo-constants provides the IP of the machine running Metro
+  const debuggerHost =
+    Constants.expoConfig?.hostUri ?? Constants.manifest2?.extra?.expoGo?.debuggerHost;
+  if (debuggerHost) {
+    const ip = debuggerHost.split(":")[0];
+    return `http://${ip}:8000/api`;
+  }
+  // Fallback for emulators
+  return Platform.OS === "android"
+    ? "http://10.0.2.2:8000/api"
+    : "http://localhost:8000/api";
+}
+
+const BASE_URL = __DEV__ ? getDevUrl() : PROD_URL;
 const TOKEN_KEY = "carepass_access_token";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";

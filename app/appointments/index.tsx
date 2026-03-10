@@ -136,7 +136,6 @@ export default function AppointmentsListScreen() {
           data={data}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
-          estimatedItemSize={180}
           contentContainerStyle={{ paddingBottom: 24, paddingTop: 4 }}
           showsVerticalScrollIndicator={false}
           refreshControl={

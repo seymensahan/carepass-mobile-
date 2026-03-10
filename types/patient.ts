@@ -37,7 +37,7 @@ export interface Patient {
   email: string;
   phone: string;
   dateOfBirth: string;
-  gender: "M" | "F" | "other";
+  gender: "M" | "F";
   bloodGroup: string | null;
   genotype: string | null;
   avatarUrl: string | null;
@@ -70,7 +70,7 @@ export interface UpdateProfileData {
   lastName?: string;
   phone?: string;
   dateOfBirth?: string;
-  gender?: "M" | "F" | "other";
+  gender?: "M" | "F";
   bloodGroup?: string;
   genotype?: string;
   allergies?: Allergy[];

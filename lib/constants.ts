@@ -16,8 +16,8 @@ export const COLORS = {
   white: "#ffffff",
 } as const;
 
-export const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] as const;
-export const GENOTYPES = ["AA", "AS", "SS", "AC", "SC"] as const;
+export const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "inconnu"] as const;
+export const GENOTYPES = ["AA", "AS", "SS", "AC", "SC", "inconnu"] as const;
 
 export const SUPPORT_EMAIL = "support@carepass.cm";
 export const SUPPORT_PHONE = "+237 6XX XXX XXX";
