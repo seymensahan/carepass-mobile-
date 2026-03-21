@@ -111,18 +111,27 @@ function mapVaccination(v: BackendVaccination): VaccinationReminder {
 export async function getDashboardSummary(): Promise<DashboardSummary> {
   const response = await api.get<BackendDashboardResponse>("/dashboard/patient");
 
+  // Fetch patient profile to get real blood group
+  let bloodGroup = "—";
+  try {
+    const profileRes = await api.get<{ data?: { bloodGroup?: string | null } }>("/users/profile");
+    const patientRes = profileRes.data as any;
+    bloodGroup = patientRes?.patient?.bloodGroup || patientRes?.bloodGroup || "—";
+  } catch {
+    // ignore — keep default
+  }
+
   if (response.data) {
     const d = response.data;
     return {
-      bloodGroup: "O+", // Not returned by dashboard endpoint — use patient profile later
+      bloodGroup,
       allergiesCount: d.totalAllergies,
       consultationsCount: d.totalConsultations,
-      activeMedicationsCount: d.totalLabResults, // Best available metric
+      activeMedicationsCount: d.totalLabResults,
     };
   }
 
-  // Fallback if API fails
-  return { bloodGroup: "—", allergiesCount: 0, consultationsCount: 0, activeMedicationsCount: 0 };
+  return { bloodGroup, allergiesCount: 0, consultationsCount: 0, activeMedicationsCount: 0 };
 }
 
 export async function getUpcomingAppointments(): Promise<Appointment[]> {

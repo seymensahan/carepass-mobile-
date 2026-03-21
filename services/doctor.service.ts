@@ -12,12 +12,27 @@ import type {
   CreateAppointmentData,
 } from "../types/doctor";
 
+// ─── Helper: unwrap backend response ───
+// Backend wraps responses via ResponseInterceptor: { success: true, data: ... }
+// Some paginated endpoints return { success: true, data: { data: [...], meta } }
+function unwrapList(responseData: any): any[] {
+  const raw = responseData;
+  const inner = raw?.data ?? raw;
+  if (Array.isArray(inner)) return inner;
+  if (Array.isArray(inner?.data)) return inner.data;
+  return [];
+}
+
+function unwrapOne(responseData: any): any {
+  return responseData?.data ?? responseData;
+}
+
 // ─── Helper: get current doctor profile ───
 
 async function getDoctorProfile(): Promise<{ doctorId: string; profile: DoctorProfile } | null> {
   const response = await api.get<any>("/users/profile");
   if (!response.data) return null;
-  const d = response.data;
+  const d = unwrapOne(response.data);
   const doc = d.doctor || {};
   return {
     doctorId: doc.id || d.id,
@@ -45,12 +60,14 @@ async function getDoctorProfile(): Promise<{ doctorId: string; profile: DoctorPr
 
 export async function getDashboardStats(): Promise<DoctorDashboardStats> {
   const response = await api.get<any>("/dashboard/doctor");
-  if (response.data) {
+  // Backend returns { success: true, data: { totalPatients, ... } }
+  const d = response.data?.data ?? response.data;
+  if (d) {
     return {
-      totalPatients: response.data.totalPatients || 0,
-      totalConsultations: response.data.totalConsultations || 0,
-      consultationsThisMonth: response.data.consultationsThisMonth || 0,
-      pendingRequests: response.data.pendingRequests || 0,
+      totalPatients: d.totalPatients || 0,
+      totalConsultations: d.totalConsultations || 0,
+      consultationsThisMonth: d.consultationsThisMonth || 0,
+      pendingRequests: d.pendingRequests || 0,
     };
   }
   return { totalPatients: 0, totalConsultations: 0, consultationsThisMonth: 0, pendingRequests: 0 };
@@ -62,7 +79,7 @@ export async function getUpcomingAppointments(): Promise<DoctorAppointment[]> {
     headers: {},
     authenticated: true,
   });
-  const list = Array.isArray(response.data) ? response.data : [];
+  const list = unwrapList(response.data);
   return list
     .filter((a: any) => a.status === "scheduled" || a.status === "confirmed")
     .slice(0, 10)
@@ -75,7 +92,7 @@ export async function getRecentConsultations(): Promise<DoctorConsultation[]> {
     headers: {},
     authenticated: true,
   });
-  const list = Array.isArray(response.data) ? response.data : [];
+  const list = unwrapList(response.data);
   return list.slice(0, 5).map(mapConsultation);
 }
 
@@ -109,13 +126,14 @@ export async function getPatients(): Promise<DoctorPatient[]> {
   const result = await getDoctorProfile();
   if (!result) return [];
   const response = await api.get<any>(`/doctors/${result.doctorId}/patients`);
-  const list = Array.isArray(response.data) ? response.data : [];
+  if (response.error) return [];
+  const list = unwrapList(response.data);
   return list.map((p: any) => {
-    const dob = new Date(p.dateOfBirth);
-    const age = Math.floor((Date.now() - dob.getTime()) / (365.25 * 86400000));
+    const dob = p.dateOfBirth ? new Date(p.dateOfBirth) : null;
+    const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 86400000)) : 0;
     return {
       id: p.id,
-      carepassId: p.carepassId,
+      carepassId: p.carepassId || "",
       firstName: p.user?.firstName || "",
       lastName: p.user?.lastName || "",
       dateOfBirth: p.dateOfBirth,
@@ -132,7 +150,39 @@ export async function getPatients(): Promise<DoctorPatient[]> {
 
 export async function getPatientDetail(patientId: string): Promise<any | null> {
   const response = await api.get<any>(`/patients/${patientId}`);
-  return response.data || null;
+  return unwrapOne(response.data) || null;
+}
+
+// ─── Patient Sub-Data ───
+
+export async function getPatientAllergies(patientId: string): Promise<any[]> {
+  const response = await api.get<any>(`/allergies?patientId=${patientId}`);
+  return unwrapList(response.data);
+}
+
+export async function getPatientVaccinations(patientId: string): Promise<any[]> {
+  const response = await api.get<any>(`/vaccinations?patientId=${patientId}`);
+  return unwrapList(response.data);
+}
+
+export async function getPatientLabResults(patientId: string): Promise<any[]> {
+  const response = await api.get<any>(`/lab-results?patientId=${patientId}`);
+  return unwrapList(response.data);
+}
+
+export async function getPatientPrescriptions(patientId: string): Promise<any[]> {
+  const response = await api.get<any>(`/prescriptions?patientId=${patientId}`);
+  return unwrapList(response.data);
+}
+
+export async function getPatientMedicalConditions(patientId: string): Promise<any[]> {
+  const response = await api.get<any>(`/medical-conditions?patientId=${patientId}`);
+  return unwrapList(response.data);
+}
+
+export async function getPatientEmergencyContacts(patientId: string): Promise<any[]> {
+  const response = await api.get<any>(`/emergency-contacts?patientId=${patientId}`);
+  return unwrapList(response.data);
 }
 
 // ─── Consultations ───
@@ -140,38 +190,45 @@ export async function getPatientDetail(patientId: string): Promise<any | null> {
 export async function getConsultations(patientId?: string): Promise<DoctorConsultation[]> {
   const endpoint = patientId ? `/consultations?patientId=${patientId}&limit=50` : "/consultations?limit=50";
   const response = await api.get<any>(endpoint);
-  const list = Array.isArray(response.data) ? response.data : [];
-  return list.map(mapConsultation);
+  return unwrapList(response.data).map(mapConsultation);
 }
 
 export async function getConsultationById(id: string): Promise<DoctorConsultation | null> {
   const response = await api.get<any>(`/consultations/${id}`);
-  if (!response.data) return null;
-  return mapConsultation(response.data);
+  const data = unwrapOne(response.data);
+  if (!data) return null;
+  return mapConsultation(data);
 }
 
-export async function createConsultation(data: CreateConsultationData): Promise<{ success: boolean; id?: string }> {
+export async function createConsultation(data: CreateConsultationData): Promise<{ success: boolean; id?: string; message?: string }> {
   const response = await api.post<any>("/consultations", { body: data as any });
-  if (response.data?.id) {
-    return { success: true, id: response.data.id };
+  if (response.error) {
+    return { success: false, message: response.error };
   }
-  return { success: false };
+  const result = unwrapOne(response.data);
+  if (result?.id) {
+    return { success: true, id: result.id };
+  }
+  return { success: false, message: "Réponse inattendue du serveur" };
 }
 
 // ─── Appointments ───
 
 export async function getAppointments(): Promise<DoctorAppointment[]> {
   const response = await api.get<any>("/appointments?limit=50");
-  const list = Array.isArray(response.data) ? response.data : [];
-  return list.map(mapAppointment);
+  return unwrapList(response.data).map(mapAppointment);
 }
 
-export async function createAppointment(data: CreateAppointmentData): Promise<{ success: boolean; id?: string }> {
+export async function createAppointment(data: CreateAppointmentData): Promise<{ success: boolean; id?: string; message?: string }> {
   const response = await api.post<any>("/appointments", { body: data as any });
-  if (response.data?.id) {
-    return { success: true, id: response.data.id };
+  if (response.error) {
+    return { success: false, message: response.error };
   }
-  return { success: false };
+  const result = unwrapOne(response.data);
+  if (result?.id) {
+    return { success: true, id: result.id };
+  }
+  return { success: false, message: "Réponse inattendue du serveur" };
 }
 
 export async function updateAppointmentStatus(id: string, status: string): Promise<boolean> {
@@ -183,7 +240,8 @@ export async function updateAppointmentStatus(id: string, status: string): Promi
 
 export async function getAccessRequests(): Promise<DoctorAccessRequest[]> {
   const response = await api.get<any>("/access-requests");
-  const list = Array.isArray(response.data) ? response.data : [];
+  // Backend returns { data: [...], meta: {...} } — extract the data array
+  const list = unwrapList(response.data);
   return list.map((ar: any) => ({
     id: ar.id,
     patientId: ar.patientId,
@@ -192,6 +250,20 @@ export async function getAccessRequests(): Promise<DoctorAccessRequest[]> {
     reason: ar.reason,
     status: ar.status,
     requestedAt: ar.requestedAt,
+  }));
+}
+
+export async function getActiveGrants(): Promise<DoctorAccessRequest[]> {
+  const response = await api.get<any>("/access-grants/patients");
+  const list = unwrapList(response.data);
+  return list.map((g: any) => ({
+    id: g.grantId,
+    patientId: g.patient?.id || "",
+    patientName: g.patient?.user ? `${g.patient.user.firstName} ${g.patient.user.lastName}` : "",
+    patientCarepassId: g.patient?.carepassId || "",
+    reason: undefined,
+    status: "approved" as const,
+    requestedAt: g.grantedAt,
   }));
 }
 
@@ -205,13 +277,74 @@ export async function requestPatientAccess(carepassId: string, reason?: string):
   return { success: true, message: "Demande envoyée" };
 }
 
+// ─── Hospitalisations ───
+
+export async function getHospitalisations(): Promise<any[]> {
+  const response = await api.get<any>("/hospitalisations");
+  return unwrapList(response.data);
+}
+
+export async function getActiveHospitalisations(): Promise<any[]> {
+  const response = await api.get<any>("/hospitalisations/active");
+  return unwrapList(response.data);
+}
+
+export async function getHospitalisationStats(): Promise<any> {
+  const response = await api.get<any>("/hospitalisations/stats");
+  const d = unwrapOne(response.data);
+  return d || { activeCount: 0, todayAdmissions: 0, avgStayDays: 0, totalCompleted: 0 };
+}
+
+export async function getHospitalisationDetail(id: string): Promise<any | null> {
+  const response = await api.get<any>(`/hospitalisations/${id}`);
+  return unwrapOne(response.data) || null;
+}
+
+export async function createHospitalisation(data: {
+  patientId: string;
+  admissionDate: string;
+  reason: string;
+  room?: string;
+  bed?: string;
+  diagnosis?: string;
+  notes?: string;
+}): Promise<{ success: boolean; id?: string; message?: string }> {
+  const response = await api.post<any>("/hospitalisations", { body: data as any });
+  if (response.error) {
+    return { success: false, message: response.error };
+  }
+  const result = unwrapOne(response.data);
+  if (result?.id) return { success: true, id: result.id };
+  return { success: false, message: "Réponse inattendue du serveur" };
+}
+
+export async function dischargePatient(id: string): Promise<boolean> {
+  const response = await api.post<any>(`/hospitalisations/${id}/discharge`, { body: {} });
+  return !response.error;
+}
+
+export async function addVitalSigns(hospitalisationId: string, data: any): Promise<boolean> {
+  const response = await api.post<any>(`/hospitalisations/${hospitalisationId}/vitals`, { body: data });
+  return !response.error;
+}
+
+export async function addHospMedication(hospitalisationId: string, data: any): Promise<boolean> {
+  const response = await api.post<any>(`/hospitalisations/${hospitalisationId}/medications`, { body: data });
+  return !response.error;
+}
+
+export async function addEvolutionNote(hospitalisationId: string, content: string): Promise<boolean> {
+  const response = await api.post<any>(`/hospitalisations/${hospitalisationId}/evolution-notes`, { body: { content } });
+  return !response.error;
+}
+
 // ─── Multi-Institution (Premium) ───
 
 export async function getDoctorInstitutions(): Promise<DoctorInstitution[]> {
   const result = await getDoctorProfile();
   if (!result) return [];
   const response = await api.get<any>(`/doctors/${result.doctorId}/institutions`);
-  const list = Array.isArray(response.data) ? response.data : [];
+  const list = unwrapList(response.data);
   return list.map((di: any) => ({
     id: di.institution?.id || di.institutionId,
     name: di.institution?.name || "",
@@ -226,23 +359,21 @@ export async function getSyncedDashboard(): Promise<SyncedDashboard | null> {
   const result = await getDoctorProfile();
   if (!result) return null;
   const response = await api.get<any>(`/doctors/${result.doctorId}/sync/dashboard`);
-  return response.data || null;
+  return unwrapOne(response.data) || null;
 }
 
 export async function getSyncedConsultations(): Promise<DoctorConsultation[]> {
   const result = await getDoctorProfile();
   if (!result) return [];
   const response = await api.get<any>(`/doctors/${result.doctorId}/sync/consultations`);
-  const list = Array.isArray(response.data) ? response.data : [];
-  return list.map(mapConsultation);
+  return unwrapList(response.data).map(mapConsultation);
 }
 
 export async function getSyncedAppointments(): Promise<DoctorAppointment[]> {
   const result = await getDoctorProfile();
   if (!result) return [];
   const response = await api.get<any>(`/doctors/${result.doctorId}/sync/appointments`);
-  const list = Array.isArray(response.data) ? response.data : [];
-  return list.map(mapAppointment);
+  return unwrapList(response.data).map(mapAppointment);
 }
 
 // ─── Mappers ───

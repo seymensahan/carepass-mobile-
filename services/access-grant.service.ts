@@ -47,15 +47,18 @@ function mapGrant(g: Any): AccessGrant {
 
 export async function getActiveGrants(): Promise<AccessGrant[]> {
   const response = await api.get<Any>("/access-grants");
-  const list =
-    Array.isArray(response.data) ? response.data : [];
+  // Backend wraps: { success: true, data: [...] }
+  const raw = response.data;
+  const inner = raw?.data ?? raw;
+  const list = Array.isArray(inner) ? inner : [];
   return list.map(mapGrant).filter((g: AccessGrant) => g.isActive);
 }
 
 export async function getGrantHistory(): Promise<AccessGrant[]> {
   const response = await api.get<Any>("/access-grants");
-  const list =
-    Array.isArray(response.data) ? response.data : [];
+  const raw = response.data;
+  const inner = raw?.data ?? raw;
+  const list = Array.isArray(inner) ? inner : [];
   return list.map(mapGrant).filter((g: AccessGrant) => !g.isActive);
 }
 
@@ -63,24 +66,27 @@ export async function getGrantById(
   grantId: string
 ): Promise<AccessGrant | null> {
   const response = await api.get<Any>("/access-grants");
-  const list =
-    Array.isArray(response.data) ? response.data : [];
+  const raw = response.data;
+  const inner = raw?.data ?? raw;
+  const list = Array.isArray(inner) ? inner : [];
   const all = list.map(mapGrant);
   return all.find((g: AccessGrant) => g.id === grantId) ?? null;
 }
 
 export async function getPendingRequests(): Promise<AccessRequest[]> {
   const response = await api.get<Any>("/access-requests");
-  const list =
-    Array.isArray(response.data) ? response.data : [];
+  // Backend returns { success: true, data: { data: [...], meta: {...} } }
+  const raw = response.data;
+  const inner = raw?.data ?? raw;
+  const list = Array.isArray(inner) ? inner : Array.isArray(inner?.data) ? inner.data : [];
 
   return list
     .filter((r: Any) => r.status === "pending")
     .map((r: Any) => ({
       id: r.id,
       doctor: mapDoctor(r.doctor),
-      requestedAt: r.createdAt,
-      message: r.message,
+      requestedAt: r.requestedAt || r.createdAt,
+      message: r.reason,
       status: r.status as AccessRequest["status"],
     }));
 }
@@ -94,7 +100,8 @@ export async function approveRequest(
     `/access-requests/${requestId}/approve`,
     { body: { duration, permissions } }
   );
-  const g = response.data;
+  const raw = response.data;
+  const g = raw?.data ?? raw;
   if (g?.id) return mapGrant(g);
 
   return {
@@ -120,7 +127,8 @@ export async function grantAccess(
   const response = await api.post<Any>("/access-grants", {
     body: { doctorId, duration, permissions },
   });
-  const g = response.data;
+  const raw = response.data;
+  const g = raw?.data ?? raw;
   if (g?.id) return mapGrant(g);
 
   return {
@@ -166,8 +174,9 @@ export async function lookupDoctorById(
     const response = await api.get<Any>(
       `/search/doctors?q=${encodeURIComponent(carepassId)}`
     );
-    const list =
-      Array.isArray(response.data) ? response.data : [];
+    const raw = response.data;
+    const inner = raw?.data ?? raw;
+    const list = Array.isArray(inner) ? inner : [];
     if (list.length > 0) {
       return mapDoctor(list[0]);
     }

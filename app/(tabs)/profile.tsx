@@ -372,6 +372,31 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        {/* ─── Access Management ─── */}
+        <View className="px-6 mb-5">
+          <Text className="text-base font-bold text-foreground mb-3">
+            Accès à mon dossier
+          </Text>
+          <Pressable
+            onPress={() => router.push("/access")}
+            className="bg-white rounded-3xl overflow-hidden flex-row items-center px-5 py-4"
+            style={s.card}
+          >
+            <View className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center mr-3">
+              <Feather name="shield" size={17} color="#007bff" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-foreground">
+                Gérer les accès médecins
+              </Text>
+              <Text className="text-xs text-muted mt-0.5">
+                Demandes en attente, accès actifs
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={16} color="#6c757d" />
+          </Pressable>
+        </View>
+
         {/* ─── Settings ─── */}
         <View className="px-6 mb-5">
           <Text className="text-base font-bold text-foreground mb-3">

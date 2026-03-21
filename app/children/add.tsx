@@ -13,6 +13,7 @@ import { Feather } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addChild } from "../../services/child.service";
 import Button from "../../components/ui/Button";
+import DatePickerField from "../../components/ui/DatePickerField";
 
 const STEPS = [
   "Identité",
@@ -34,7 +35,7 @@ export default function AddChildScreen() {
   const [dependentType, setDependentType] = useState<"child" | "elderly" | "disabled">("child");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
   const [gender, setGender] = useState<"M" | "F">("F");
 
   // Step 2 — Medical
@@ -70,7 +71,7 @@ export default function AddChildScreen() {
   });
 
   const canProceed = () => {
-    if (step === 0) return firstName.trim() && lastName.trim() && dateOfBirth.trim();
+    if (step === 0) return firstName.trim() && lastName.trim() && dateOfBirth !== null;
     return true;
   };
 
@@ -90,7 +91,7 @@ export default function AddChildScreen() {
     mutation.mutate({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      dateOfBirth: dateOfBirth.trim(),
+      dateOfBirth: dateOfBirth ? dateOfBirth.toISOString().split("T")[0] : "",
       gender,
       bloodGroup: bloodGroup || undefined,
       genotype: genotype || undefined,
@@ -145,7 +146,7 @@ export default function AddChildScreen() {
         {/* Header */}
         <View className="flex-row items-center px-6 pt-6 pb-2">
           <Pressable
-            onPress={() => (step > 0 ? setStep(step - 1) : router.navigate("/(tabs)/profile" as any))}
+            onPress={() => (step > 0 ? setStep(step - 1) : router.back())}
             className="w-10 h-10 rounded-full bg-white border border-border items-center justify-center mr-3"
           >
             <Feather name="arrow-left" size={20} color="#212529" />
@@ -193,7 +194,7 @@ export default function AddChildScreen() {
                 {([
                   { key: "child", label: "Enfant", icon: "smile" },
                   { key: "elderly", label: "Âgée", icon: "users" },
-                  { key: "disabled", label: "Handicap", icon: "heart" },
+                  { key: "disabled", label: "Mobilité réduite", icon: "heart" },
                 ] as const).map((opt) => (
                   <Pressable
                     key={opt.key}
@@ -221,12 +222,16 @@ export default function AddChildScreen() {
               </View>
               <FormField label="Prénom *" value={firstName} onChange={setFirstName} placeholder="Prénom de l'enfant" />
               <FormField label="Nom *" value={lastName} onChange={setLastName} placeholder="Nom de famille" />
-              <FormField
-                label="Date de naissance *"
-                value={dateOfBirth}
-                onChange={setDateOfBirth}
-                placeholder="AAAA-MM-JJ"
-              />
+              <View className="mb-4">
+                <DatePickerField
+                  label="Date de naissance *"
+                  value={dateOfBirth}
+                  onChange={setDateOfBirth}
+                  mode="date"
+                  maximumDate={new Date()}
+                  placeholder="Choisir la date"
+                />
+              </View>
               <Text className="text-sm font-semibold text-foreground mb-2">
                 Genre *
               </Text>

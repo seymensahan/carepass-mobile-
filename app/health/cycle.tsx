@@ -19,6 +19,7 @@ import {
   deleteCycle,
 } from "../../services/menstrual-cycle.service";
 import type { FlowIntensity } from "../../types/feminine-health";
+import DatePickerField from "../../components/ui/DatePickerField";
 
 const FLOW_OPTIONS: { value: FlowIntensity; label: string; icon: string; dots: number }[] = [
   { value: "light", label: "Léger", icon: "droplet", dots: 1 },
@@ -42,9 +43,7 @@ export default function CycleTrackingScreen() {
   const queryClient = useQueryClient();
 
   const [showForm, setShowForm] = useState(false);
-  const [startDate, setStartDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [startDate, setStartDate] = useState<Date>(new Date());
   const [flow, setFlow] = useState<FlowIntensity>("medium");
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
@@ -62,7 +61,7 @@ export default function CycleTrackingScreen() {
   const logMutation = useMutation({
     mutationFn: () =>
       logCycle({
-        startDate,
+        startDate: startDate.toISOString().split("T")[0],
         flow,
         symptoms: selectedSymptoms,
         notes: notes || undefined,
@@ -219,15 +218,16 @@ export default function CycleTrackingScreen() {
             </Text>
 
             {/* Date */}
-            <Text className="text-sm font-medium text-foreground mb-1">
-              Date de début
-            </Text>
-            <TextInput
-              value={startDate}
-              onChangeText={setStartDate}
-              placeholder="AAAA-MM-JJ"
-              className="bg-gray-50 rounded-xl px-4 py-3 mb-4 text-foreground border border-border"
-            />
+            <View className="mb-4">
+              <DatePickerField
+                label="Date de debut"
+                value={startDate}
+                onChange={setStartDate}
+                mode="date"
+                maximumDate={new Date()}
+                placeholder="Choisir la date"
+              />
+            </View>
 
             {/* Flow */}
             <Text className="text-sm font-medium text-foreground mb-2">

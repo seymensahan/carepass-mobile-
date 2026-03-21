@@ -120,9 +120,11 @@ export async function getCurrentPlan(): Promise<CurrentSubscription> {
     if (list.length > 0) {
       const sub = list[0];
       const planId = (sub.plan?.tier || sub.planId || "gratuit") as PlanId;
-      const startDate = sub.startDate || sub.createdAt || "";
-      const expiresAt = sub.endDate || sub.expiresAt || "";
-      const daysRemaining = expiresAt
+      const startDate = (sub.startDate || sub.createdAt || "").trim();
+      const expiresAt = (sub.endDate || sub.expiresAt || "").trim();
+      const isValidStart = startDate && !isNaN(Date.parse(startDate));
+      const isValidExpiry = expiresAt && !isNaN(Date.parse(expiresAt));
+      const daysRemaining = isValidExpiry
         ? Math.max(
             0,
             Math.ceil(
@@ -135,10 +137,10 @@ export async function getCurrentPlan(): Promise<CurrentSubscription> {
         planId,
         planName: sub.plan?.name || planId,
         billingCycle: (sub.billingCycle as BillingCycle) || "annuel",
-        startDate: startDate
+        startDate: isValidStart
           ? new Date(startDate).toISOString().split("T")[0]
           : "",
-        expiresAt: expiresAt
+        expiresAt: isValidExpiry
           ? new Date(expiresAt).toISOString().split("T")[0]
           : "",
         daysRemaining,

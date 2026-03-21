@@ -1,18 +1,34 @@
-import React from "react";
-import { View, Text, ScrollView, RefreshControl, TouchableOpacity } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { useCallback } from "react";
+import {
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../contexts/AuthContext";
 import * as doctorService from "../../services/doctor.service";
-import { Card } from "../../components/ui";
+
+const s = StyleSheet.create({
+  card: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
+  },
+});
 
 export default function DoctorHomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [refreshing, setRefreshing] = React.useState(false);
 
   const { data: stats } = useQuery({
     queryKey: ["doctor-dashboard-stats"],
@@ -29,126 +45,187 @@ export default function DoctorHomeScreen() {
     queryFn: doctorService.getRecentConsultations,
   });
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ["doctor-dashboard-stats"] });
-    await queryClient.invalidateQueries({ queryKey: ["doctor-upcoming-appointments"] });
-    await queryClient.invalidateQueries({ queryKey: ["doctor-recent-consultations"] });
-    setRefreshing(false);
+  const onRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["doctor-dashboard-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["doctor-upcoming-appointments"] });
+    queryClient.invalidateQueries({ queryKey: ["doctor-recent-consultations"] });
+  }, [queryClient]);
+
+  const isRefreshing = false;
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
   };
 
+  const renderAppointmentCard = ({ item }: { item: any }) => (
+    <Pressable className="bg-white rounded-3xl p-5 mr-3" style={[{ width: 250 }, s.card]}>
+      <View className="flex-row items-center mb-3">
+        <View className={`px-3 py-1.5 rounded-full ${item.status === "confirmed" ? "bg-secondary" : "bg-accent"}`}>
+          <Text className="text-white text-xs font-semibold">
+            {item.status === "confirmed" ? "Confirmé" : item.status === "completed" ? "Terminé" : "Planifié"}
+          </Text>
+        </View>
+      </View>
+      <Text className="text-base font-bold text-foreground mb-1">{item.patientName}</Text>
+      <Text className="text-xs text-primary font-semibold mb-3">{item.type || "Consultation"}</Text>
+      <View className="flex-row items-center mb-2">
+        <View className="w-7 h-7 rounded-lg bg-primary/8 items-center justify-center mr-2">
+          <Feather name="calendar" size={13} color="#007bff" />
+        </View>
+        <Text className="text-xs text-muted">{formatDate(item.date)}</Text>
+      </View>
+      {item.reason && (
+        <View className="flex-row items-center">
+          <View className="w-7 h-7 rounded-lg bg-primary/8 items-center justify-center mr-2">
+            <Feather name="file-text" size={13} color="#007bff" />
+          </View>
+          <Text className="text-xs text-muted" numberOfLines={1}>{item.reason}</Text>
+        </View>
+      )}
+    </Pressable>
+  );
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#f8f9fa" }}>
+    <SafeAreaView className="flex-1 bg-background">
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 28 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#007bff" colors={["#007bff"]} />}
       >
         {/* Header */}
-        <View style={{ marginBottom: 20 }}>
-          <Text style={{ fontSize: 14, color: "#6c757d" }}>Bonjour,</Text>
-          <Text style={{ fontSize: 22, fontWeight: "700", color: "#212529" }}>
-            Dr. {user?.firstName} {user?.lastName}
-          </Text>
+        <View className="flex-row items-center justify-between px-6 pt-6 pb-5">
+          <View>
+            <Text className="text-muted text-sm">Bonjour</Text>
+            <Text className="text-2xl font-bold text-foreground">
+              Dr. {user?.firstName} {user?.lastName}
+            </Text>
+          </View>
+          <View className="flex-row items-center gap-3">
+            <Pressable onPress={() => router.push("/notifications" as any)} className="w-12 h-12 rounded-2xl bg-white items-center justify-center" style={s.card}>
+              <Feather name="bell" size={20} color="#212529" />
+            </Pressable>
+            <Pressable onPress={() => router.push("/(doctor-tabs)/profile")} className="w-12 h-12 rounded-2xl bg-primary items-center justify-center" style={s.card}>
+              <Text className="text-white text-sm font-bold">{user?.firstName?.[0]}{user?.lastName?.[0]}</Text>
+            </Pressable>
+          </View>
         </View>
 
         {/* Stats Grid */}
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
-          <StatCard icon="users" label="Patients" value={stats?.totalPatients || 0} color="#007bff" />
-          <StatCard icon="file-text" label="Consultations" value={stats?.consultationsThisMonth || 0} color="#28a745" />
-          <StatCard icon="clock" label="En attente" value={stats?.pendingRequests || 0} color="#ffc107" />
-          <StatCard icon="activity" label="Total" value={stats?.totalConsultations || 0} color="#6f42c1" />
+        <View className="px-6 mb-7">
+          <Text className="text-lg font-bold text-foreground mb-4">Tableau de bord</Text>
+          <View className="flex-row flex-wrap gap-3">
+            {[
+              { icon: "users" as const, label: "Patients", value: stats?.totalPatients ?? 0, color: "#007bff", bg: "#007bff08" },
+              { icon: "clipboard" as const, label: "Ce mois", value: stats?.consultationsThisMonth ?? 0, color: "#28a745", bg: "#28a74508" },
+              { icon: "clock" as const, label: "En attente", value: stats?.pendingRequests ?? 0, color: "#ffc107", bg: "#ffc10708" },
+              { icon: "activity" as const, label: "Total", value: stats?.totalConsultations ?? 0, color: "#6f42c1", bg: "#6f42c108" },
+            ].map((item, index) => (
+              <View key={index} className="bg-white rounded-3xl p-5 items-center" style={[{ width: "48%", backgroundColor: item.bg }, s.card]}>
+                <View className="w-12 h-12 rounded-2xl items-center justify-center mb-3" style={{ backgroundColor: item.color + "15" }}>
+                  <Feather name={item.icon} size={22} color={item.color} />
+                </View>
+                <Text className="text-xl font-bold text-foreground">{item.value}</Text>
+                <Text className="text-xs text-muted mt-1">{item.label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Quick Actions Grid */}
+        <View className="px-6 mb-7">
+          <Text className="text-lg font-bold text-foreground mb-4">Actions rapides</Text>
+          <View className="flex-row flex-wrap gap-3">
+            <Pressable
+              onPress={() => router.push("/doctor/new-consultation" as any)}
+              className="bg-primary rounded-3xl p-5 flex-row items-center"
+              style={[{ width: "100%" }, s.card]}
+            >
+              <View className="w-12 h-12 rounded-2xl bg-white/20 items-center justify-center mr-4">
+                <Feather name="plus-circle" size={24} color="#ffffff" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-white font-bold text-base">Nouvelle consultation</Text>
+                <Text className="text-white/70 text-xs mt-0.5">Créer une consultation pour un patient</Text>
+              </View>
+              <View className="w-9 h-9 rounded-xl bg-white/15 items-center justify-center">
+                <Feather name="chevron-right" size={18} color="#ffffff" />
+              </View>
+            </Pressable>
+
+            {[
+              { icon: "user-plus" as const, label: "Demandes d'accès", color: "#fd7e14", bg: "bg-orange-50", route: "/doctor/access-requests" },
+              { icon: "home" as const, label: "Hospitalisations", color: "#dc3545", bg: "bg-red-50", route: "/doctor/hospitalisations" },
+              { icon: "users" as const, label: "Mes patients", color: "#007bff", bg: "bg-blue-50", route: "/(doctor-tabs)/patients" },
+              { icon: "calendar" as const, label: "Rendez-vous", color: "#6f42c1", bg: "bg-purple-50", route: "/(doctor-tabs)/appointments" },
+              { icon: "clipboard" as const, label: "Consultations", color: "#28a745", bg: "bg-green-50", route: "/(doctor-tabs)/consultations" },
+            ].map((action) => (
+              <Pressable
+                key={action.label}
+                onPress={() => router.push(action.route as any)}
+                className="bg-white rounded-2xl p-4 items-center"
+                style={[{ width: "47%" }, s.card]}
+              >
+                <View className={`w-12 h-12 rounded-2xl ${action.bg} items-center justify-center mb-2.5`}>
+                  <Feather name={action.icon} size={22} color={action.color} />
+                </View>
+                <Text className="text-xs font-semibold text-foreground text-center">{action.label}</Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
 
         {/* Upcoming Appointments */}
-        <View style={{ marginBottom: 20 }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <Text style={{ fontSize: 16, fontWeight: "600", color: "#212529" }}>Prochains rendez-vous</Text>
-            <TouchableOpacity onPress={() => router.push("/(doctor-tabs)/appointments")}>
-              <Text style={{ fontSize: 13, color: "#007bff" }}>Voir tout</Text>
-            </TouchableOpacity>
+        <View className="mb-7">
+          <View className="flex-row items-center justify-between px-6 mb-4">
+            <Text className="text-lg font-bold text-foreground">Prochains rendez-vous</Text>
+            <Pressable onPress={() => router.push("/(doctor-tabs)/appointments")} className="px-3 py-1.5 rounded-full bg-primary/8">
+              <Text className="text-primary text-xs font-semibold">Voir tout</Text>
+            </Pressable>
           </View>
-          {(!appointments || appointments.length === 0) ? (
-            <Card>
-              <Text style={{ color: "#6c757d", textAlign: "center", padding: 16 }}>Aucun rendez-vous à venir</Text>
-            </Card>
+          {(appointments?.length ?? 0) > 0 ? (
+            <FlatList data={appointments?.slice(0, 5)} renderItem={renderAppointmentCard} keyExtractor={(item) => item.id} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 24 }} />
           ) : (
-            appointments.slice(0, 3).map((apt) => (
-              <Card key={apt.id} style={{ marginBottom: 8 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12 }}>
-                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#e8f4fd", justifyContent: "center", alignItems: "center" }}>
-                    <Feather name="calendar" size={18} color="#007bff" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: "600", color: "#212529" }}>{apt.patientName}</Text>
-                    <Text style={{ fontSize: 12, color: "#6c757d" }}>
-                      {new Date(apt.date).toLocaleDateString("fr-FR")} · {apt.type || "Consultation"}
-                    </Text>
-                  </View>
-                  <StatusBadge status={apt.status} />
-                </View>
-              </Card>
-            ))
+            <View className="mx-6 bg-white rounded-2xl p-5 items-center" style={s.card}>
+              <Feather name="calendar" size={28} color="#adb5bd" />
+              <Text className="text-sm text-muted mt-2">Aucun rendez-vous à venir</Text>
+            </View>
           )}
         </View>
 
         {/* Recent Consultations */}
-        <View>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <Text style={{ fontSize: 16, fontWeight: "600", color: "#212529" }}>Consultations récentes</Text>
-            <TouchableOpacity onPress={() => router.push("/(doctor-tabs)/consultations")}>
-              <Text style={{ fontSize: 13, color: "#007bff" }}>Voir tout</Text>
-            </TouchableOpacity>
+        <View className="px-6 mb-7">
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-lg font-bold text-foreground">Consultations récentes</Text>
+            <Pressable onPress={() => router.push("/(doctor-tabs)/consultations")} className="px-3 py-1.5 rounded-full bg-primary/8">
+              <Text className="text-primary text-xs font-semibold">Voir tout</Text>
+            </Pressable>
           </View>
-          {(!recentConsultations || recentConsultations.length === 0) ? (
-            <Card>
-              <Text style={{ color: "#6c757d", textAlign: "center", padding: 16 }}>Aucune consultation récente</Text>
-            </Card>
-          ) : (
-            recentConsultations.map((c) => (
-              <Card key={c.id} style={{ marginBottom: 8 }}>
-                <View style={{ padding: 12 }}>
-                  <Text style={{ fontWeight: "600", color: "#212529" }}>{c.patientName}</Text>
-                  <Text style={{ fontSize: 12, color: "#6c757d" }}>
-                    {new Date(c.date).toLocaleDateString("fr-FR")} · {c.motif}
-                  </Text>
-                  {c.diagnosis ? (
-                    <Text style={{ fontSize: 12, color: "#007bff", marginTop: 4 }}>Diagnostic: {c.diagnosis}</Text>
-                  ) : null}
+          {(recentConsultations?.length ?? 0) > 0 ? (
+            recentConsultations?.map((item) => (
+              <Pressable key={item.id} onPress={() => router.push(`/doctor/consultation/${item.id}` as any)} className="flex-row bg-white rounded-2xl p-4 mb-3" style={s.card}>
+                <View className="w-11 h-11 rounded-xl bg-secondary/15 items-center justify-center mr-3">
+                  <Feather name="clipboard" size={18} color="#28a745" />
                 </View>
-              </Card>
+                <View className="flex-1">
+                  <View className="flex-row items-center justify-between mb-1">
+                    <Text className="text-sm font-bold text-foreground">{item.patientName}</Text>
+                    <Text className="text-xs text-muted">{formatDate(item.date)}</Text>
+                  </View>
+                  <Text className="text-xs text-primary font-semibold mb-1">{item.motif}</Text>
+                  {item.diagnosis && <Text className="text-xs text-muted leading-4" numberOfLines={1}>{item.diagnosis}</Text>}
+                </View>
+              </Pressable>
             ))
+          ) : (
+            <View className="bg-white rounded-2xl p-5 items-center" style={s.card}>
+              <Feather name="clipboard" size={28} color="#adb5bd" />
+              <Text className="text-sm text-muted mt-2">Aucune consultation récente</Text>
+            </View>
           )}
         </View>
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function StatCard({ icon, label, value, color }: { icon: string; label: string; value: number; color: string }) {
-  return (
-    <View style={{ flex: 1, minWidth: "45%", backgroundColor: "#fff", borderRadius: 12, padding: 16, shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 }}>
-      <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: color + "15", justifyContent: "center", alignItems: "center", marginBottom: 8 }}>
-        <Feather name={icon as any} size={18} color={color} />
-      </View>
-      <Text style={{ fontSize: 22, fontWeight: "700", color: "#212529" }}>{value}</Text>
-      <Text style={{ fontSize: 12, color: "#6c757d" }}>{label}</Text>
-    </View>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, { bg: string; text: string }> = {
-    scheduled: { bg: "#fff3cd", text: "#856404" },
-    confirmed: { bg: "#d4edda", text: "#155724" },
-    completed: { bg: "#cce5ff", text: "#004085" },
-    cancelled: { bg: "#f8d7da", text: "#721c24" },
-  };
-  const c = colors[status] || colors.scheduled;
-  return (
-    <View style={{ backgroundColor: c.bg, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-      <Text style={{ fontSize: 10, fontWeight: "600", color: c.text }}>
-        {status === "scheduled" ? "Planifié" : status === "confirmed" ? "Confirmé" : status === "completed" ? "Terminé" : "Annulé"}
-      </Text>
-    </View>
   );
 }

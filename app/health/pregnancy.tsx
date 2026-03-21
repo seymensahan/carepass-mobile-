@@ -18,13 +18,14 @@ import {
   completePregnancyAppointment,
   logPregnancyVitals,
 } from "../../services/pregnancy.service";
+import DatePickerField from "../../components/ui/DatePickerField";
 
 export default function PregnancyScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
   const [showDeclare, setShowDeclare] = useState(false);
-  const [lastPeriodDate, setLastPeriodDate] = useState("");
+  const [lastPeriodDate, setLastPeriodDate] = useState<Date | null>(null);
   const [showVitals, setShowVitals] = useState(false);
   const [weight, setWeight] = useState("");
   const [systolic, setSystolic] = useState("");
@@ -36,7 +37,7 @@ export default function PregnancyScreen() {
   });
 
   const declareMutation = useMutation({
-    mutationFn: () => createPregnancy({ startDate: lastPeriodDate }),
+    mutationFn: () => createPregnancy({ startDate: lastPeriodDate!.toISOString().split("T")[0] }),
     onSuccess: (result) => {
       if (result.success) {
         queryClient.invalidateQueries({ queryKey: ["active-pregnancy"] });
@@ -342,15 +343,16 @@ export default function PregnancyScreen() {
                 <Text className="text-lg font-bold text-foreground mb-4">
                   Nouvelle grossesse
                 </Text>
-                <Text className="text-sm font-medium text-foreground mb-1">
-                  Date des dernières règles
-                </Text>
-                <TextInput
-                  value={lastPeriodDate}
-                  onChangeText={setLastPeriodDate}
-                  placeholder="AAAA-MM-JJ"
-                  className="bg-gray-50 rounded-xl px-4 py-3 mb-4 text-foreground border border-border"
-                />
+                <View className="mb-4">
+                  <DatePickerField
+                    label="Date des dernieres regles"
+                    value={lastPeriodDate}
+                    onChange={setLastPeriodDate}
+                    mode="date"
+                    maximumDate={new Date()}
+                    placeholder="Choisir la date"
+                  />
+                </View>
                 <Text className="text-xs text-muted mb-4">
                   La date d'accouchement prévue sera calculée automatiquement
                   (40 semaines).

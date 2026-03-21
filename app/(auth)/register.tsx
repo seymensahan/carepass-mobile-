@@ -35,11 +35,7 @@ const registerSchema = z
     password: z
       .string()
       .min(1, "Le mot de passe est requis")
-      .min(8, "Minimum 8 caractères")
-      .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/,
-        "Doit contenir 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&)"
-      ),
+      .min(4, "Minimum 4 caractères"),
     confirmPassword: z.string().min(1, "La confirmation est requise"),
     bloodGroup: z.string().optional(),
     gender: z.enum(["M", "F"], {
@@ -117,7 +113,7 @@ export default function RegisterScreen() {
     try {
       const result = await registerUser(data);
       if (result.success) {
-        router.replace("/(tabs)/home");
+        router.replace("/");
       } else {
         Alert.alert("Erreur", result.message);
       }

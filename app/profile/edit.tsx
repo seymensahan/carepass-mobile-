@@ -19,6 +19,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getProfile, updateProfile } from "../../services/patient.service";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
+import DatePickerField from "../../components/ui/DatePickerField";
 import type { Patient, Allergy, EmergencyContact } from "../../types/patient";
 
 const editProfileSchema = z.object({
@@ -166,7 +167,7 @@ export default function EditProfileScreen() {
           {/* ─── Header ─── */}
           <View className="flex-row items-center px-6 pt-6 pb-4">
             <Pressable
-              onPress={() => router.navigate("/(tabs)/profile" as any)}
+              onPress={() => router.back()}
               className="w-10 h-10 rounded-full bg-white border border-border items-center justify-center mr-3"
             >
               <Feather name="arrow-left" size={20} color="#212529" />
@@ -236,16 +237,20 @@ export default function EditProfileScreen() {
             <Controller
               control={control}
               name="dateOfBirth"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Date de naissance"
-                  placeholder="AAAA-MM-JJ"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  error={errors.dateOfBirth?.message}
-                  iconLeft="calendar"
-                />
+              render={({ field: { onChange, value } }) => (
+                <View className="mb-4">
+                  <DatePickerField
+                    label="Date de naissance"
+                    value={value ? new Date(value) : null}
+                    onChange={(d) => onChange(d.toISOString().split("T")[0])}
+                    mode="date"
+                    maximumDate={new Date()}
+                    placeholder="Choisir la date"
+                  />
+                  {errors.dateOfBirth?.message && (
+                    <Text className="text-xs text-danger mt-1">{errors.dateOfBirth.message}</Text>
+                  )}
+                </View>
               )}
             />
 

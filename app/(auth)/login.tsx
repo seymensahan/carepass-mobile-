@@ -50,7 +50,8 @@ export default function LoginScreen() {
     try {
       const result = await login(data);
       if (result.success) {
-        router.replace("/(tabs)/home");
+        // Redirect to index which handles role-based routing
+        router.replace("/");
       } else {
         Alert.alert("Erreur", result.message);
       }

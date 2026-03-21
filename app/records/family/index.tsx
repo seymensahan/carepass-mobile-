@@ -25,7 +25,7 @@ export default function FamilyListScreen() {
       case "elderly":
         return { icon: "users" as const, color: "#fd7e14", label: "Personne âgée" };
       case "disabled":
-        return { icon: "heart" as const, color: "#20c997", label: "Personne handicapée" };
+        return { icon: "heart" as const, color: "#20c997", label: "Personne à mobilité réduite" };
       default:
         return {
           icon: "user" as const,
@@ -55,7 +55,7 @@ export default function FamilyListScreen() {
       {/* Header */}
       <View className="flex-row items-center px-6 pt-6 pb-4">
         <Pressable
-          onPress={() => router.navigate("/(tabs)/records" as any)}
+          onPress={() => router.back()}
           className="w-10 h-10 rounded-full bg-white border border-border items-center justify-center mr-3"
         >
           <Feather name="arrow-left" size={20} color="#212529" />

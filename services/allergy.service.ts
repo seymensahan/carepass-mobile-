@@ -29,9 +29,9 @@ export async function addAllergy(
 ): Promise<MedicalAllergy> {
   const response = await api.post<Any>("/allergies", {
     body: {
-      allergen: data.name,
-      severity: data.severity,
-      diagnosedDate: data.diagnosedDate,
+      name: data.name,
+      severity: data.severity === "sévère" ? "severe" : data.severity === "légère" ? "mild" : "moderate",
+      diagnosedAt: data.diagnosedDate || undefined,
       notes: data.notes,
     },
   });

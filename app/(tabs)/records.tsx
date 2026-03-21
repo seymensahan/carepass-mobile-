@@ -41,7 +41,7 @@ const SECTIONS = [
   {
     icon: "users" as const,
     title: "Personnes à charge",
-    subtitle: "Enfants, personnes âgées, handicapées",
+    subtitle: "Enfants, personnes âgées, à mobilité réduite",
     count: "3",
     color: "#6f42c1",
     route: "/records/family",

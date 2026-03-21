@@ -18,6 +18,7 @@ import {
   addVaccination,
   PEV_VACCINES,
 } from "../../services/vaccination.service";
+import DatePickerField from "../../components/ui/DatePickerField";
 import { getChildren } from "../../services/child.service";
 import Button from "../../components/ui/Button";
 
@@ -30,7 +31,7 @@ export default function AddVaccinationScreen() {
 
   const [vaccineName, setVaccineName] = useState("");
   const [showAutocomplete, setShowAutocomplete] = useState(false);
-  const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [date, setDate] = useState<Date>(new Date());
   const [location, setLocation] = useState("");
   const [doctor, setDoctor] = useState("");
   const [batchNumber, setBatchNumber] = useState("");
@@ -65,13 +66,13 @@ export default function AddVaccinationScreen() {
       Alert.alert("Erreur", "Le nom du vaccin est requis.");
       return;
     }
-    if (!date.trim()) {
+    if (!date) {
       Alert.alert("Erreur", "La date est requise.");
       return;
     }
     mutation.mutate({
       name: vaccineName.trim(),
-      date,
+      date: format(date, "yyyy-MM-dd"),
       location: location.trim() || undefined,
       administeredBy: doctor.trim() || undefined,
       batchNumber: batchNumber.trim() || undefined,
@@ -230,19 +231,14 @@ export default function AddVaccinationScreen() {
 
           {/* Date */}
           <View className="mb-4">
-            <Text className="text-sm font-semibold text-foreground mb-1.5">
-              Date d'administration *
-            </Text>
-            <TextInput
+            <DatePickerField
+              label="Date d'administration *"
               value={date}
-              onChangeText={setDate}
-              placeholder="AAAA-MM-JJ"
-              placeholderTextColor="#6c757d"
-              className="bg-white border border-border rounded-xl px-4 py-3.5 text-sm text-foreground"
+              onChange={setDate}
+              mode="date"
+              maximumDate={new Date()}
+              placeholder="Choisir la date"
             />
-            <Text className="text-xs text-muted mt-1">
-              Format : {format(new Date(), "yyyy-MM-dd")}
-            </Text>
           </View>
 
           {/* Location */}
