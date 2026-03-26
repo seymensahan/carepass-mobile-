@@ -24,6 +24,7 @@ const s = StyleSheet.create({
 
 /* ── couleurs par type/status ── */
 const DOT_COLORS: Record<string, string> = {
+  scheduled: "#007bff",   // bleu
   confirmed: "#007bff",   // bleu
   pending: "#ffc107",     // jaune
   completed: "#28a745",   // vert
@@ -31,6 +32,7 @@ const DOT_COLORS: Record<string, string> = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
+  scheduled: "Programmé",
   confirmed: "Confirmé",
   pending: "En attente",
   completed: "Terminé",
@@ -172,7 +174,7 @@ export default function DoctorAppointmentsScreen() {
             return (
               <Pressable
                 key={a.id}
-                onPress={() => router.push(`/appointments/${a.id}` as any)}
+                onPress={() => router.push(`/doctor/appointment/${a.id}` as any)}
                 className="flex-row items-center bg-white rounded-2xl p-4 mb-2"
                 style={s.card}
               >

@@ -15,6 +15,8 @@ export default function Index() {
         // Route based on user role
         if (user.role === "doctor") {
           router.replace("/(doctor-tabs)/home");
+        } else if (user.role === "nurse") {
+          router.replace("/(nurse-tabs)/home");
         } else {
           router.replace("/(tabs)/home");
         }

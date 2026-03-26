@@ -7,7 +7,7 @@ export interface User {
   bloodGroup: string | null;
   gender: "M" | "F" | "other";
   dateOfBirth: string;
-  role: "patient" | "doctor" | "admin";
+  role: "patient" | "doctor" | "nurse" | "admin" | "institution_admin" | "lab" | "insurance" | "super_admin";
   avatarUrl: string | null;
   createdAt: string;
 }
