@@ -35,8 +35,9 @@ interface SettingRow {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { logout } = useAuth();
+  const { user, logout, switchRole } = useAuth();
   const [settings, setSettings] = useState<AppSettings>(getSettings());
+  const [isSwitching, setIsSwitching] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
@@ -132,6 +133,59 @@ export default function SettingsScreen() {
             Paramètres
           </Text>
         </View>
+
+        {/* ── Changer de rôle ── */}
+        {user && (user as any).availableRoles && (user as any).availableRoles.length > 1 && (
+          <>
+            <SectionHeader title="MODE" />
+            <View className="mx-4 mb-4 bg-white rounded-2xl overflow-hidden border border-border">
+              {((user as any).availableRoles as string[]).map((role: string) => {
+                const isActive = user.role === role;
+                const roleLabels: Record<string, { label: string; icon: keyof typeof Feather.glyphMap; color: string }> = {
+                  patient: { label: "Patient", icon: "user", color: "#007bff" },
+                  doctor: { label: "Médecin", icon: "activity", color: "#28a745" },
+                  nurse: { label: "Infirmier(e)", icon: "heart", color: "#dc3545" },
+                  institution_admin: { label: "Admin Institution", icon: "briefcase", color: "#ffc107" },
+                  lab: { label: "Laboratoire", icon: "flask" as any, color: "#6f42c1" },
+                  super_admin: { label: "Super Admin", icon: "shield", color: "#343a40" },
+                };
+                const info = roleLabels[role] || { label: role, icon: "user" as const, color: "#6c757d" };
+                return (
+                  <Pressable
+                    key={role}
+                    onPress={async () => {
+                      if (isActive || isSwitching) return;
+                      setIsSwitching(true);
+                      const result = await switchRole(role);
+                      setIsSwitching(false);
+                      if (result.success) {
+                        router.replace("/");
+                      } else {
+                        Alert.alert("Erreur", result.message);
+                      }
+                    }}
+                    className={`flex-row items-center px-4 py-3 ${isActive ? "bg-primary/5" : ""}`}
+                  >
+                    <View
+                      className="w-9 h-9 rounded-xl items-center justify-center mr-3"
+                      style={{ backgroundColor: info.color + "18" }}
+                    >
+                      <Feather name={info.icon} size={18} color={info.color} />
+                    </View>
+                    <Text className={`flex-1 text-sm ${isActive ? "font-bold text-primary" : "text-foreground"}`}>
+                      {info.label}
+                    </Text>
+                    {isActive && (
+                      <View className="bg-primary rounded-full px-2.5 py-0.5">
+                        <Text className="text-white text-[10px] font-bold">Actif</Text>
+                      </View>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
+        )}
 
         {/* ── Compte ── */}
         <SectionHeader title="COMPTE" />

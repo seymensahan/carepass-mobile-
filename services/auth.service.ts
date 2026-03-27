@@ -14,6 +14,7 @@ interface BackendAuthUser {
   id: string;
   email: string;
   role: string;
+  availableRoles?: string[];
   firstName: string;
   lastName: string;
   phone?: string;
@@ -44,6 +45,7 @@ function mapBackendUser(u: BackendAuthUser): User {
     gender: (u.gender as "M" | "F") || "M",
     dateOfBirth: u.dateOfBirth || "",
     role: mapRole(u.role),
+    availableRoles: u.availableRoles || [u.role],
     avatarUrl: null,
     createdAt: new Date().toISOString(),
   };
@@ -167,5 +169,29 @@ export async function refreshToken(): Promise<RefreshTokenResponse> {
 
   return {
     success: false,
+  };
+}
+
+export async function switchRole(newRole: string): Promise<AuthResponse> {
+  const response = await api.post<{ accessToken: string; refreshToken: string; user: BackendAuthUser }>("/auth/switch-role", {
+    body: { role: newRole },
+  });
+
+  if (response.data?.accessToken) {
+    const { accessToken, refreshToken, user } = response.data;
+    return {
+      success: true,
+      message: "Rôle changé avec succès",
+      data: {
+        user: mapBackendUser(user),
+        accessToken,
+        refreshToken,
+      },
+    };
+  }
+
+  return {
+    success: false,
+    message: response.error || "Impossible de changer de rôle",
   };
 }

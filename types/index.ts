@@ -8,6 +8,7 @@ export interface User {
   gender: "M" | "F" | "other";
   dateOfBirth: string;
   role: "patient" | "doctor" | "nurse" | "admin" | "institution_admin" | "lab" | "insurance" | "super_admin";
+  availableRoles?: string[];
   avatarUrl: string | null;
   createdAt: string;
 }

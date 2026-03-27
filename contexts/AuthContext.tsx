@@ -20,6 +20,7 @@ interface AuthContextType {
   ) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<void>;
+  switchRole: (role: string) => Promise<{ success: boolean; message: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -106,6 +107,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const switchRoleFn = useCallback(async (role: string): Promise<{ success: boolean; message: string }> => {
+    const response = await authService.switchRole(role);
+    if (response.success && response.data) {
+      await SecureStore.setItemAsync(TOKEN_KEY, response.data.accessToken);
+      await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, response.data.refreshToken);
+      await SecureStore.setItemAsync(USER_KEY, JSON.stringify(response.data.user));
+      setUser(response.data.user);
+    }
+    return { success: response.success, message: response.message };
+  }, []);
+
   const refreshTokenFn = useCallback(async () => {
     const response = await authService.refreshToken();
     if (response.success && response.data) {
@@ -126,8 +138,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       register,
       logout,
       refreshToken: refreshTokenFn,
+      switchRole: switchRoleFn,
     }),
-    [user, isLoading, login, register, logout, refreshTokenFn]
+    [user, isLoading, login, register, logout, refreshTokenFn, switchRoleFn]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
