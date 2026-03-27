@@ -23,9 +23,13 @@ interface BackendAuthUser {
 }
 
 
-function mapRole(backendRole: string): "patient" | "doctor" | "admin" {
+function mapRole(backendRole: string): User["role"] {
   if (backendRole === "doctor") return "doctor";
-  if (backendRole === "admin" || backendRole === "super_admin" || backendRole === "institution_admin") return "admin";
+  if (backendRole === "nurse") return "nurse";
+  if (backendRole === "lab") return "lab";
+  if (backendRole === "insurance") return "insurance";
+  if (backendRole === "institution_admin") return "institution_admin";
+  if (backendRole === "super_admin" || backendRole === "admin") return "super_admin";
   return "patient";
 }
 
