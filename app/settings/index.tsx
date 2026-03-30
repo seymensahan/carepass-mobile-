@@ -135,11 +135,11 @@ export default function SettingsScreen() {
         </View>
 
         {/* ── Changer de rôle ── */}
-        {user && (user as any).availableRoles && (user as any).availableRoles.length > 1 && (
+        {user && (
           <>
             <SectionHeader title="MODE" />
             <View className="mx-4 mb-4 bg-white rounded-2xl overflow-hidden border border-border">
-              {((user as any).availableRoles as string[]).map((role: string) => {
+              {((user as any).availableRoles?.length > 0 ? (user as any).availableRoles : [user.role]).map((role: string) => {
                 const isActive = user.role === role;
                 const roleLabels: Record<string, { label: string; icon: keyof typeof Feather.glyphMap; color: string }> = {
                   patient: { label: "Patient", icon: "user", color: "#007bff" },

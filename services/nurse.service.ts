@@ -52,6 +52,13 @@ export async function executeCarePlanItem(itemId: string, data: {
   return unwrap(response.data);
 }
 
+// ─── Pending Tasks ───
+
+export async function getPendingTasks() {
+  const response = await api.get<any>("/nurses/pending-tasks");
+  return unwrapList(response.data);
+}
+
 // ─── My Executions ───
 
 export async function getMyExecutions() {
