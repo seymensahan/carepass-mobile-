@@ -113,6 +113,24 @@ export async function registerUser(
   };
 }
 
+export async function getMe(): Promise<Partial<User> | null> {
+  try {
+    const response = await api.get<any>("/users/profile");
+    const d = response.data?.data ?? response.data;
+    if (!d) return null;
+    return {
+      role: mapRole(d.role),
+      availableRoles: d.availableRoles || [d.role],
+      firstName: d.firstName,
+      lastName: d.lastName,
+      email: d.email,
+      phone: d.phone,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function forgotPassword(
   email: string
 ): Promise<ForgotPasswordResponse> {

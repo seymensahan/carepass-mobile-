@@ -12,6 +12,21 @@ export default function NurseHospitalisationDetailScreen() {
   const queryClient = useQueryClient();
   const [executingId, setExecutingId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  const [vitals, setVitals] = useState({
+    temperature: "",
+    systolic: "",
+    diastolic: "",
+    heartRate: "",
+    spO2: "",
+    glycemia: "",
+    weight: "",
+  });
+
+  const resetForm = () => {
+    setNotes("");
+    setVitals({ temperature: "", systolic: "", diastolic: "", heartRate: "", spO2: "", glycemia: "", weight: "" });
+    setExecutingId(null);
+  };
 
   const { data: detail, isLoading } = useQuery({
     queryKey: ["nurse-hospitalisation", id],
@@ -25,8 +40,8 @@ export default function NurseHospitalisationDetailScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["nurse-hospitalisation", id] });
       queryClient.invalidateQueries({ queryKey: ["nurse-dashboard"] });
-      setExecutingId(null);
-      setNotes("");
+      queryClient.invalidateQueries({ queryKey: ["nurse-executions"] });
+      resetForm();
       Alert.alert("Succès", "Tâche exécutée avec succès");
     },
     onError: () => Alert.alert("Erreur", "Impossible d'exécuter la tâche"),
@@ -129,22 +144,125 @@ export default function NurseHospitalisationDetailScreen() {
                     <>
                       {isExpanded ? (
                         <View className="mt-3 pt-3 border-t border-border">
+                          {/* Vital signs section */}
+                          {(item.type === "vital_check" || item.type === "care_task") && (
+                            <View className="mb-3">
+                              <Text className="text-xs font-bold text-foreground mb-2">Constantes vitales</Text>
+                              <View className="flex-row gap-2 mb-2">
+                                <View className="flex-1">
+                                  <Text className="text-[10px] text-muted mb-1">Température (°C)</Text>
+                                  <TextInput
+                                    value={vitals.temperature}
+                                    onChangeText={(v) => setVitals({ ...vitals, temperature: v })}
+                                    placeholder="37.0"
+                                    keyboardType="decimal-pad"
+                                    className="border border-border rounded-lg p-2 text-sm"
+                                  />
+                                </View>
+                                <View className="flex-1">
+                                  <Text className="text-[10px] text-muted mb-1">FC (bpm)</Text>
+                                  <TextInput
+                                    value={vitals.heartRate}
+                                    onChangeText={(v) => setVitals({ ...vitals, heartRate: v })}
+                                    placeholder="80"
+                                    keyboardType="number-pad"
+                                    className="border border-border rounded-lg p-2 text-sm"
+                                  />
+                                </View>
+                                <View className="flex-1">
+                                  <Text className="text-[10px] text-muted mb-1">SpO2 (%)</Text>
+                                  <TextInput
+                                    value={vitals.spO2}
+                                    onChangeText={(v) => setVitals({ ...vitals, spO2: v })}
+                                    placeholder="98"
+                                    keyboardType="number-pad"
+                                    className="border border-border rounded-lg p-2 text-sm"
+                                  />
+                                </View>
+                              </View>
+                              <View className="flex-row gap-2 mb-2">
+                                <View className="flex-1">
+                                  <Text className="text-[10px] text-muted mb-1">TA Sys (mmHg)</Text>
+                                  <TextInput
+                                    value={vitals.systolic}
+                                    onChangeText={(v) => setVitals({ ...vitals, systolic: v })}
+                                    placeholder="120"
+                                    keyboardType="number-pad"
+                                    className="border border-border rounded-lg p-2 text-sm"
+                                  />
+                                </View>
+                                <View className="flex-1">
+                                  <Text className="text-[10px] text-muted mb-1">TA Dia (mmHg)</Text>
+                                  <TextInput
+                                    value={vitals.diastolic}
+                                    onChangeText={(v) => setVitals({ ...vitals, diastolic: v })}
+                                    placeholder="80"
+                                    keyboardType="number-pad"
+                                    className="border border-border rounded-lg p-2 text-sm"
+                                  />
+                                </View>
+                              </View>
+                              <View className="flex-row gap-2">
+                                <View className="flex-1">
+                                  <Text className="text-[10px] text-muted mb-1">Glycémie (g/L)</Text>
+                                  <TextInput
+                                    value={vitals.glycemia}
+                                    onChangeText={(v) => setVitals({ ...vitals, glycemia: v })}
+                                    placeholder="1.0"
+                                    keyboardType="decimal-pad"
+                                    className="border border-border rounded-lg p-2 text-sm"
+                                  />
+                                </View>
+                                <View className="flex-1">
+                                  <Text className="text-[10px] text-muted mb-1">Poids (kg)</Text>
+                                  <TextInput
+                                    value={vitals.weight}
+                                    onChangeText={(v) => setVitals({ ...vitals, weight: v })}
+                                    placeholder="70"
+                                    keyboardType="decimal-pad"
+                                    className="border border-border rounded-lg p-2 text-sm"
+                                  />
+                                </View>
+                              </View>
+                            </View>
+                          )}
+
+                          {/* Notes / Rapport */}
+                          <Text className="text-xs font-bold text-foreground mb-1">
+                            {item.type === "medication" ? "Rapport d'administration" : "Notes / Observations"}
+                          </Text>
                           <TextInput
                             value={notes}
                             onChangeText={setNotes}
-                            placeholder="Notes (optionnel)..."
+                            placeholder={item.type === "medication"
+                              ? "Ex: Médicament administré sans réaction. Patient stable..."
+                              : "Ex: Patient conscient, bonne coloration, pas de douleur..."
+                            }
                             className="border border-border rounded-xl p-3 text-sm mb-3"
                             multiline
+                            numberOfLines={3}
+                            textAlignVertical="top"
                           />
+
                           <View className="flex-row gap-2">
                             <Pressable
-                              onPress={() => { setExecutingId(null); setNotes(""); }}
+                              onPress={resetForm}
                               className="flex-1 py-2.5 rounded-xl border border-border items-center"
                             >
                               <Text className="text-sm font-semibold text-muted">Annuler</Text>
                             </Pressable>
                             <Pressable
-                              onPress={() => executeMut.mutate({ itemId: item.id, data: { notes } })}
+                              onPress={() => {
+                                const data: any = { notes: notes || undefined };
+                                if (vitals.temperature) data.temperature = parseFloat(vitals.temperature);
+                                if (vitals.systolic) data.systolic = parseInt(vitals.systolic);
+                                if (vitals.diastolic) data.diastolic = parseInt(vitals.diastolic);
+                                if (vitals.heartRate) data.heartRate = parseInt(vitals.heartRate);
+                                if (vitals.spO2) data.spO2 = parseInt(vitals.spO2);
+                                if (vitals.glycemia) data.glycemia = parseFloat(vitals.glycemia);
+                                if (vitals.weight) data.weight = parseFloat(vitals.weight);
+                                executeMut.mutate({ itemId: item.id, data });
+                              }}
                               className="flex-1 py-2.5 rounded-xl bg-secondary items-center"
                             >
                               <Text className="text-sm font-bold text-white">Confirmer</Text>
@@ -153,7 +271,7 @@ export default function NurseHospitalisationDetailScreen() {
                         </View>
                       ) : (
                         <Pressable
-                          onPress={() => setExecutingId(item.id)}
+                          onPress={() => { setExecutingId(item.id); resetForm(); }}
                           className="mt-3 py-2.5 rounded-xl bg-primary items-center"
                         >
                           <Text className="text-sm font-bold text-white">Exécuter</Text>

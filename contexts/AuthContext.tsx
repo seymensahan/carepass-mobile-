@@ -43,7 +43,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const storedUser = await SecureStore.getItemAsync(USER_KEY);
 
       if (storedToken && storedUser) {
-        setUser(JSON.parse(storedUser));
+        const parsed = JSON.parse(storedUser);
+        setUser(parsed);
+
+        // Refresh user profile from backend to get latest availableRoles
+        try {
+          const fresh = await authService.getMe();
+          if (fresh) {
+            const updated = { ...parsed, ...fresh };
+            setUser(updated);
+            await SecureStore.setItemAsync(USER_KEY, JSON.stringify(updated));
+          }
+        } catch {
+          // Silent fail — use cached user
+        }
       }
     } catch {
       // Token expired or invalid — stay logged out
