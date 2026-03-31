@@ -25,8 +25,7 @@ export default function WelcomeScreen() {
 
         {/* Description */}
         <Text className="text-sm text-muted text-center leading-5 px-4 mb-12">
-          Gérez vos dossiers de santé numériques en toute sécurité, partout au
-          Cameroun.
+          Gérez vos dossiers de santé numériques en toute sécurité, partout.
         </Text>
 
         {/* Decorative dots */}

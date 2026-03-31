@@ -35,7 +35,7 @@ const PLAN_STYLES: Record<
     buttonText: string;
   }
 > = {
-  gratuit: {
+  basique: {
     borderColor: "#dee2e6",
     headerBg: "#f8f9fa",
     headerText: "#212529",
@@ -96,7 +96,7 @@ export default function PricingScreen() {
   };
 
   const handleSubscribe = (plan: Plan) => {
-    if (plan.id === "gratuit") return;
+    if (plan.id === "basique") return;
     const price =
       cycle === "mensuel" ? plan.priceMonthly : plan.priceYearly;
     const label = cycle === "mensuel" ? "/mois" : "/an";
@@ -153,7 +153,7 @@ export default function PricingScreen() {
               Choisissez votre plan
             </Text>
             <Text className="text-xs text-muted">
-              Débloquez tout le potentiel de CAREPASS
+              Débloquez tout le potentiel de CARRYPASS
             </Text>
           </View>
         </View>
@@ -224,7 +224,7 @@ export default function PricingScreen() {
           const price =
             cycle === "mensuel" ? plan.priceMonthly : plan.priceYearly;
           const period = cycle === "mensuel" ? "/mois" : "/an";
-          const isCurrentPlan = plan.id === "gratuit";
+          const isCurrentPlan = plan.id === "basique";
 
           return (
             <View

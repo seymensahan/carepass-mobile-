@@ -27,7 +27,7 @@ export interface DoctorDashboardStats {
 
 export interface DoctorPatient {
   id: string;
-  carepassId: string;
+  carrypassId: string;
   firstName: string;
   lastName: string;
   dateOfBirth: string;
@@ -78,7 +78,7 @@ export interface DoctorAccessRequest {
   id: string;
   patientId: string;
   patientName: string;
-  patientCarepassId: string;
+  patientCarrypassId: string;
   reason?: string;
   status: "pending" | "approved" | "denied";
   requestedAt: string;

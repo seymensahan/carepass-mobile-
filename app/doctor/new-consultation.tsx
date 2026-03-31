@@ -155,7 +155,7 @@ export default function NewConsultationScreen() {
             <TextInput
               value={form.patientId}
               onChangeText={(v) => setForm({ ...form, patientId: v })}
-              placeholder="CarePass ID du patient"
+              placeholder="CarryPass ID du patient"
               className="bg-white rounded-2xl px-4 py-3.5 text-sm text-foreground border border-border"
               placeholderTextColor="#adb5bd"
               style={s.card}

@@ -55,7 +55,7 @@ export default function ShareScreen() {
 
   const handleWhatsApp = (url: string) => {
     const text = encodeURIComponent(
-      `Voici mon lien CAREPASS d'urgence : ${url}`
+      `Voici mon lien CARRYPASS d'urgence : ${url}`
     );
     Linking.openURL(`whatsapp://send?text=${text}`).catch(() =>
       Alert.alert("Erreur", "WhatsApp n'est pas installé sur cet appareil.")
@@ -64,7 +64,7 @@ export default function ShareScreen() {
 
   const handleSMS = (url: string) => {
     const text = encodeURIComponent(
-      `Voici mon lien CAREPASS d'urgence : ${url}`
+      `Voici mon lien CARRYPASS d'urgence : ${url}`
     );
     Linking.openURL(`sms:?body=${text}`);
   };

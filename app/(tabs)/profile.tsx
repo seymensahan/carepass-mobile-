@@ -136,7 +136,7 @@ export default function ProfileScreen() {
           </Text>
           <View className="mt-2 bg-white px-4 py-1.5 rounded-full" style={s.card}>
             <Text className="text-xs text-muted font-medium">
-              {patient?.carepassId}
+              {patient?.carrypassId}
             </Text>
           </View>
           <Pressable

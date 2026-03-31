@@ -151,7 +151,7 @@ export default function DoctorPatientDetailScreen() {
                 {p.user?.firstName} {p.user?.lastName}
               </Text>
               <Text className="text-xs text-muted mt-0.5">
-                {p.carepassId}
+                {p.carrypassId}
               </Text>
               <View className="flex-row items-center gap-2 mt-1.5">
                 {age !== null && (

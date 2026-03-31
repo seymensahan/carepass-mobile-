@@ -51,7 +51,7 @@ export default function EmergencyScreen() {
     if (!data) return;
     try {
       await Share.share({
-        message: `Carte d'urgence CAREPASS — ${data.patientName}\nhttps://carepass.cm/emergency/${data.qrToken}`,
+        message: `Carte d'urgence CARRYPASS — ${data.patientName}\nhttps://carrypass.cm/emergency/${data.qrToken}`,
       });
     } catch {
       // cancelled
@@ -59,7 +59,7 @@ export default function EmergencyScreen() {
   };
 
   const qrUrl = data
-    ? `https://carepass.cm/emergency/${data.qrToken}`
+    ? `https://carrypass.cm/emergency/${data.qrToken}`
     : "";
 
   const activeChild: EmergencyChildData | null =
@@ -120,7 +120,7 @@ export default function EmergencyScreen() {
             Faites scanner ce code par un secouriste
           </Text>
           <Text className="text-xs text-muted mb-5">
-            {data?.carepassId}
+            {data?.carrypassId}
           </Text>
 
           {/* Action buttons */}

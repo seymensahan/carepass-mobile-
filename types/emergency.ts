@@ -26,7 +26,7 @@ export interface EmergencyChildData {
 
 export interface EmergencyData {
   patientName: string;
-  carepassId: string;
+  carrypassId: string;
   bloodGroup: string;
   genotype: string;
   allergies: EmergencyAllergy[];

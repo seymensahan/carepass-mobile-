@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "CAREPASS",
-    "slug": "carepass",
+    "name": "CARRYPASS",
+    "slug": "carrypass",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "scheme": "carepass",
+    "scheme": "carrypass",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -17,7 +17,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.carepass.app",
+      "package": "com.carrypass.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#007bff"

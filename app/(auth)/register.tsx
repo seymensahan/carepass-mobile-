@@ -113,7 +113,8 @@ export default function RegisterScreen() {
     try {
       const result = await registerUser(data);
       if (result.success) {
-        router.replace("/");
+        // Redirect to payment page for patient subscription
+        router.replace("/(auth)/payment");
       } else {
         Alert.alert("Erreur", result.message);
       }

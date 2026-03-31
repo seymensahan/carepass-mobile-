@@ -22,7 +22,7 @@ export default function DoctorPatientsScreen() {
 
   const filtered = patients.filter((p) => {
     const q = search.toLowerCase();
-    return !q || `${p.firstName} ${p.lastName}`.toLowerCase().includes(q) || (p.carepassId || "").toLowerCase().includes(q);
+    return !q || `${p.firstName} ${p.lastName}`.toLowerCase().includes(q) || (p.carrypassId || "").toLowerCase().includes(q);
   });
 
   return (
@@ -75,7 +75,7 @@ export default function DoctorPatientsScreen() {
             <View className="flex-1">
               <Text className="text-sm font-bold text-foreground">{p.firstName} {p.lastName}</Text>
               <Text className="text-xs text-muted mt-0.5">
-                {p.carepassId} · {p.age} ans · {p.gender === "M" ? "Homme" : "Femme"}
+                {p.carrypassId} · {p.age} ans · {p.gender === "M" ? "Homme" : "Femme"}
               </Text>
             </View>
             <View className="w-8 h-8 rounded-lg bg-gray-50 items-center justify-center">

@@ -133,7 +133,7 @@ export async function getPatients(): Promise<DoctorPatient[]> {
     const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 86400000)) : 0;
     return {
       id: p.id,
-      carepassId: p.carepassId || "",
+      carrypassId: p.carrypassId || "",
       firstName: p.user?.firstName || "",
       lastName: p.user?.lastName || "",
       dateOfBirth: p.dateOfBirth,
@@ -246,7 +246,7 @@ export async function getAccessRequests(): Promise<DoctorAccessRequest[]> {
     id: ar.id,
     patientId: ar.patientId,
     patientName: ar.patient?.user ? `${ar.patient.user.firstName} ${ar.patient.user.lastName}` : "",
-    patientCarepassId: ar.patientCarepassId || ar.patient?.carepassId || "",
+    patientCarrypassId: ar.patientCarrypassId || ar.patient?.carrypassId || "",
     reason: ar.reason,
     status: ar.status,
     requestedAt: ar.requestedAt,
@@ -260,16 +260,16 @@ export async function getActiveGrants(): Promise<DoctorAccessRequest[]> {
     id: g.grantId,
     patientId: g.patient?.id || "",
     patientName: g.patient?.user ? `${g.patient.user.firstName} ${g.patient.user.lastName}` : "",
-    patientCarepassId: g.patient?.carepassId || "",
+    patientCarrypassId: g.patient?.carrypassId || "",
     reason: undefined,
     status: "approved" as const,
     requestedAt: g.grantedAt,
   }));
 }
 
-export async function requestPatientAccess(carepassId: string, reason?: string): Promise<{ success: boolean; message: string }> {
+export async function requestPatientAccess(carrypassId: string, reason?: string): Promise<{ success: boolean; message: string }> {
   const response = await api.post<any>("/access-requests", {
-    body: { patientCarepassId: carepassId, reason },
+    body: { patientCarrypassId: carrypassId, reason },
   });
   if (response.error) {
     return { success: false, message: response.error };

@@ -31,7 +31,7 @@ export interface Child {
 
 export interface Patient {
   id: string;
-  carepassId: string;
+  carrypassId: string;
   firstName: string;
   lastName: string;
   email: string;

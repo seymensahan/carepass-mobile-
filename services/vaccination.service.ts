@@ -9,7 +9,7 @@ import type {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
 
-// ─── PEV Cameroun vaccine list ───
+// ─── PEV vaccine list ───
 
 export const PEV_VACCINES: VaccineInfo[] = [
   { name: "BCG (Tuberculose)", category: "PEV", totalDoses: 1 },

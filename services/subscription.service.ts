@@ -3,7 +3,7 @@ import { api } from "../lib/api-client";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
 
-export type PlanId = "gratuit" | "essentiel" | "famille" | "premium";
+export type PlanId = "basique" | "essentiel" | "famille" | "premium";
 export type BillingCycle = "mensuel" | "annuel";
 
 export interface PlanFeature {
@@ -35,7 +35,7 @@ export interface CurrentSubscription {
 
 // Static plan feature definitions (not stored in backend)
 const PLAN_FEATURES: Record<PlanId, PlanFeature[]> = {
-  gratuit: [
+  basique: [
     { label: "1 profil patient", included: true },
     { label: "1 enfant maximum", included: true },
     { label: "QR urgence basique", included: true },
@@ -46,7 +46,7 @@ const PLAN_FEATURES: Record<PlanId, PlanFeature[]> = {
     { label: "Consultation vidéo", included: false },
   ],
   essentiel: [
-    { label: "Tout du plan Gratuit", included: true },
+    { label: "Tout du plan Basique", included: true },
     { label: "Historique illimité", included: true },
     { label: "3 enfants maximum", included: true },
     { label: "Export PDF", included: true },
@@ -76,13 +76,13 @@ const PLAN_FEATURES: Record<PlanId, PlanFeature[]> = {
 
 const DEFAULT_PLANS: Plan[] = [
   {
-    id: "gratuit",
-    name: "Gratuit",
-    description: "Essai 12 mois — Découvrez CAREPASS",
+    id: "basique",
+    name: "Basique",
+    description: "Essai 12 mois — Découvrez CARRYPASS",
     priceMonthly: 0,
     priceYearly: 0,
     badge: "Plan actuel",
-    features: PLAN_FEATURES.gratuit,
+    features: PLAN_FEATURES.basique,
   },
   {
     id: "essentiel",
@@ -104,7 +104,7 @@ const DEFAULT_PLANS: Plan[] = [
   {
     id: "premium",
     name: "Premium",
-    description: "L'expérience CAREPASS complète",
+    description: "L'expérience CARRYPASS complète",
     priceMonthly: 10000,
     priceYearly: 96000,
     features: PLAN_FEATURES.premium,
@@ -119,7 +119,7 @@ export async function getCurrentPlan(): Promise<CurrentSubscription> {
 
     if (list.length > 0) {
       const sub = list[0];
-      const planId = (sub.plan?.tier || sub.planId || "gratuit") as PlanId;
+      const planId = (sub.plan?.tier || sub.planId || "basique") as PlanId;
       const startDate = (sub.startDate || sub.createdAt || "").trim();
       const expiresAt = (sub.endDate || sub.expiresAt || "").trim();
       const isValidStart = startDate && !isNaN(Date.parse(startDate));
@@ -145,7 +145,7 @@ export async function getCurrentPlan(): Promise<CurrentSubscription> {
           : "",
         daysRemaining,
         isTrialActive: sub.status === "trial" || sub.isTrial || false,
-        features: PLAN_FEATURES[planId] || PLAN_FEATURES.gratuit,
+        features: PLAN_FEATURES[planId] || PLAN_FEATURES.basique,
       };
     }
   } catch {
@@ -153,14 +153,14 @@ export async function getCurrentPlan(): Promise<CurrentSubscription> {
   }
 
   return {
-    planId: "gratuit",
-    planName: "Essai Gratuit",
+    planId: "basique",
+    planName: "Période d'essai",
     billingCycle: "annuel",
     startDate: "",
     expiresAt: "",
     daysRemaining: 0,
     isTrialActive: true,
-    features: PLAN_FEATURES.gratuit,
+    features: PLAN_FEATURES.basique,
   };
 }
 
@@ -172,7 +172,7 @@ export async function getPlans(): Promise<Plan[]> {
 
     if (list.length > 0) {
       return list.map((p: Any) => ({
-        id: (p.tier || p.id || "gratuit") as PlanId,
+        id: (p.tier || p.id || "basique") as PlanId,
         name: p.name || "",
         description: p.description || "",
         priceMonthly: p.priceMonthly || p.price || 0,

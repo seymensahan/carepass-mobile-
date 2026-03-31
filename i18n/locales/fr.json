@@ -12,7 +12,7 @@
   },
   "welcome": {
     "tagline": "Votre santé, votre contrôle",
-    "description": "Gérez vos dossiers de santé numériques en toute sécurité, partout au Cameroun.",
+    "description": "Gérez vos dossiers de santé numériques en toute sécurité, partout.",
     "login": "Se connecter",
     "register": "Créer un compte"
   },
@@ -32,7 +32,7 @@
   },
   "register": {
     "title": "Créer un compte",
-    "subtitle": "Rejoignez CAREPASS en quelques étapes",
+    "subtitle": "Rejoignez CARRYPASS en quelques étapes",
     "step1Title": "Informations personnelles",
     "step2Title": "Sécurité",
     "step3Title": "Informations médicales",

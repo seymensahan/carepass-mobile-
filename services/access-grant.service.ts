@@ -168,11 +168,11 @@ export async function getAuditLog(
 }
 
 export async function lookupDoctorById(
-  carepassId: string
+  carrypassId: string
 ): Promise<DoctorPreview | null> {
   try {
     const response = await api.get<Any>(
-      `/search/doctors?q=${encodeURIComponent(carepassId)}`
+      `/search/doctors?q=${encodeURIComponent(carrypassId)}`
     );
     const raw = response.data;
     const inner = raw?.data ?? raw;

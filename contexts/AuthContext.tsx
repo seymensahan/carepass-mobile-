@@ -25,9 +25,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const TOKEN_KEY = "carepass_access_token";
-const REFRESH_TOKEN_KEY = "carepass_refresh_token";
-const USER_KEY = "carepass_user";
+const TOKEN_KEY = "carrypass_access_token";
+const REFRESH_TOKEN_KEY = "carrypass_refresh_token";
+const USER_KEY = "carrypass_user";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

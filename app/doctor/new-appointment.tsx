@@ -87,7 +87,7 @@ export default function NewAppointmentScreen() {
         <ScrollView className="flex-1 px-6" contentContainerStyle={{ paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
           {/* Patient ID */}
           <View className="mb-4">
-            <Text className="text-xs font-semibold text-foreground mb-1.5">ID CarePass du patient *</Text>
+            <Text className="text-xs font-semibold text-foreground mb-1.5">ID CarryPass du patient *</Text>
             <TextInput
               value={form.patientId}
               onChangeText={(v) => setForm({ ...form, patientId: v })}

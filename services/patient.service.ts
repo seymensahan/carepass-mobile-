@@ -39,7 +39,7 @@ export async function getProfile(): Promise<Patient> {
 
   return {
     id: p?.id || "",
-    carepassId: pat?.carepassId || "",
+    carrypassId: pat?.carrypassId || "",
     firstName: p?.firstName || "",
     lastName: p?.lastName || "",
     email: p?.email || "",

@@ -56,8 +56,8 @@ export default function QrFullscreenScreen() {
   }, [scaleAnim, opacityAnim]);
 
   const qrUrl = data
-    ? `https://carepass.cm/emergency/${data.qrToken}`
-    : "https://carepass.cm";
+    ? `https://carrypass.cm/emergency/${data.qrToken}`
+    : "https://carrypass.cm";
 
   return (
     <View className="flex-1 bg-white items-center justify-center">
@@ -104,7 +104,7 @@ export default function QrFullscreenScreen() {
               {data?.bloodGroup}
             </Text>
           </View>
-          <Text className="text-sm text-muted">{data?.carepassId}</Text>
+          <Text className="text-sm text-muted">{data?.carrypassId}</Text>
         </View>
 
         {/* Instruction */}
