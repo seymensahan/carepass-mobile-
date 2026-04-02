@@ -19,7 +19,7 @@ function getDevUrl(): string {
   // Fallback for emulators
   return Platform.OS === "android"
     ? "http://10.0.2.2:8000/api"
-    : "http://localhost:8000/api";
+    : "https://carepass-backend.zylo-platform.cloud/api";
 }
 
 const BASE_URL = __DEV__ ? getDevUrl() : PROD_URL;

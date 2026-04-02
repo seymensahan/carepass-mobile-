@@ -3,73 +3,75 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 
-const SECTIONS = [
-  {
-    icon: "clipboard" as const,
-    title: "Consultations",
-    subtitle: "Historique de vos visites médicales",
-    count: "12",
-    color: "#007bff",
-    route: "/records/consultations",
-  },
-  {
-    icon: "file-text" as const,
-    title: "Résultats de labo",
-    subtitle: "Analyses, imagerie et bilans",
-    count: "5",
-    color: "#dc3545",
-    route: "/records/lab-results",
-  },
-  {
-    icon: "package" as const,
-    title: "Médicaments",
-    subtitle: "Traitements en cours et historique",
-    count: "2 en cours",
-    color: "#28a745",
-    route: "/records/medications",
-  },
-  {
-    icon: "alert-circle" as const,
-    title: "Allergies & Conditions",
-    subtitle: "Allergies, conditions chroniques",
-    count: "2 + 1",
-    color: "#ffc107",
-    route: "/records/allergies",
-  },
-  {
-    icon: "users" as const,
-    title: "Personnes à charge",
-    subtitle: "Enfants, personnes âgées, à mobilité réduite",
-    count: "3",
-    color: "#6f42c1",
-    route: "/records/family",
-  },
-];
-
-const FEMININE_SECTIONS = [
-  {
-    icon: "droplet" as const,
-    title: "Cycle menstruel",
-    subtitle: "Règles, ovulation et prédictions",
-    count: "",
-    color: "#e91e8a",
-    route: "/health/cycle",
-  },
-  {
-    icon: "heart" as const,
-    title: "Suivi de grossesse",
-    subtitle: "Rendez-vous, constantes et progression",
-    count: "",
-    color: "#9b59b6",
-    route: "/health/pregnancy",
-  },
-];
-
 export default function RecordsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { user } = useAuth();
+
+  const SECTIONS = [
+    {
+      icon: "clipboard" as const,
+      title: t("records.consultations"),
+      subtitle: t("records.consultationsSubtitle"),
+      count: "12",
+      color: "#007bff",
+      route: "/records/consultations",
+    },
+    {
+      icon: "file-text" as const,
+      title: t("records.labResults"),
+      subtitle: t("records.labResultsSubtitle"),
+      count: "5",
+      color: "#dc3545",
+      route: "/records/lab-results",
+    },
+    {
+      icon: "package" as const,
+      title: t("records.medications"),
+      subtitle: t("records.medicationsSubtitle"),
+      count: `2 ${t("records.medicationsCount")}`,
+      color: "#28a745",
+      route: "/records/medications",
+    },
+    {
+      icon: "alert-circle" as const,
+      title: t("records.allergies"),
+      subtitle: t("records.allergiesSubtitle"),
+      count: "2 + 1",
+      color: "#ffc107",
+      route: "/records/allergies",
+    },
+    {
+      icon: "users" as const,
+      title: t("records.dependents"),
+      subtitle: t("records.dependentsSubtitle"),
+      count: "3",
+      color: "#6f42c1",
+      route: "/records/family",
+    },
+  ];
+
+  const FEMININE_SECTIONS = [
+    {
+      icon: "droplet" as const,
+      title: t("records.menstrualCycle"),
+      subtitle: t("records.menstrualCycleSubtitle"),
+      count: "",
+      color: "#e91e8a",
+      route: "/health/cycle",
+    },
+    {
+      icon: "heart" as const,
+      title: t("records.pregnancy"),
+      subtitle: t("records.pregnancySubtitle"),
+      count: "",
+      color: "#9b59b6",
+      route: "/health/pregnancy",
+    },
+  ];
 
   // Show feminine health sections for female patients
   const isFemale = user?.gender === "F";
@@ -80,10 +82,10 @@ export default function RecordsScreen() {
       <View className="flex-row items-center justify-between px-6 pt-6 pb-4">
         <View>
           <Text className="text-2xl font-bold text-foreground">
-            Mon Dossier Médical
+            {t("records.title")}
           </Text>
           <Text className="text-sm text-muted mt-1">
-            Tous vos documents de santé
+            {t("records.subtitle")}
           </Text>
         </View>
         <View className="flex-row gap-2">
@@ -142,10 +144,10 @@ export default function RecordsScreen() {
           <>
             <View className="mt-4 mb-3">
               <Text className="text-lg font-bold text-foreground">
-                Santé féminine
+                {t("records.feminineHealth")}
               </Text>
               <Text className="text-xs text-muted mt-0.5">
-                Suivi menstruel et grossesse
+                {t("records.feminineHealthSubtitle")}
               </Text>
             </View>
             {FEMININE_SECTIONS.map((section, index) => (

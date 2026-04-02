@@ -1,6 +1,7 @@
 import React, { Component, type ErrorInfo } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import i18n from "../i18n";
 
 interface Props {
   children: React.ReactNode;
@@ -31,16 +32,18 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      const t = i18n.t.bind(i18n);
+
       return (
         <View className="flex-1 bg-background items-center justify-center px-8">
           <View className="w-20 h-20 rounded-full bg-danger/10 items-center justify-center mb-6">
             <Feather name="alert-triangle" size={36} color="#dc3545" />
           </View>
           <Text className="text-xl font-bold text-foreground text-center mb-2">
-            Oups, une erreur est survenue
+            {t("errorBoundary.title")}
           </Text>
           <Text className="text-sm text-muted text-center leading-5 mb-6">
-            L'application a rencontré un problème inattendu. Veuillez réessayer.
+            {t("errorBoundary.message")}
           </Text>
           {__DEV__ && this.state.error && (
             <View className="bg-danger/5 border border-danger/20 rounded-xl p-4 mb-6 w-full">
@@ -53,11 +56,11 @@ export default class ErrorBoundary extends Component<Props, State> {
             onPress={this.handleRetry}
             className="bg-primary h-14 rounded-xl items-center justify-center flex-row px-8 active:opacity-90"
             accessibilityRole="button"
-            accessibilityLabel="Réessayer"
+            accessibilityLabel={t("errorBoundary.retry")}
           >
             <Feather name="refresh-cw" size={18} color="#fff" />
             <Text className="text-base font-semibold text-white ml-2">
-              Réessayer
+              {t("errorBoundary.retry")}
             </Text>
           </Pressable>
         </View>

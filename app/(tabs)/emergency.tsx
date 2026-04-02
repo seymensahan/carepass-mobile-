@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import QRCode from "react-native-qrcode-svg";
+import { useTranslation } from "react-i18next";
 import {
   cacheEmergencyDataLocally,
   getEmergencyData,
@@ -30,6 +31,7 @@ const s = StyleSheet.create({
 });
 
 export default function EmergencyScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [selectedChild, setSelectedChild] = useState<string | null>(null);
 
@@ -51,7 +53,7 @@ export default function EmergencyScreen() {
     if (!data) return;
     try {
       await Share.share({
-        message: `Carte d'urgence CARYPASS — ${data.patientName}\nhttps://carypass.cm/emergency/${data.qrToken}`,
+        message: `${t("emergency.shareMessage", { name: data.patientName })}\nhttps://carypass.cm/emergency/${data.qrToken}`,
       });
     } catch {
       // cancelled
@@ -82,13 +84,13 @@ export default function EmergencyScreen() {
         contentContainerStyle={{ paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* ─── Header ─── */}
+        {/* Header */}
         <View className="bg-danger px-6 pt-6 pb-8 rounded-b-[32px]">
           <View className="flex-row items-center justify-between mb-1">
             <View className="flex-row items-center">
               <Feather name="alert-circle" size={22} color="#ffffff" style={{ marginRight: 8 }} />
               <Text className="text-xl font-bold text-white">
-                Mode Urgence
+                {t("emergency.title")}
               </Text>
             </View>
             <Pressable
@@ -99,11 +101,11 @@ export default function EmergencyScreen() {
             </Pressable>
           </View>
           <Text className="text-white/70 text-xs">
-            Vos informations vitales accessibles en un instant
+            {t("emergency.subtitle")}
           </Text>
         </View>
 
-        {/* ─── QR Code Card ─── */}
+        {/* QR Code Card */}
         <View
           className="mx-6 -mt-5 bg-white rounded-3xl p-6 items-center mb-5"
           style={s.qrCard}
@@ -117,7 +119,7 @@ export default function EmergencyScreen() {
             />
           </View>
           <Text className="text-sm font-semibold text-foreground mb-1">
-            Faites scanner ce code par un secouriste
+            {t("emergency.scanQR")}
           </Text>
           <Text className="text-xs text-muted mb-5">
             {data?.carypassId}
@@ -131,7 +133,7 @@ export default function EmergencyScreen() {
             >
               <Feather name="maximize" size={15} color="#dc3545" style={{ marginRight: 6 }} />
               <Text className="text-xs font-bold text-danger">
-                Plein écran
+                {t("emergency.fullscreen")}
               </Text>
             </Pressable>
             <Pressable
@@ -140,17 +142,17 @@ export default function EmergencyScreen() {
             >
               <Feather name="share-2" size={15} color="#007bff" style={{ marginRight: 6 }} />
               <Text className="text-xs font-bold text-primary">
-                Partager
+                {t("emergency.share")}
               </Text>
             </Pressable>
           </View>
         </View>
 
-        {/* ─── Emergency Info Card ─── */}
+        {/* Emergency Info Card */}
         <View className="mx-6 bg-white rounded-3xl overflow-hidden mb-5" style={s.card}>
           <View className="bg-danger/5 px-5 py-4">
             <Text className="text-base font-bold text-foreground">
-              Mes infos d'urgence
+              {t("emergency.myEmergencyInfo")}
             </Text>
           </View>
 
@@ -162,9 +164,9 @@ export default function EmergencyScreen() {
               </Text>
             </View>
             <View>
-              <Text className="text-xs text-muted">Groupe sanguin</Text>
+              <Text className="text-xs text-muted">{t("emergency.bloodGroup")}</Text>
               <Text className="text-base font-bold text-foreground">
-                {data?.bloodGroup} · Génotype {data?.genotype}
+                {data?.bloodGroup} · {t("profile.genotype")} {data?.genotype}
               </Text>
             </View>
           </View>
@@ -176,7 +178,7 @@ export default function EmergencyScreen() {
                 <Feather name="alert-circle" size={14} color="#ffc107" />
               </View>
               <Text className="text-xs font-bold text-foreground">
-                Allergies
+                {t("emergency.allergies")}
               </Text>
             </View>
             <View className="flex-row flex-wrap gap-2">
@@ -207,7 +209,7 @@ export default function EmergencyScreen() {
                 <Feather name="activity" size={14} color="#007bff" />
               </View>
               <Text className="text-xs font-bold text-foreground">
-                Conditions
+                {t("emergency.conditions")}
               </Text>
             </View>
             {data?.conditions.map((c, i) => (
@@ -224,7 +226,7 @@ export default function EmergencyScreen() {
                 <Feather name="package" size={14} color="#28a745" />
               </View>
               <Text className="text-xs font-bold text-foreground">
-                Médicaments en cours
+                {t("emergency.currentMedications")}
               </Text>
             </View>
             {data?.currentMedications.map((m, i) => (
@@ -241,7 +243,7 @@ export default function EmergencyScreen() {
                 <Feather name="phone" size={14} color="#dc3545" />
               </View>
               <Text className="text-xs font-bold text-foreground">
-                Contacts d'urgence
+                {t("emergency.emergencyContacts")}
               </Text>
             </View>
             {data?.emergencyContacts.map((c, i) => (
@@ -263,7 +265,7 @@ export default function EmergencyScreen() {
                 >
                   <Feather name="phone" size={12} color="#ffffff" />
                   <Text className="text-white text-xs font-bold ml-1.5">
-                    Appeler
+                    {t("common.call")}
                   </Text>
                 </Pressable>
               </View>
@@ -271,12 +273,12 @@ export default function EmergencyScreen() {
           </View>
         </View>
 
-        {/* ─── Child Emergency ─── */}
+        {/* Child Emergency */}
         {(data?.children.length ?? 0) > 0 && (
           <View className="mx-6 bg-white rounded-3xl overflow-hidden mb-5" style={s.card}>
             <View className="bg-accent/8 px-5 py-4">
               <Text className="text-base font-bold text-foreground">
-                Urgence famille
+                {t("emergency.familyEmergency")}
               </Text>
             </View>
 
@@ -304,7 +306,7 @@ export default function EmergencyScreen() {
                       {child.firstName} {child.lastName}
                     </Text>
                     <Text className="text-xs text-muted">
-                      {child.age} · {child.bloodGroup ?? "—"}
+                      {child.age} · {child.bloodGroup ?? "\u2014"}
                     </Text>
                   </View>
                   <Feather
@@ -330,17 +332,17 @@ export default function EmergencyScreen() {
                     </View>
                     <View>
                       <Text className="text-xs text-muted">
-                        Groupe sanguin
+                        {t("emergency.bloodGroup")}
                       </Text>
                       <Text className="text-sm font-bold text-foreground">
-                        {activeChild.bloodGroup ?? "Non renseigné"}
+                        {activeChild.bloodGroup ?? t("emergency.notReported")}
                       </Text>
                     </View>
                   </View>
                   {activeChild.allergies.length > 0 && (
                     <View className="mb-2">
                       <Text className="text-xs text-muted mb-1.5">
-                        Allergies
+                        {t("emergency.allergies")}
                       </Text>
                       <View className="flex-row flex-wrap gap-1.5">
                         {activeChild.allergies.map((a, i) => (
@@ -359,7 +361,7 @@ export default function EmergencyScreen() {
                   {activeChild.allergies.length === 0 &&
                     activeChild.conditions.length === 0 && (
                       <Text className="text-xs text-secondary italic">
-                        Aucune allergie ni condition déclarée
+                        {t("emergency.noAllergyNoCondition")}
                       </Text>
                     )}
                 </View>
@@ -368,7 +370,7 @@ export default function EmergencyScreen() {
           </View>
         )}
 
-        {/* ─── Quick Actions ─── */}
+        {/* Quick Actions */}
         <View className="mx-6">
           <View className="flex-row gap-3 mb-3">
             <Pressable
@@ -380,7 +382,7 @@ export default function EmergencyScreen() {
                 <Feather name="wifi-off" size={20} color="#6c757d" />
               </View>
               <Text className="text-xs font-semibold text-foreground">
-                Carte offline
+                {t("emergency.offlineCard")}
               </Text>
             </Pressable>
             <Pressable
@@ -392,7 +394,7 @@ export default function EmergencyScreen() {
                 <Feather name="camera" size={20} color="#007bff" />
               </View>
               <Text className="text-xs font-semibold text-foreground">
-                Scanner docteur
+                {t("emergency.scanDoctor")}
               </Text>
             </Pressable>
           </View>
@@ -403,7 +405,7 @@ export default function EmergencyScreen() {
           >
             <Feather name="settings" size={18} color="#6c757d" />
             <Text className="text-sm font-semibold text-foreground ml-2">
-              Configurer ma carte d'urgence
+              {t("emergency.configureCard")}
             </Text>
           </Pressable>
         </View>

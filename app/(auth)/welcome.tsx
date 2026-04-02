@@ -2,9 +2,11 @@ import React from "react";
 import { Image, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import Button from "../../components/ui/Button";
 
 export default function WelcomeScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   return (
@@ -20,12 +22,12 @@ export default function WelcomeScreen() {
 
         {/* Tagline */}
         <Text className="text-lg text-muted mb-3">
-          Votre santé, votre contrôle
+          {t("welcome.tagline")}
         </Text>
 
         {/* Description */}
         <Text className="text-sm text-muted text-center leading-5 px-4 mb-12">
-          Gérez vos dossiers de santé numériques en toute sécurité, partout.
+          {t("welcome.description")}
         </Text>
 
         {/* Decorative dots */}
@@ -39,13 +41,13 @@ export default function WelcomeScreen() {
       {/* Bottom buttons */}
       <View className="px-6 pb-8">
         <Button
-          title="Se connecter"
+          title={t("welcome.login")}
           onPress={() => router.push("/(auth)/login")}
           variant="primary"
         />
         <View className="h-3" />
         <Button
-          title="Créer un compte"
+          title={t("welcome.register")}
           onPress={() => router.push("/(auth)/register")}
           variant="outline"
         />

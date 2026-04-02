@@ -2,9 +2,12 @@ import React from "react";
 import { View } from "react-native";
 import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import OfflineBanner from "../../components/OfflineBanner";
 
 export default function DoctorTabsLayout() {
+  const { t } = useTranslation();
+
   return (
     <View style={{ flex: 1 }}>
     <OfflineBanner />
@@ -35,7 +38,7 @@ export default function DoctorTabsLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: "Accueil",
+          title: t("doctorTabs.home"),
           tabBarIcon: ({ color, size }) => (
             <Feather name="home" size={size} color={color} />
           ),
@@ -44,7 +47,7 @@ export default function DoctorTabsLayout() {
       <Tabs.Screen
         name="patients"
         options={{
-          title: "Patients",
+          title: t("doctorTabs.patients"),
           tabBarIcon: ({ color, size }) => (
             <Feather name="users" size={size} color={color} />
           ),
@@ -53,7 +56,7 @@ export default function DoctorTabsLayout() {
       <Tabs.Screen
         name="consultations"
         options={{
-          title: "Consultations",
+          title: t("doctorTabs.consultations"),
           tabBarIcon: ({ color, size }) => (
             <Feather name="clipboard" size={size} color={color} />
           ),
@@ -62,7 +65,7 @@ export default function DoctorTabsLayout() {
       <Tabs.Screen
         name="appointments"
         options={{
-          title: "Agenda",
+          title: t("doctorTabs.appointments"),
           tabBarIcon: ({ color, size }) => (
             <Feather name="calendar" size={size} color={color} />
           ),
@@ -71,7 +74,7 @@ export default function DoctorTabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profil",
+          title: t("doctorTabs.profile"),
           tabBarIcon: ({ color, size }) => (
             <Feather name="user" size={size} color={color} />
           ),

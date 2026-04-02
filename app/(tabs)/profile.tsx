@@ -14,10 +14,12 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 import { getProfile } from "../../services/patient.service";
 import { useProfileStore } from "../../stores";
 import { ProfileSkeleton } from "../../components/ui/Skeleton";
+import i18n from "../../i18n";
 
 const s = StyleSheet.create({
   card: {
@@ -30,6 +32,7 @@ const s = StyleSheet.create({
 });
 
 export default function ProfileScreen() {
+  const { t } = useTranslation();
   const { logout } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -53,12 +56,12 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     Alert.alert(
-      "Déconnexion",
-      "Êtes-vous sûr de vouloir vous déconnecter ?",
+      t("profile.logoutConfirmTitle"),
+      t("profile.logoutConfirmMessage"),
       [
-        { text: "Annuler", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Se déconnecter",
+          text: t("profile.logout"),
           style: "destructive",
           onPress: async () => {
             await logout();
@@ -71,6 +74,10 @@ export default function ProfileScreen() {
 
   const handleCall = (phone: string) => {
     Linking.openURL(`tel:${phone.replace(/\s/g, "")}`);
+  };
+
+  const handleChangeLanguage = (lang: string) => {
+    i18n.changeLanguage(lang);
   };
 
   const formatDate = (dateStr: string) => {
@@ -105,6 +112,8 @@ export default function ProfileScreen() {
     return { bg: "bg-secondary/15", text: "#28a745" };
   };
 
+  const currentLang = i18n.language;
+
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView
@@ -120,12 +129,12 @@ export default function ProfileScreen() {
           />
         }
       >
-        {/* ─── Header ─── */}
+        {/* Header */}
         <View className="px-6 pt-6 pb-2">
-          <Text className="text-2xl font-bold text-foreground">Profil</Text>
+          <Text className="text-2xl font-bold text-foreground">{t("profile.title")}</Text>
         </View>
 
-        {/* ─── Avatar + Name + ID ─── */}
+        {/* Avatar + Name + ID */}
         <View className="items-center px-6 mb-6">
           <View
             className="w-22 h-22 rounded-full bg-primary items-center justify-center mb-3"
@@ -150,52 +159,52 @@ export default function ProfileScreen() {
           >
             <Feather name="edit-2" size={14} color="#007bff" />
             <Text className="text-primary text-sm font-semibold ml-2">
-              Modifier le profil
+              {t("profile.editProfile")}
             </Text>
           </Pressable>
         </View>
 
-        {/* ─── Personal Information ─── */}
+        {/* Personal Information */}
         <View className="px-6 mb-5">
           <Text className="text-base font-bold text-foreground mb-3">
-            Informations personnelles
+            {t("profile.personalInfo")}
           </Text>
           <View className="bg-white rounded-3xl overflow-hidden" style={s.card}>
             {[
               {
                 icon: "user" as const,
-                label: "Nom complet",
+                label: t("profile.fullName"),
                 value: `${patient?.lastName} ${patient?.firstName}`,
                 color: "#007bff",
               },
               {
                 icon: "calendar" as const,
-                label: "Date de naissance",
+                label: t("profile.dateOfBirth"),
                 value: patient?.dateOfBirth
-                  ? `${formatDate(patient.dateOfBirth)} (${getAge(patient.dateOfBirth)} ans)`
-                  : "—",
+                  ? `${formatDate(patient.dateOfBirth)} (${getAge(patient.dateOfBirth)} ${t("profile.yearsOld")})`
+                  : "\u2014",
                 color: "#28a745",
               },
               {
                 icon: "users" as const,
-                label: "Genre",
+                label: t("profile.gender"),
                 value:
                   patient?.gender === "M"
-                    ? "Homme"
+                    ? t("profile.genderMale")
                     : patient?.gender === "F"
-                    ? "Femme"
-                    : "Autre",
+                    ? t("profile.genderFemale")
+                    : t("profile.genderOther"),
                 color: "#6c757d",
               },
               {
                 icon: "mail" as const,
-                label: "Email",
+                label: t("profile.email"),
                 value: patient?.email,
                 color: "#ffc107",
               },
               {
                 icon: "phone" as const,
-                label: "Téléphone",
+                label: t("profile.phone"),
                 value: patient?.phone,
                 color: "#dc3545",
               },
@@ -223,10 +232,10 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* ─── Medical Information ─── */}
+        {/* Medical Information */}
         <View className="px-6 mb-5">
           <Text className="text-base font-bold text-foreground mb-3">
-            Informations médicales
+            {t("profile.medicalInfo")}
           </Text>
           <View className="bg-white rounded-3xl overflow-hidden" style={s.card}>
             {/* Blood group + genotype */}
@@ -235,28 +244,28 @@ export default function ProfileScreen() {
                 <View className="w-10 h-10 rounded-xl bg-danger/10 items-center justify-center mb-2">
                   <Feather name="droplet" size={18} color="#dc3545" />
                 </View>
-                <Text className="text-xs text-muted">Groupe sanguin</Text>
+                <Text className="text-xs text-muted">{t("profile.bloodGroup")}</Text>
                 <Text className="text-xl font-bold text-foreground">
-                  {patient?.bloodGroup ?? "—"}
+                  {patient?.bloodGroup ?? "\u2014"}
                 </Text>
               </View>
               <View className="flex-1 p-5 items-center">
                 <View className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center mb-2">
                   <Feather name="git-branch" size={18} color="#007bff" />
                 </View>
-                <Text className="text-xs text-muted">Génotype</Text>
+                <Text className="text-xs text-muted">{t("profile.genotype")}</Text>
                 <Text className="text-xl font-bold text-foreground">
-                  {patient?.genotype ?? "—"}
+                  {patient?.genotype ?? "\u2014"}
                 </Text>
               </View>
             </View>
 
             {/* Allergies */}
             <View className="px-5 py-4 border-b border-border/40">
-              <Text className="text-xs text-muted mb-2.5">Allergies</Text>
+              <Text className="text-xs text-muted mb-2.5">{t("profile.allergies")}</Text>
               {patient?.allergies.length === 0 ? (
                 <Text className="text-sm text-muted italic">
-                  Aucune allergie déclarée
+                  {t("profile.noAllergies")}
                 </Text>
               ) : (
                 <View className="flex-row flex-wrap gap-2">
@@ -283,10 +292,10 @@ export default function ProfileScreen() {
             {/* Chronic conditions */}
             <View className="px-5 py-4">
               <Text className="text-xs text-muted mb-2.5">
-                Conditions chroniques
+                {t("profile.chronicConditions")}
               </Text>
               {patient?.chronicConditions.length === 0 ? (
-                <Text className="text-sm text-muted italic">Aucune</Text>
+                <Text className="text-sm text-muted italic">{t("profile.noConditions")}</Text>
               ) : (
                 patient?.chronicConditions.map((c) => (
                   <View key={c.id} className="flex-row items-start mb-1">
@@ -308,10 +317,10 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* ─── Emergency Contacts ─── */}
+        {/* Emergency Contacts */}
         <View className="px-6 mb-5">
           <Text className="text-base font-bold text-foreground mb-3">
-            Contacts d'urgence
+            {t("profile.emergencyContacts")}
           </Text>
           <View className="bg-white rounded-3xl overflow-hidden" style={s.card}>
             {patient?.emergencyContacts.map((contact, index, arr) => (
@@ -343,11 +352,11 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* ─── Children / Family ─── */}
+        {/* Children / Family */}
         {(patient?.children.length ?? 0) > 0 && (
           <View className="px-6 mb-5">
             <Text className="text-base font-bold text-foreground mb-3">
-              Famille
+              {t("profile.family")}
             </Text>
             <View className="bg-white rounded-3xl overflow-hidden" style={s.card}>
               {patient?.children.map((child, index, arr) => (
@@ -366,8 +375,8 @@ export default function ProfileScreen() {
                       {child.firstName} {child.lastName}
                     </Text>
                     <Text className="text-xs text-muted mt-0.5">
-                      {getAge(child.dateOfBirth)} ans ·{" "}
-                      {child.bloodGroup ?? "Groupe sanguin non renseigné"}
+                      {getAge(child.dateOfBirth)} {t("profile.yearsOld")} ·{" "}
+                      {child.bloodGroup ?? t("profile.bloodGroupNotReported")}
                     </Text>
                   </View>
                   <Feather name="chevron-right" size={16} color="#6c757d" />
@@ -377,10 +386,10 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* ─── Access Management ─── */}
+        {/* Access Management */}
         <View className="px-6 mb-5">
           <Text className="text-base font-bold text-foreground mb-3">
-            Accès à mon dossier
+            {t("profile.accessManagement")}
           </Text>
           <Pressable
             onPress={() => router.push("/access")}
@@ -392,20 +401,20 @@ export default function ProfileScreen() {
             </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-foreground">
-                Gérer les accès médecins
+                {t("profile.manageDoctorAccess")}
               </Text>
               <Text className="text-xs text-muted mt-0.5">
-                Demandes en attente, accès actifs
+                {t("profile.accessSubtitle")}
               </Text>
             </View>
             <Feather name="chevron-right" size={16} color="#6c757d" />
           </Pressable>
         </View>
 
-        {/* ─── Settings ─── */}
+        {/* Settings */}
         <View className="px-6 mb-5">
           <Text className="text-base font-bold text-foreground mb-3">
-            Paramètres
+            {t("profile.settings")}
           </Text>
           <View className="bg-white rounded-3xl overflow-hidden" style={s.card}>
             {/* Language */}
@@ -414,14 +423,20 @@ export default function ProfileScreen() {
                 <Feather name="globe" size={17} color="#007bff" />
               </View>
               <Text className="flex-1 text-sm font-semibold text-foreground">
-                Langue
+                {t("profile.language")}
               </Text>
               <View className="flex-row bg-background rounded-xl overflow-hidden">
-                <Pressable className="px-3.5 py-2 bg-primary rounded-xl">
-                  <Text className="text-white text-xs font-bold">FR</Text>
+                <Pressable
+                  onPress={() => handleChangeLanguage("fr")}
+                  className={`px-3.5 py-2 ${currentLang === "fr" ? "bg-primary rounded-xl" : ""}`}
+                >
+                  <Text className={`text-xs font-bold ${currentLang === "fr" ? "text-white" : "text-muted"}`}>FR</Text>
                 </Pressable>
-                <Pressable className="px-3.5 py-2">
-                  <Text className="text-muted text-xs font-medium">EN</Text>
+                <Pressable
+                  onPress={() => handleChangeLanguage("en")}
+                  className={`px-3.5 py-2 ${currentLang === "en" ? "bg-primary rounded-xl" : ""}`}
+                >
+                  <Text className={`text-xs font-medium ${currentLang === "en" ? "text-white" : "text-muted"}`}>EN</Text>
                 </Pressable>
               </View>
             </View>
@@ -432,7 +447,7 @@ export default function ProfileScreen() {
                 <Feather name="bell" size={17} color="#ffc107" />
               </View>
               <Text className="flex-1 text-sm font-semibold text-foreground">
-                Notifications
+                {t("profile.notifications")}
               </Text>
               <Switch
                 value={true}
@@ -448,9 +463,9 @@ export default function ProfileScreen() {
               </View>
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-foreground">
-                  Mode sombre
+                  {t("profile.darkMode")}
                 </Text>
-                <Text className="text-xs text-muted">Bientôt disponible</Text>
+                <Text className="text-xs text-muted">{t("common.comingSoon")}</Text>
               </View>
               <Switch
                 value={false}
@@ -462,7 +477,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* ─── Logout ─── */}
+        {/* Logout */}
         <View className="px-6">
           <Pressable
             onPress={handleLogout}
@@ -471,7 +486,7 @@ export default function ProfileScreen() {
           >
             <Feather name="log-out" size={18} color="#dc3545" />
             <Text className="text-danger font-bold ml-2">
-              Se déconnecter
+              {t("profile.logout")}
             </Text>
           </Pressable>
         </View>

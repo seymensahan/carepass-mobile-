@@ -16,44 +16,16 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Feather } from "@expo/vector-icons";
 import { Calendar } from "react-native-calendars";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
-
-const registerSchema = z
-  .object({
-    firstName: z.string().min(1, "Le prénom est requis"),
-    lastName: z.string().min(1, "Le nom est requis"),
-    email: z
-      .string()
-      .min(1, "L'email est requis")
-      .email("Adresse email invalide"),
-    phone: z
-      .string()
-      .min(1, "Le téléphone est requis")
-      .min(9, "Numéro de téléphone invalide"),
-    password: z
-      .string()
-      .min(1, "Le mot de passe est requis")
-      .min(4, "Minimum 4 caractères"),
-    confirmPassword: z.string().min(1, "La confirmation est requise"),
-    bloodGroup: z.string().optional(),
-    gender: z.enum(["M", "F"], {
-      message: "Le genre est requis",
-    }),
-    dateOfBirth: z.string().min(1, "La date de naissance est requise"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Les mots de passe ne correspondent pas",
-    path: ["confirmPassword"],
-  });
-
-type RegisterForm = z.infer<typeof registerSchema>;
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 const TOTAL_STEPS = 3;
 
 export default function RegisterScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { register: registerUser } = useAuth();
   const [step, setStep] = useState(1);
@@ -62,9 +34,41 @@ export default function RegisterScreen() {
   const [calYear, setCalYear] = useState(2000);
   const [calMonth, setCalMonth] = useState(1);
   const MONTH_NAMES = [
-    "Janvier","Février","Mars","Avril","Mai","Juin",
-    "Juillet","Août","Septembre","Octobre","Novembre","Décembre",
+    t("months.january"), t("months.february"), t("months.march"),
+    t("months.april"), t("months.may"), t("months.june"),
+    t("months.july"), t("months.august"), t("months.september"),
+    t("months.october"), t("months.november"), t("months.december"),
   ];
+
+  const registerSchema = z
+    .object({
+      firstName: z.string().min(1, t("register.validationFirstNameRequired")),
+      lastName: z.string().min(1, t("register.validationLastNameRequired")),
+      email: z
+        .string()
+        .min(1, t("register.validationEmailRequired"))
+        .email(t("register.validationEmailInvalid")),
+      phone: z
+        .string()
+        .min(1, t("register.validationPhoneRequired"))
+        .min(9, t("register.validationPhoneInvalid")),
+      password: z
+        .string()
+        .min(1, t("register.validationPasswordRequired"))
+        .min(4, t("register.validationPasswordMin")),
+      confirmPassword: z.string().min(1, t("register.validationConfirmRequired")),
+      bloodGroup: z.string().optional(),
+      gender: z.enum(["M", "F"], {
+        message: t("register.validationGenderRequired"),
+      }),
+      dateOfBirth: z.string().min(1, t("register.validationDateOfBirthRequired")),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: t("register.validationPasswordsMismatch"),
+      path: ["confirmPassword"],
+    });
+
+  type RegisterForm = z.infer<typeof registerSchema>;
 
   const {
     control,
@@ -116,10 +120,10 @@ export default function RegisterScreen() {
         // Redirect to payment page for patient subscription
         router.replace("/(auth)/payment");
       } else {
-        Alert.alert("Erreur", result.message);
+        Alert.alert(t("common.error"), result.message);
       }
     } catch {
-      Alert.alert("Erreur", "Une erreur est survenue. Veuillez réessayer.");
+      Alert.alert(t("common.error"), t("common.genericError"));
     } finally {
       setLoading(false);
     }
@@ -141,7 +145,7 @@ export default function RegisterScreen() {
   const renderStep1 = () => (
     <>
       <Text className="text-lg font-semibold text-foreground mb-4">
-        Informations personnelles
+        {t("register.step1Title")}
       </Text>
 
       <Controller
@@ -149,8 +153,8 @@ export default function RegisterScreen() {
         name="lastName"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
-            label="Nom"
-            placeholder="Votre nom"
+            label={t("register.lastName")}
+            placeholder={t("register.lastNamePlaceholder")}
             value={value}
             onChangeText={onChange}
             onBlur={onBlur}
@@ -166,8 +170,8 @@ export default function RegisterScreen() {
         name="firstName"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
-            label="Prénom"
-            placeholder="Votre prénom"
+            label={t("register.firstName")}
+            placeholder={t("register.firstNamePlaceholder")}
             value={value}
             onChangeText={onChange}
             onBlur={onBlur}
@@ -183,8 +187,8 @@ export default function RegisterScreen() {
         name="email"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
-            label="Adresse email"
-            placeholder="votre@email.com"
+            label={t("register.email")}
+            placeholder={t("register.emailPlaceholder")}
             value={value}
             onChangeText={onChange}
             onBlur={onBlur}
@@ -201,8 +205,8 @@ export default function RegisterScreen() {
         name="phone"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
-            label="Téléphone"
-            placeholder="+237 6XX XXX XXX"
+            label={t("register.phone")}
+            placeholder={t("register.phonePlaceholder")}
             value={value}
             onChangeText={onChange}
             onBlur={onBlur}
@@ -218,7 +222,7 @@ export default function RegisterScreen() {
   const renderStep2 = () => (
     <>
       <Text className="text-lg font-semibold text-foreground mb-4">
-        Sécurité
+        {t("register.step2Title")}
       </Text>
 
       <Controller
@@ -226,8 +230,8 @@ export default function RegisterScreen() {
         name="password"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
-            label="Mot de passe"
-            placeholder="Minimum 8 caractères"
+            label={t("register.password")}
+            placeholder={t("register.passwordPlaceholder")}
             value={value}
             onChangeText={onChange}
             onBlur={onBlur}
@@ -243,8 +247,8 @@ export default function RegisterScreen() {
         name="confirmPassword"
         render={({ field: { onChange, onBlur, value } }) => (
           <Input
-            label="Confirmer le mot de passe"
-            placeholder="Retapez votre mot de passe"
+            label={t("register.confirmPassword")}
+            placeholder={t("register.confirmPasswordPlaceholder")}
             value={value}
             onChangeText={onChange}
             onBlur={onBlur}
@@ -260,11 +264,11 @@ export default function RegisterScreen() {
   const renderStep3 = () => (
     <>
       <Text className="text-lg font-semibold text-foreground mb-4">
-        Informations médicales
+        {t("register.step3Title")}
       </Text>
 
       {/* Gender selection */}
-      <Text className="text-sm font-medium text-foreground mb-2">Genre</Text>
+      <Text className="text-sm font-medium text-foreground mb-2">{t("register.gender")}</Text>
       <Controller
         control={control}
         name="gender"
@@ -272,8 +276,8 @@ export default function RegisterScreen() {
           <View className="flex-row gap-3 mb-4">
             {(
               [
-                { key: "M", label: "Homme" },
-                { key: "F", label: "Femme" },
+                { key: "M", label: t("register.genderMale") },
+                { key: "F", label: t("register.genderFemale") },
               ] as const
             ).map((option) => (
               <Pressable
@@ -310,7 +314,7 @@ export default function RegisterScreen() {
         render={({ field: { onChange, value } }) => (
           <>
             <Text className="text-sm font-medium text-foreground mb-2">
-              Date de naissance
+              {t("register.dateOfBirth")}
             </Text>
             <Pressable
               onPress={() => {
@@ -331,7 +335,7 @@ export default function RegisterScreen() {
                   value ? "text-foreground" : "text-muted"
                 }`}
               >
-                {value || "Sélectionnez votre date de naissance"}
+                {value || t("register.dateOfBirthPlaceholder")}
               </Text>
             </Pressable>
             {errors.dateOfBirth && (
@@ -355,7 +359,7 @@ export default function RegisterScreen() {
                   className="bg-white rounded-2xl p-4"
                 >
                   <Text className="text-lg font-semibold text-foreground mb-3 text-center">
-                    Date de naissance
+                    {t("register.dateOfBirth")}
                   </Text>
 
                   {/* Year & Month selectors */}
@@ -425,7 +429,7 @@ export default function RegisterScreen() {
                     onPress={() => setShowCalendar(false)}
                     className="mt-3 h-12 bg-primary rounded-xl items-center justify-center"
                   >
-                    <Text className="text-white font-semibold">Fermer</Text>
+                    <Text className="text-white font-semibold">{t("common.close")}</Text>
                   </Pressable>
                 </Pressable>
               </Pressable>
@@ -436,7 +440,7 @@ export default function RegisterScreen() {
 
       {/* Blood group */}
       <Text className="text-sm font-medium text-foreground mb-2">
-        Groupe sanguin (optionnel)
+        {t("register.bloodGroup")}
       </Text>
       <Controller
         control={control}
@@ -471,7 +475,7 @@ export default function RegisterScreen() {
               }`}
             >
               <Text className={`text-sm ${!value ? "font-semibold text-gray-600" : "text-muted"}`}>
-                Je ne sais pas encore
+                {t("register.bloodGroupUnknown")}
               </Text>
             </Pressable>
           </>
@@ -502,10 +506,10 @@ export default function RegisterScreen() {
 
             {/* Header */}
             <Text className="text-3xl font-bold text-foreground mb-1">
-              Créer un compte
+              {t("register.title")}
             </Text>
             <Text className="text-sm text-muted mb-6">
-              Étape {step} sur {TOTAL_STEPS}
+              {t("register.stepOf", { current: step, total: TOTAL_STEPS })}
             </Text>
 
             {/* Progress */}
@@ -520,10 +524,10 @@ export default function RegisterScreen() {
           {/* Bottom actions */}
           <View className="px-6 pb-8 pt-4">
             {step < TOTAL_STEPS ? (
-              <Button title="Suivant" onPress={goToNextStep} />
+              <Button title={t("common.next")} onPress={goToNextStep} />
             ) : (
               <Button
-                title="Créer mon compte"
+                title={t("register.submit")}
                 onPress={handleSubmit(onSubmit)}
                 loading={loading}
                 variant="secondary"
@@ -532,10 +536,10 @@ export default function RegisterScreen() {
 
             {step === 1 && (
               <View className="flex-row justify-center mt-4">
-                <Text className="text-muted text-sm">Déjà un compte ? </Text>
+                <Text className="text-muted text-sm">{t("register.hasAccount")} </Text>
                 <Pressable onPress={() => router.push("/(auth)/login")}>
                   <Text className="text-primary text-sm font-semibold">
-                    Se connecter
+                    {t("register.login")}
                   </Text>
                 </Pressable>
               </View>

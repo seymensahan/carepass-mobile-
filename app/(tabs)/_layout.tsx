@@ -2,9 +2,12 @@ import React from "react";
 import { View } from "react-native";
 import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import OfflineBanner from "../../components/OfflineBanner";
 
 export default function TabsLayout() {
+  const { t } = useTranslation();
+
   return (
     <View style={{ flex: 1 }}>
     <OfflineBanner />
@@ -35,7 +38,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: "Accueil",
+          title: t("tabs.home"),
           tabBarIcon: ({ color, size }) => (
             <Feather name="home" size={size} color={color} />
           ),
@@ -44,7 +47,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="records"
         options={{
-          title: "Dossier",
+          title: t("tabs.records"),
           tabBarIcon: ({ color, size }) => (
             <Feather name="file-text" size={size} color={color} />
           ),
@@ -53,7 +56,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="emergency"
         options={{
-          title: "Urgence",
+          title: t("tabs.emergency"),
           tabBarIcon: ({ color, size }) => (
             <Feather name="alert-triangle" size={size} color={color} />
           ),
@@ -62,7 +65,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profil",
+          title: t("tabs.profile"),
           tabBarIcon: ({ color, size }) => (
             <Feather name="user" size={size} color={color} />
           ),

@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   getDashboardSummary,
@@ -42,6 +43,7 @@ const s = StyleSheet.create({
 });
 
 export default function HomeScreen() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -133,7 +135,7 @@ export default function HomeScreen() {
           }`}
         >
           <Text className="text-white text-xs font-semibold">
-            {item.status === "confirmé" ? "Confirmé" : "En attente"}
+            {item.status === "confirmé" ? t("home.confirmed") : t("home.pending")}
           </Text>
         </View>
       </View>
@@ -177,12 +179,12 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* ─── Header ─── */}
+        {/* Header */}
         <View className="flex-row items-center justify-between px-6 pt-6 pb-5">
           <View>
-            <Text className="text-muted text-sm">Bonjour</Text>
+            <Text className="text-muted text-sm">{t("home.greeting")}</Text>
             <Text className="text-2xl font-bold text-foreground">
-              {user?.firstName ?? "Patient"}
+              {user?.firstName ?? t("common.patient")}
             </Text>
           </View>
           <View className="flex-row items-center gap-3">
@@ -220,7 +222,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ─── Emergency Quick Card ─── */}
+        {/* Emergency Quick Card */}
         <Pressable
           onPress={() => router.push("/(tabs)/emergency")}
           className="mx-6 mb-6 bg-danger rounded-3xl p-5 flex-row items-center"
@@ -231,10 +233,10 @@ export default function HomeScreen() {
           </View>
           <View className="flex-1">
             <Text className="text-white font-bold text-base">
-              Carte d'urgence
+              {t("home.emergencyCard")}
             </Text>
             <Text className="text-white/70 text-xs mt-0.5">
-              Accédez à vos infos vitales en un tap
+              {t("home.emergencyCardSubtitle")}
             </Text>
           </View>
           <View className="w-9 h-9 rounded-xl bg-white/15 items-center justify-center">
@@ -242,41 +244,41 @@ export default function HomeScreen() {
           </View>
         </Pressable>
 
-        {/* ─── Health Summary Grid ─── */}
+        {/* Health Summary Grid */}
         <View className="px-6 mb-7">
           <Text className="text-lg font-bold text-foreground mb-4">
-            Résumé santé
+            {t("home.healthSummary")}
           </Text>
           <View className="flex-row flex-wrap gap-3">
             {[
               {
                 icon: "droplet" as const,
-                label: "Groupe sanguin",
-                value: summary.data?.bloodGroup ?? "—",
+                label: t("home.bloodGroup"),
+                value: summary.data?.bloodGroup ?? "\u2014",
                 color: "#dc3545",
                 bg: "#dc354508",
               },
               {
                 icon: "alert-circle" as const,
-                label: "Allergies",
+                label: t("home.allergies"),
                 value: `${summary.data?.allergiesCount ?? 0}`,
-                subtitle: "actives",
+                subtitle: t("home.allergiesActive"),
                 color: "#ffc107",
                 bg: "#ffc10708",
               },
               {
                 icon: "clipboard" as const,
-                label: "Consultations",
+                label: t("home.consultations"),
                 value: `${summary.data?.consultationsCount ?? 0}`,
-                subtitle: "au total",
+                subtitle: t("home.consultationsTotal"),
                 color: "#28a745",
                 bg: "#28a74508",
               },
               {
                 icon: "package" as const,
-                label: "Médicaments",
+                label: t("home.medications"),
                 value: `${summary.data?.activeMedicationsCount ?? 0}`,
-                subtitle: "en cours",
+                subtitle: t("home.medicationsOngoing"),
                 color: "#007bff",
                 bg: "#007bff08",
               },
@@ -306,18 +308,18 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ─── Upcoming Appointments ─── */}
+        {/* Upcoming Appointments */}
         <View className="mb-7">
           <View className="flex-row items-center justify-between px-6 mb-4">
             <Text className="text-lg font-bold text-foreground">
-              Prochains rendez-vous
+              {t("home.upcomingAppointments")}
             </Text>
             <Pressable
               onPress={() => router.push("/appointments" as any)}
               className="px-3 py-1.5 rounded-full bg-primary/8"
             >
               <Text className="text-primary text-xs font-semibold">
-                Voir tout
+                {t("common.seeAll")}
               </Text>
             </Pressable>
           </View>
@@ -333,23 +335,23 @@ export default function HomeScreen() {
           ) : (
             <View className="mx-6 bg-white rounded-2xl p-5 items-center" style={s.card}>
               <Feather name="calendar" size={28} color="#adb5bd" />
-              <Text className="text-sm text-muted mt-2">Aucun rendez-vous à venir</Text>
+              <Text className="text-sm text-muted mt-2">{t("home.noUpcomingAppointments")}</Text>
             </View>
           )}
         </View>
 
-        {/* ─── Recent Consultations ─── */}
+        {/* Recent Consultations */}
         <View className="px-6 mb-7">
           <View className="flex-row items-center justify-between mb-4">
             <Text className="text-lg font-bold text-foreground">
-              Dernières consultations
+              {t("home.recentConsultations")}
             </Text>
             <Pressable
               onPress={() => router.push("/records/consultations" as any)}
               className="px-3 py-1.5 rounded-full bg-primary/8"
             >
               <Text className="text-primary text-xs font-semibold">
-                Voir tout
+                {t("common.seeAll")}
               </Text>
             </Pressable>
           </View>
@@ -388,15 +390,15 @@ export default function HomeScreen() {
           ) : (
             <View className="bg-white rounded-2xl p-5 items-center" style={s.card}>
               <Feather name="clipboard" size={28} color="#adb5bd" />
-              <Text className="text-sm text-muted mt-2">Aucune consultation récente</Text>
+              <Text className="text-sm text-muted mt-2">{t("home.noRecentConsultations")}</Text>
             </View>
           )}
         </View>
 
-        {/* ─── Vaccination Reminders ─── */}
+        {/* Vaccination Reminders */}
         <View className="px-6">
           <Text className="text-lg font-bold text-foreground mb-4">
-            Vaccinations à venir
+            {t("home.upcomingVaccinations")}
           </Text>
           {(vaccinations.data?.length ?? 0) > 0 ? (
             vaccinations.data?.map((item) => (
@@ -418,7 +420,7 @@ export default function HomeScreen() {
                 </View>
                 <View className="bg-accent/15 px-3 py-1.5 rounded-full">
                   <Text className="text-xs font-bold" style={{ color: "#d39e00" }}>
-                    {item.daysUntil}j
+                    {item.daysUntil}{t("home.daysShort")}
                   </Text>
                 </View>
               </View>
@@ -426,7 +428,7 @@ export default function HomeScreen() {
           ) : (
             <View className="bg-white rounded-2xl p-5 items-center" style={s.card}>
               <Feather name="shield" size={28} color="#adb5bd" />
-              <Text className="text-sm text-muted mt-2">Aucune vaccination prévue</Text>
+              <Text className="text-sm text-muted mt-2">{t("home.noUpcomingVaccinations")}</Text>
             </View>
           )}
         </View>

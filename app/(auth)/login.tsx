@@ -14,27 +14,29 @@ import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 
-const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, "L'email est requis")
-    .email("Adresse email invalide"),
-  password: z
-    .string()
-    .min(1, "Le mot de passe est requis")
-    .min(6, "Minimum 6 caractères"),
-});
-
-type LoginForm = z.infer<typeof loginSchema>;
-
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
+
+  const loginSchema = z.object({
+    email: z
+      .string()
+      .min(1, t("validation.emailRequired"))
+      .email(t("validation.emailInvalid")),
+    password: z
+      .string()
+      .min(1, t("validation.passwordRequired"))
+      .min(6, t("validation.passwordMin", { count: 6 })),
+  });
+
+  type LoginForm = z.infer<typeof loginSchema>;
 
   const {
     control,
@@ -59,10 +61,10 @@ export default function LoginScreen() {
         // Redirect to index which handles role-based routing
         router.replace("/");
       } else {
-        Alert.alert("Erreur", result.message);
+        Alert.alert(t("common.error"), result.message);
       }
     } catch {
-      Alert.alert("Erreur", "Une erreur est survenue. Veuillez réessayer.");
+      Alert.alert(t("common.error"), t("login.errorGeneric"));
     } finally {
       setLoading(false);
     }
@@ -90,10 +92,10 @@ export default function LoginScreen() {
 
             {/* Header */}
             <Text className="text-3xl font-bold text-foreground mb-2">
-              Bienvenue
+              {t("login.title")}
             </Text>
             <Text className="text-base text-muted mb-8">
-              Connectez-vous à votre compte
+              {t("login.subtitle")}
             </Text>
 
             {/* Form */}
@@ -102,8 +104,8 @@ export default function LoginScreen() {
               name="email"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
-                  label="Adresse email"
-                  placeholder="votre@email.com"
+                  label={t("login.email")}
+                  placeholder={t("login.emailPlaceholder")}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -120,8 +122,8 @@ export default function LoginScreen() {
               name="password"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
-                  label="Mot de passe"
-                  placeholder="Entrez votre mot de passe"
+                  label={t("login.password")}
+                  placeholder={t("login.passwordPlaceholder")}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -138,13 +140,13 @@ export default function LoginScreen() {
               className="self-end mb-8"
             >
               <Text className="text-primary text-sm font-medium">
-                Mot de passe oublié ?
+                {t("login.forgotPassword")}
               </Text>
             </Pressable>
 
             {/* Submit */}
             <Button
-              title="Se connecter"
+              title={t("login.submit")}
               onPress={handleSubmit(onSubmit)}
               loading={loading}
             />
@@ -152,11 +154,11 @@ export default function LoginScreen() {
             {/* Register link */}
             <View className="flex-row justify-center mt-6">
               <Text className="text-muted text-sm">
-                Pas encore de compte ?{" "}
+                {t("login.noAccount")}{" "}
               </Text>
               <Pressable onPress={() => router.push("/(auth)/register")}>
                 <Text className="text-primary text-sm font-semibold">
-                  Créer un compte
+                  {t("login.register")}
                 </Text>
               </Pressable>
             </View>
