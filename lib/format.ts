@@ -25,6 +25,6 @@ export function formatPhone(phone: string): string {
   return phone;
 }
 
-export function formatCarrypassId(id: string): string {
+export function formatCarypassId(id: string): string {
   return id.startsWith("CP-") ? id : `CP-2025-${id}`;
 }

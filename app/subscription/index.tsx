@@ -80,56 +80,57 @@ export default function SubscriptionScreen() {
                 </Text>
                 <View className="ml-2 px-2.5 py-0.5 rounded-full bg-accent">
                   <Text className="text-[10px] font-bold text-white">
-                    {subscription.isTrialActive ? "ESSAI" : "ACTIF"}
+                    ACTIF
                   </Text>
                 </View>
               </View>
               <Text className="text-xs text-muted mt-0.5">
-                0 FCFA / an
+                1 000 FCFA / an
               </Text>
             </View>
           </View>
 
-          {/* Trial progress */}
-          <View className="px-5 py-4 border-b border-border">
-            <View className="flex-row items-center justify-between mb-2">
-              <Text className="text-sm text-foreground">
-                Il vous reste{" "}
-                <Text className="font-bold text-primary">
-                  {subscription.daysRemaining} jours
-                </Text>{" "}
-                d'essai
-              </Text>
+          {/* Subscription period */}
+          {subscription.startDate && subscription.expiresAt && (
+            <View className="px-5 py-4 border-b border-border">
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-sm text-foreground">
+                  Abonnement actif —{" "}
+                  <Text className="font-bold text-primary">
+                    {subscription.daysRemaining} jours restants
+                  </Text>
+                </Text>
+              </View>
+              <View className="h-2.5 bg-background rounded-full overflow-hidden">
+                <View
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${progressPercent}%`,
+                    backgroundColor:
+                      subscription.daysRemaining > 90
+                        ? "#28a745"
+                        : subscription.daysRemaining > 30
+                          ? "#ffc107"
+                          : "#dc3545",
+                  }}
+                />
+              </View>
+              <View className="flex-row items-center justify-between mt-2">
+                <Text className="text-[10px] text-muted">
+                  Début :{" "}
+                  {format(new Date(subscription.startDate), "d MMM yyyy", {
+                    locale: fr,
+                  })}
+                </Text>
+                <Text className="text-[10px] text-muted">
+                  Renouvellement :{" "}
+                  {format(new Date(subscription.expiresAt), "d MMM yyyy", {
+                    locale: fr,
+                  })}
+                </Text>
+              </View>
             </View>
-            <View className="h-2.5 bg-background rounded-full overflow-hidden">
-              <View
-                className="h-full rounded-full"
-                style={{
-                  width: `${progressPercent}%`,
-                  backgroundColor:
-                    subscription.daysRemaining > 90
-                      ? "#28a745"
-                      : subscription.daysRemaining > 30
-                        ? "#ffc107"
-                        : "#dc3545",
-                }}
-              />
-            </View>
-            <View className="flex-row items-center justify-between mt-2">
-              <Text className="text-[10px] text-muted">
-                Début :{" "}
-                {format(new Date(subscription.startDate), "d MMM yyyy", {
-                  locale: fr,
-                })}
-              </Text>
-              <Text className="text-[10px] text-muted">
-                Expire :{" "}
-                {format(new Date(subscription.expiresAt), "d MMM yyyy", {
-                  locale: fr,
-                })}
-              </Text>
-            </View>
-          </View>
+          )}
 
           {/* Features */}
           <View className="px-5 py-4">
@@ -155,20 +156,20 @@ export default function SubscriptionScreen() {
           </View>
         </View>
 
-        {/* Upgrade CTA */}
-        <View className="mx-6 bg-primary/5 rounded-2xl border border-primary/20 p-5 mb-6">
+        {/* Médecin Premium CTA */}
+        <View className="mx-6 bg-[#28a745]/5 rounded-2xl border border-[#28a745]/20 p-5 mb-6">
           <View className="flex-row items-center mb-3">
-            <Feather name="zap" size={20} color="#007bff" />
+            <Feather name="zap" size={20} color="#28a745" />
             <Text className="text-sm font-bold text-foreground ml-2">
-              Débloquez plus de fonctionnalités
+              Vous êtes médecin ?
             </Text>
           </View>
           <Text className="text-xs text-muted mb-4 leading-4">
-            Passez à un plan supérieur pour profiter de l'historique illimité,
-            des exports PDF, des rappels vaccins et bien plus.
+            Passez au plan Médecin Premium pour gérer vos patients,
+            consultations, ordonnances et rendez-vous — 2 000 FCFA/mois.
           </Text>
           <Button
-            title="Voir les plans"
+            title="Voir le plan Médecin Premium"
             onPress={() => router.push("/subscription/pricing")}
             variant="primary"
           />

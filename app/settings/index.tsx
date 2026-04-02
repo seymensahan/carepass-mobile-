@@ -22,6 +22,11 @@ import {
   type Language,
   type Theme,
 } from "../../services/settings.service";
+import {
+  enableTwoFactor,
+  confirmEnableTwoFactor,
+  disableTwoFactor,
+} from "../../services/auth.service";
 import Button from "../../components/ui/Button";
 
 interface SettingRow {
@@ -42,6 +47,16 @@ export default function SettingsScreen() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // ─── 2FA State ───
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [show2FAEnableModal, setShow2FAEnableModal] = useState(false);
+  const [show2FADisableModal, setShow2FADisableModal] = useState(false);
+  const [show2FAOtpModal, setShow2FAOtpModal] = useState(false);
+  const [twoFAPhone, setTwoFAPhone] = useState("");
+  const [twoFAOtp, setTwoFAOtp] = useState("");
+  const [twoFAPassword, setTwoFAPassword] = useState("");
+  const [twoFALoading, setTwoFALoading] = useState(false);
 
   const handleUpdateSetting = async (data: Partial<AppSettings>) => {
     const updated = await updateSettings(data);
@@ -98,6 +113,75 @@ export default function SettingsScreen() {
       router.replace("/(auth)/welcome");
     } else {
       Alert.alert("Erreur", result.message);
+    }
+  };
+
+  // ─── 2FA Handlers ───
+  const handleEnable2FA = async () => {
+    if (!twoFAPhone.trim()) {
+      Alert.alert("Erreur", "Veuillez saisir votre numéro de téléphone.");
+      return;
+    }
+    setTwoFALoading(true);
+    try {
+      const result = await enableTwoFactor(twoFAPhone.trim());
+      if (result.success) {
+        setShow2FAEnableModal(false);
+        setShow2FAOtpModal(true);
+      } else {
+        Alert.alert("Erreur", result.message);
+      }
+    } catch {
+      Alert.alert("Erreur", "Une erreur est survenue.");
+    } finally {
+      setTwoFALoading(false);
+    }
+  };
+
+  const handleConfirm2FA = async () => {
+    if (twoFAOtp.length !== 6) {
+      Alert.alert("Erreur", "Veuillez saisir le code à 6 chiffres.");
+      return;
+    }
+    setTwoFALoading(true);
+    try {
+      const result = await confirmEnableTwoFactor(twoFAOtp);
+      if (result.success) {
+        setTwoFactorEnabled(true);
+        setShow2FAOtpModal(false);
+        setTwoFAOtp("");
+        setTwoFAPhone("");
+        Alert.alert("Succès", "L'authentification à deux facteurs a été activée.");
+      } else {
+        Alert.alert("Erreur", result.message);
+      }
+    } catch {
+      Alert.alert("Erreur", "Une erreur est survenue.");
+    } finally {
+      setTwoFALoading(false);
+    }
+  };
+
+  const handleDisable2FA = async () => {
+    if (!twoFAPassword) {
+      Alert.alert("Erreur", "Veuillez saisir votre mot de passe.");
+      return;
+    }
+    setTwoFALoading(true);
+    try {
+      const result = await disableTwoFactor(twoFAPassword);
+      if (result.success) {
+        setTwoFactorEnabled(false);
+        setShow2FADisableModal(false);
+        setTwoFAPassword("");
+        Alert.alert("Succès", "L'authentification à deux facteurs a été désactivée.");
+      } else {
+        Alert.alert("Erreur", result.message);
+      }
+    } catch {
+      Alert.alert("Erreur", "Une erreur est survenue.");
+    } finally {
+      setTwoFALoading(false);
     }
   };
 
@@ -211,6 +295,39 @@ export default function SettingsScreen() {
             },
           ]}
         />
+
+        {/* ── Sécurité 2FA ── */}
+        <SectionHeader title="SÉCURITÉ" />
+        <View className="mx-6 bg-white rounded-2xl border border-border overflow-hidden mb-2">
+          <View className="flex-row items-center px-4 py-3.5">
+            <View
+              className="w-9 h-9 rounded-lg items-center justify-center mr-3"
+              style={{ backgroundColor: "#28a74515" }}
+            >
+              <Feather name="smartphone" size={16} color="#28a745" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm text-foreground">
+                Authentification à deux facteurs
+              </Text>
+              <Text className="text-xs text-muted mt-0.5">
+                {twoFactorEnabled ? "Activée" : "Désactivée"}
+              </Text>
+            </View>
+            <Switch
+              value={twoFactorEnabled}
+              onValueChange={(value) => {
+                if (value) {
+                  setShow2FAEnableModal(true);
+                } else {
+                  setShow2FADisableModal(true);
+                }
+              }}
+              trackColor={{ false: "#dee2e6", true: "#28a745" }}
+              thumbColor="#ffffff"
+            />
+          </View>
+        </View>
 
         {/* ── Préférences ── */}
         <SectionHeader title="PRÉFÉRENCES" />
@@ -379,6 +496,145 @@ export default function SettingsScreen() {
           ]}
         />
       </ScrollView>
+
+      {/* Enable 2FA modal — phone number */}
+      <Modal visible={show2FAEnableModal} animationType="slide" transparent>
+        <View className="flex-1 bg-black/40 justify-end">
+          <View className="bg-background rounded-t-3xl pt-6 pb-8 px-6">
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-lg font-bold text-foreground">
+                Activer la 2FA
+              </Text>
+              <Pressable
+                onPress={() => {
+                  setShow2FAEnableModal(false);
+                  setTwoFAPhone("");
+                }}
+              >
+                <Feather name="x" size={24} color="#6c757d" />
+              </Pressable>
+            </View>
+
+            <Text className="text-sm text-muted mb-4 leading-5">
+              Entrez votre numéro de téléphone pour recevoir les codes de vérification par SMS.
+            </Text>
+
+            <View className="mb-6">
+              <Text className="text-sm font-semibold text-foreground mb-1.5">
+                Numéro de téléphone
+              </Text>
+              <TextInput
+                value={twoFAPhone}
+                onChangeText={setTwoFAPhone}
+                placeholder="+237 6XX XXX XXX"
+                placeholderTextColor="#6c757d"
+                keyboardType="phone-pad"
+                className="bg-white border border-border rounded-xl px-4 py-3.5 text-sm text-foreground"
+              />
+            </View>
+
+            <Button
+              title="Envoyer le code"
+              onPress={handleEnable2FA}
+              loading={twoFALoading}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Enable 2FA modal — OTP confirmation */}
+      <Modal visible={show2FAOtpModal} animationType="slide" transparent>
+        <View className="flex-1 bg-black/40 justify-end">
+          <View className="bg-background rounded-t-3xl pt-6 pb-8 px-6">
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-lg font-bold text-foreground">
+                Confirmer le code
+              </Text>
+              <Pressable
+                onPress={() => {
+                  setShow2FAOtpModal(false);
+                  setTwoFAOtp("");
+                }}
+              >
+                <Feather name="x" size={24} color="#6c757d" />
+              </Pressable>
+            </View>
+
+            <Text className="text-sm text-muted mb-4 leading-5">
+              Entrez le code à 6 chiffres envoyé par SMS à votre téléphone.
+            </Text>
+
+            <View className="mb-6">
+              <Text className="text-sm font-semibold text-foreground mb-1.5">
+                Code de vérification
+              </Text>
+              <TextInput
+                value={twoFAOtp}
+                onChangeText={setTwoFAOtp}
+                placeholder="000000"
+                placeholderTextColor="#6c757d"
+                keyboardType="number-pad"
+                maxLength={6}
+                className="bg-white border border-border rounded-xl px-4 py-3.5 text-sm text-foreground text-center text-xl tracking-widest"
+              />
+            </View>
+
+            <Button
+              title="Confirmer"
+              onPress={handleConfirm2FA}
+              loading={twoFALoading}
+              disabled={twoFAOtp.length !== 6}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Disable 2FA modal */}
+      <Modal visible={show2FADisableModal} animationType="slide" transparent>
+        <View className="flex-1 bg-black/40 justify-end">
+          <View className="bg-background rounded-t-3xl pt-6 pb-8 px-6">
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-lg font-bold text-foreground">
+                Désactiver la 2FA
+              </Text>
+              <Pressable
+                onPress={() => {
+                  setShow2FADisableModal(false);
+                  setTwoFAPassword("");
+                }}
+              >
+                <Feather name="x" size={24} color="#6c757d" />
+              </Pressable>
+            </View>
+
+            <Text className="text-sm text-muted mb-4 leading-5">
+              Pour désactiver l'authentification à deux facteurs, veuillez confirmer votre mot de passe.
+            </Text>
+
+            <View className="mb-6">
+              <Text className="text-sm font-semibold text-foreground mb-1.5">
+                Mot de passe
+              </Text>
+              <TextInput
+                value={twoFAPassword}
+                onChangeText={setTwoFAPassword}
+                placeholder="Votre mot de passe"
+                placeholderTextColor="#6c757d"
+                secureTextEntry
+                className="bg-white border border-border rounded-xl px-4 py-3.5 text-sm text-foreground"
+              />
+            </View>
+
+            <Button
+              title="Désactiver la 2FA"
+              onPress={handleDisable2FA}
+              loading={twoFALoading}
+              variant="danger"
+              disabled={!twoFAPassword}
+            />
+          </View>
+        </View>
+      </Modal>
 
       {/* Delete account modal */}
       <Modal visible={showDeleteModal} animationType="slide" transparent>

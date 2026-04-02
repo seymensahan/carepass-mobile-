@@ -23,7 +23,7 @@ export default function LabResultDetailScreen() {
     if (!result) return;
     try {
       await Share.share({
-        message: `Résultat CARRYPASS — ${result.title}\nDate : ${format(new Date(result.date), "d MMMM yyyy", { locale: fr })}\nLabo : ${result.laboratory}\nStatut : ${result.status === "normal" ? "Normal" : "Anormal"}`,
+        message: `Résultat CARYPASS — ${result.title}\nDate : ${format(new Date(result.date), "d MMMM yyyy", { locale: fr })}\nLabo : ${result.laboratory}\nStatut : ${result.status === "normal" ? "Normal" : "Anormal"}`,
       });
     } catch {
       // user cancelled

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -16,6 +17,9 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Feather } from "@expo/vector-icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import * as ImagePicker from "expo-image-picker";
+import * as SecureStore from "expo-secure-store";
+import Constants from "expo-constants";
 import { getProfile, updateProfile } from "../../services/patient.service";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -74,6 +78,70 @@ export default function EditProfileScreen() {
       genotype: patient?.genotype ?? "",
     },
   });
+
+  const [avatarUri, setAvatarUri] = useState<string | null>(
+    patient?.avatarUrl ?? null
+  );
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const pickAndUploadAvatar = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert("Permission requise", "Veuillez autoriser l'accès à vos photos.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets?.[0]) return;
+
+    const asset = result.assets[0];
+    setUploadingAvatar(true);
+
+    try {
+      const token = await SecureStore.getItemAsync("carypass_access_token");
+      const debuggerHost =
+        Constants.expoConfig?.hostUri ?? (Constants.manifest2 as any)?.extra?.expoGo?.debuggerHost;
+      let baseUrl = "https://carypass-backend.zylo-platform.cloud/api";
+      if (__DEV__ && debuggerHost) {
+        const ip = debuggerHost.split(":")[0];
+        baseUrl = `http://${ip}:8000/api`;
+      }
+
+      const formData = new FormData();
+      formData.append("file", {
+        uri: asset.uri,
+        name: asset.fileName || "avatar.jpg",
+        type: asset.mimeType || "image/jpeg",
+      } as any);
+
+      const response = await fetch(`${baseUrl}/users/avatar`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const json = await response.json();
+      if (response.ok && json?.user?.avatarUrl) {
+        setAvatarUri(json.user.avatarUrl);
+        queryClient.invalidateQueries({ queryKey: ["patient-profile"] });
+        Alert.alert("Succès", "Avatar mis à jour avec succès.");
+      } else {
+        Alert.alert("Erreur", json?.message || "Impossible de mettre à jour l'avatar.");
+      }
+    } catch {
+      Alert.alert("Erreur", "Erreur lors de l'envoi de l'avatar.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const mutation = useMutation({
     mutationFn: updateProfile,
@@ -174,6 +242,29 @@ export default function EditProfileScreen() {
             </Pressable>
             <Text className="text-xl font-bold text-foreground flex-1">
               Modifier le profil
+            </Text>
+          </View>
+
+          {/* ─── Avatar ─── */}
+          <View className="items-center mb-6">
+            <Pressable onPress={pickAndUploadAvatar} disabled={uploadingAvatar}>
+              <View className="w-24 h-24 rounded-full bg-gray-200 items-center justify-center overflow-hidden border-2 border-primary">
+                {avatarUri ? (
+                  <Image
+                    source={{ uri: avatarUri }}
+                    className="w-full h-full"
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Feather name="user" size={40} color="#6c757d" />
+                )}
+              </View>
+              <View className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary items-center justify-center">
+                <Feather name={uploadingAvatar ? "loader" : "camera"} size={14} color="#ffffff" />
+              </View>
+            </Pressable>
+            <Text className="text-xs text-muted mt-2">
+              {uploadingAvatar ? "Envoi en cours..." : "Appuyez pour changer la photo"}
             </Text>
           </View>
 

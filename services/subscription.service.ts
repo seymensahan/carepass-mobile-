@@ -3,7 +3,11 @@ import { api } from "../lib/api-client";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
 
-export type PlanId = "basique" | "essentiel" | "famille" | "premium";
+// ─── Patients : plan unique à 1 000 FCFA/an ───
+// ─── Médecins : plan Premium à 2 000 FCFA/mois ───
+// ─── Institutions : tarifs sur la landing web (50k–250k FCFA/an) ───
+
+export type PlanId = "patient" | "medecin-premium";
 export type BillingCycle = "mensuel" | "annuel";
 
 export interface PlanFeature {
@@ -29,85 +33,44 @@ export interface CurrentSubscription {
   startDate: string;
   expiresAt: string;
   daysRemaining: number;
-  isTrialActive: boolean;
   features: PlanFeature[];
 }
 
-// Static plan feature definitions (not stored in backend)
-const PLAN_FEATURES: Record<PlanId, PlanFeature[]> = {
-  basique: [
-    { label: "1 profil patient", included: true },
-    { label: "1 enfant maximum", included: true },
-    { label: "QR urgence basique", included: true },
-    { label: "Historique 6 mois", included: true },
-    { label: "Export PDF", included: false },
-    { label: "Rappels vaccins", included: false },
-    { label: "Partage multi-tuteurs", included: false },
-    { label: "Consultation vidéo", included: false },
-  ],
-  essentiel: [
-    { label: "Tout du plan Basique", included: true },
-    { label: "Historique illimité", included: true },
-    { label: "3 enfants maximum", included: true },
-    { label: "Export PDF", included: true },
-    { label: "Rappels vaccins", included: true },
-    { label: "Partage multi-tuteurs", included: false },
-    { label: "Analytics santé", included: false },
-    { label: "Consultation vidéo", included: false },
-  ],
-  famille: [
-    { label: "Tout du plan Essentiel", included: true },
-    { label: "10 enfants maximum", included: true },
-    { label: "Partage multi-tuteurs", included: true },
-    { label: "Support prioritaire", included: true },
-    { label: "Analytics santé", included: false },
-    { label: "Consultation vidéo", included: false },
-    { label: "Support 24/7", included: false },
-  ],
-  premium: [
-    { label: "Tout du plan Famille", included: true },
-    { label: "Enfants illimités", included: true },
-    { label: "Consultation vidéo (bientôt)", included: true },
-    { label: "Analytics santé avancés", included: true },
-    { label: "Support 24/7", included: true },
-    { label: "Accès API développeur", included: true },
-  ],
-};
+const PATIENT_FEATURES: PlanFeature[] = [
+  { label: "Dossier médical numérique complet", included: true },
+  { label: "QR code d'urgence", included: true },
+  { label: "Historique illimité", included: true },
+  { label: "Gestion des enfants", included: true },
+  { label: "Export PDF", included: true },
+  { label: "Rappels vaccins", included: true },
+  { label: "Partage sécurisé avec médecins", included: true },
+];
+
+const MEDECIN_PREMIUM_FEATURES: PlanFeature[] = [
+  { label: "Gestion illimitée de patients", included: true },
+  { label: "Consultations & ordonnances", included: true },
+  { label: "Hospitalisations", included: true },
+  { label: "Agenda & rendez-vous", included: true },
+  { label: "Analytics avancés", included: true },
+  { label: "Support prioritaire", included: true },
+];
 
 const DEFAULT_PLANS: Plan[] = [
   {
-    id: "basique",
-    name: "Basique",
-    description: "Essai 12 mois — Découvrez CARRYPASS",
+    id: "patient",
+    name: "Patient",
+    description: "Accès complet à votre dossier médical numérique",
     priceMonthly: 0,
-    priceYearly: 0,
-    badge: "Plan actuel",
-    features: PLAN_FEATURES.basique,
+    priceYearly: 1000,
+    features: PATIENT_FEATURES,
   },
   {
-    id: "essentiel",
-    name: "Essentiel",
-    description: "Pour un suivi médical complet",
-    priceMonthly: 2500,
-    priceYearly: 24000,
-    features: PLAN_FEATURES.essentiel,
-  },
-  {
-    id: "famille",
-    name: "Famille",
-    description: "Idéal pour toute la famille",
-    priceMonthly: 5000,
-    priceYearly: 48000,
-    popular: true,
-    features: PLAN_FEATURES.famille,
-  },
-  {
-    id: "premium",
-    name: "Premium",
-    description: "L'expérience CARRYPASS complète",
-    priceMonthly: 10000,
-    priceYearly: 96000,
-    features: PLAN_FEATURES.premium,
+    id: "medecin-premium",
+    name: "Médecin Premium",
+    description: "Outils avancés pour les professionnels de santé",
+    priceMonthly: 2000,
+    priceYearly: 20000,
+    features: MEDECIN_PREMIUM_FEATURES,
   },
 ];
 
@@ -119,7 +82,7 @@ export async function getCurrentPlan(): Promise<CurrentSubscription> {
 
     if (list.length > 0) {
       const sub = list[0];
-      const planId = (sub.plan?.tier || sub.planId || "basique") as PlanId;
+      const planId = (sub.plan?.tier || sub.planId || "patient") as PlanId;
       const startDate = (sub.startDate || sub.createdAt || "").trim();
       const expiresAt = (sub.endDate || sub.expiresAt || "").trim();
       const isValidStart = startDate && !isNaN(Date.parse(startDate));
@@ -133,6 +96,9 @@ export async function getCurrentPlan(): Promise<CurrentSubscription> {
           )
         : 0;
 
+      const features =
+        planId === "medecin-premium" ? MEDECIN_PREMIUM_FEATURES : PATIENT_FEATURES;
+
       return {
         planId,
         planName: sub.plan?.name || planId,
@@ -144,8 +110,7 @@ export async function getCurrentPlan(): Promise<CurrentSubscription> {
           ? new Date(expiresAt).toISOString().split("T")[0]
           : "",
         daysRemaining,
-        isTrialActive: sub.status === "trial" || sub.isTrial || false,
-        features: PLAN_FEATURES[planId] || PLAN_FEATURES.basique,
+        features,
       };
     }
   } catch {
@@ -153,14 +118,13 @@ export async function getCurrentPlan(): Promise<CurrentSubscription> {
   }
 
   return {
-    planId: "basique",
-    planName: "Période d'essai",
+    planId: "patient",
+    planName: "Patient",
     billingCycle: "annuel",
     startDate: "",
     expiresAt: "",
     daysRemaining: 0,
-    isTrialActive: true,
-    features: PLAN_FEATURES.basique,
+    features: PATIENT_FEATURES,
   };
 }
 
@@ -172,15 +136,15 @@ export async function getPlans(): Promise<Plan[]> {
 
     if (list.length > 0) {
       return list.map((p: Any) => ({
-        id: (p.tier || p.id || "basique") as PlanId,
+        id: (p.tier || p.id || "patient") as PlanId,
         name: p.name || "",
         description: p.description || "",
         priceMonthly: p.priceMonthly || p.price || 0,
-        priceYearly:
-          p.priceYearly || (p.priceMonthly || p.price || 0) * 10,
+        priceYearly: p.priceYearly || (p.priceMonthly || p.price || 0) * 10,
         features:
-          PLAN_FEATURES[(p.tier || p.id) as PlanId] || [],
-        popular: p.tier === "famille",
+          (p.tier || p.id) === "medecin-premium"
+            ? MEDECIN_PREMIUM_FEATURES
+            : PATIENT_FEATURES,
       }));
     }
   } catch {
@@ -210,7 +174,7 @@ export async function subscribeToPlan(
 
     return {
       success: true,
-      message: `Abonnement ${planId} (${cycle}) activé avec succès.`,
+      message: `Abonnement ${planId} activé avec succès.`,
     };
   } catch {
     return {

@@ -110,14 +110,14 @@ export default function PaymentScreen() {
             Paiement réussi !
           </Text>
           <Text className="text-sm text-muted text-center mb-8">
-            Votre abonnement CarryPass est actif pour 1 an.{"\n"}
+            Votre abonnement CaryPass est actif pour 1 an.{"\n"}
             Bienvenue, {user?.firstName} !
           </Text>
           <Pressable
             onPress={() => router.replace("/")}
             className="bg-primary rounded-2xl py-4 px-12"
           >
-            <Text className="text-white font-bold text-base">Accéder à CarryPass</Text>
+            <Text className="text-white font-bold text-base">Accéder à CaryPass</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -161,7 +161,7 @@ export default function PaymentScreen() {
         <View className="px-6 pt-8 pb-4">
           <Text className="text-2xl font-bold text-foreground">Dernière étape</Text>
           <Text className="text-sm text-muted mt-1">
-            Activez votre compte CarryPass
+            Activez votre compte CaryPass
           </Text>
         </View>
 
@@ -172,7 +172,7 @@ export default function PaymentScreen() {
               <Feather name="shield" size={24} color="#007bff" />
             </View>
             <View className="flex-1">
-              <Text className="text-base font-bold text-foreground">CarryPass Patient</Text>
+              <Text className="text-base font-bold text-foreground">CaryPass Patient</Text>
               <Text className="text-xs text-muted">Accès complet à la plateforme</Text>
             </View>
           </View>

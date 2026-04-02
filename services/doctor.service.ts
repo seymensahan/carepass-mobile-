@@ -1,4 +1,5 @@
 import { api } from "../lib/api-client";
+import { offlineManager } from "./offline-manager";
 import type {
   DoctorProfile,
   DoctorDashboardStats,
@@ -133,7 +134,7 @@ export async function getPatients(): Promise<DoctorPatient[]> {
     const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 86400000)) : 0;
     return {
       id: p.id,
-      carrypassId: p.carrypassId || "",
+      carypassId: p.carypassId || "",
       firstName: p.user?.firstName || "",
       lastName: p.user?.lastName || "",
       dateOfBirth: p.dateOfBirth,
@@ -149,7 +150,11 @@ export async function getPatients(): Promise<DoctorPatient[]> {
 }
 
 export async function getPatientDetail(patientId: string): Promise<any | null> {
-  const response = await api.get<any>(`/patients/${patientId}`);
+  // If it looks like a CaryPass ID (CP-YYYY-NNNNN), use the dedicated endpoint
+  const endpoint = /^CP-\d{4}-\d{5}$/.test(patientId)
+    ? `/patients/carypass/${patientId}`
+    : `/patients/${patientId}`;
+  const response = await api.get<any>(endpoint);
   return unwrapOne(response.data) || null;
 }
 
@@ -200,7 +205,16 @@ export async function getConsultationById(id: string): Promise<DoctorConsultatio
   return mapConsultation(data);
 }
 
-export async function createConsultation(data: CreateConsultationData): Promise<{ success: boolean; id?: string; message?: string }> {
+export async function createConsultation(data: CreateConsultationData): Promise<{ success: boolean; id?: string; message?: string; queued?: boolean }> {
+  if (!offlineManager.online) {
+    await offlineManager.enqueue({
+      method: "POST",
+      endpoint: "/consultations",
+      body: data as any,
+    });
+    return { success: true, queued: true, message: "Sera synchronise quand la connexion sera retablie" };
+  }
+
   const response = await api.post<any>("/consultations", { body: data as any });
   if (response.error) {
     return { success: false, message: response.error };
@@ -219,7 +233,16 @@ export async function getAppointments(): Promise<DoctorAppointment[]> {
   return unwrapList(response.data).map(mapAppointment);
 }
 
-export async function createAppointment(data: CreateAppointmentData): Promise<{ success: boolean; id?: string; message?: string }> {
+export async function createAppointment(data: CreateAppointmentData): Promise<{ success: boolean; id?: string; message?: string; queued?: boolean }> {
+  if (!offlineManager.online) {
+    await offlineManager.enqueue({
+      method: "POST",
+      endpoint: "/appointments",
+      body: data as any,
+    });
+    return { success: true, queued: true, message: "Sera synchronise quand la connexion sera retablie" };
+  }
+
   const response = await api.post<any>("/appointments", { body: data as any });
   if (response.error) {
     return { success: false, message: response.error };
@@ -232,6 +255,15 @@ export async function createAppointment(data: CreateAppointmentData): Promise<{ 
 }
 
 export async function updateAppointmentStatus(id: string, status: string): Promise<boolean> {
+  if (!offlineManager.online) {
+    await offlineManager.enqueue({
+      method: "PATCH",
+      endpoint: `/appointments/${id}/status`,
+      body: { status },
+    });
+    return true;
+  }
+
   const response = await api.patch(`/appointments/${id}/status`, { body: { status } });
   return !response.error;
 }
@@ -246,7 +278,7 @@ export async function getAccessRequests(): Promise<DoctorAccessRequest[]> {
     id: ar.id,
     patientId: ar.patientId,
     patientName: ar.patient?.user ? `${ar.patient.user.firstName} ${ar.patient.user.lastName}` : "",
-    patientCarrypassId: ar.patientCarrypassId || ar.patient?.carrypassId || "",
+    patientCarypassId: ar.patientCarypassId || ar.patient?.carypassId || "",
     reason: ar.reason,
     status: ar.status,
     requestedAt: ar.requestedAt,
@@ -260,16 +292,25 @@ export async function getActiveGrants(): Promise<DoctorAccessRequest[]> {
     id: g.grantId,
     patientId: g.patient?.id || "",
     patientName: g.patient?.user ? `${g.patient.user.firstName} ${g.patient.user.lastName}` : "",
-    patientCarrypassId: g.patient?.carrypassId || "",
+    patientCarypassId: g.patient?.carypassId || "",
     reason: undefined,
     status: "approved" as const,
     requestedAt: g.grantedAt,
   }));
 }
 
-export async function requestPatientAccess(carrypassId: string, reason?: string): Promise<{ success: boolean; message: string }> {
+export async function requestPatientAccess(carypassId: string, reason?: string): Promise<{ success: boolean; message: string; queued?: boolean }> {
+  if (!offlineManager.online) {
+    await offlineManager.enqueue({
+      method: "POST",
+      endpoint: "/access-requests",
+      body: { patientCarypassId: carypassId, reason },
+    });
+    return { success: true, queued: true, message: "Sera synchronise quand la connexion sera retablie" };
+  }
+
   const response = await api.post<any>("/access-requests", {
-    body: { patientCarrypassId: carrypassId, reason },
+    body: { patientCarypassId: carypassId, reason },
   });
   if (response.error) {
     return { success: false, message: response.error };

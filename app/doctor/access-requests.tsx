@@ -14,7 +14,7 @@ export default function AccessRequestsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<"pending" | "active">("pending");
-  const [carrypassId, setCarrypassId] = useState("");
+  const [carypassId, setCarypassId] = useState("");
   const [reason, setReason] = useState("");
   const [showForm, setShowForm] = useState(false);
 
@@ -31,13 +31,13 @@ export default function AccessRequestsScreen() {
   });
 
   const requestMutation = useMutation({
-    mutationFn: () => doctorService.requestPatientAccess(carrypassId, reason),
+    mutationFn: () => doctorService.requestPatientAccess(carypassId, reason),
     onSuccess: (result) => {
       if (result.success) {
         queryClient.invalidateQueries({ queryKey: ["doctor-access-requests"] });
         queryClient.invalidateQueries({ queryKey: ["doctor-active-grants"] });
         setShowForm(false);
-        setCarrypassId("");
+        setCarypassId("");
         setReason("");
         Alert.alert("Succès", "Demande d'accès envoyée au patient.");
       } else {
@@ -111,10 +111,10 @@ export default function AccessRequestsScreen() {
         ) : (
           <View className="bg-white rounded-2xl p-5 mb-5 border border-border">
             <Text className="text-base font-bold text-foreground mb-4">Nouvelle demande</Text>
-            <Text className="text-xs font-medium text-foreground mb-1">CarryPass ID du patient</Text>
+            <Text className="text-xs font-medium text-foreground mb-1">CaryPass ID du patient</Text>
             <TextInput
-              value={carrypassId}
-              onChangeText={setCarrypassId}
+              value={carypassId}
+              onChangeText={setCarypassId}
               placeholder="Ex: CP-2025-00001"
               className="bg-gray-50 rounded-xl px-4 py-3 mb-3 text-sm text-foreground border border-border"
               placeholderTextColor="#adb5bd"
@@ -134,8 +134,8 @@ export default function AccessRequestsScreen() {
               </Pressable>
               <Pressable
                 onPress={() => requestMutation.mutate()}
-                disabled={!carrypassId || requestMutation.isPending}
-                className={`flex-1 rounded-xl py-3 items-center ${carrypassId ? "bg-primary" : "bg-gray-200"}`}
+                disabled={!carypassId || requestMutation.isPending}
+                className={`flex-1 rounded-xl py-3 items-center ${carypassId ? "bg-primary" : "bg-gray-200"}`}
               >
                 <Text className="text-white font-semibold text-sm">Envoyer</Text>
               </Pressable>
@@ -154,7 +154,7 @@ export default function AccessRequestsScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm font-bold text-foreground">{r.patientName}</Text>
-                    <Text className="text-xs text-muted">{r.patientCarrypassId}</Text>
+                    <Text className="text-xs text-muted">{r.patientCarypassId}</Text>
                   </View>
                   <View className="bg-yellow-50 px-2.5 py-1 rounded-full">
                     <Text className="text-[10px] font-semibold text-yellow-700">En attente</Text>
@@ -188,7 +188,7 @@ export default function AccessRequestsScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm font-bold text-foreground">{g.patientName}</Text>
-                    <Text className="text-xs text-muted">{g.patientCarrypassId}</Text>
+                    <Text className="text-xs text-muted">{g.patientCarypassId}</Text>
                   </View>
                   <View className="bg-green-50 px-2.5 py-1 rounded-full">
                     <Text className="text-[10px] font-semibold text-green-700">Actif</Text>

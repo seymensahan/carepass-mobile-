@@ -1,9 +1,13 @@
 import React from "react";
+import { View } from "react-native";
 import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import OfflineBanner from "../../components/OfflineBanner";
 
 export default function DoctorTabsLayout() {
   return (
+    <View style={{ flex: 1 }}>
+    <OfflineBanner />
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -74,5 +78,6 @@ export default function DoctorTabsLayout() {
         }}
       />
     </Tabs>
+    </View>
   );
 }

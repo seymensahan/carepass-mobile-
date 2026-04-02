@@ -8,13 +8,22 @@ import React, {
 } from "react";
 import * as SecureStore from "expo-secure-store";
 import type { LoginRequest, RegisterRequest, User } from "../types";
+import { useProfileStore, useDashboardStore, useMedicalStore } from "../stores";
 import * as authService from "../services/auth.service";
+
+interface LoginResult {
+  success: boolean;
+  message: string;
+  requiresTwoFactor?: boolean;
+  tempToken?: string;
+}
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (data: LoginRequest) => Promise<{ success: boolean; message: string }>;
+  login: (data: LoginRequest) => Promise<LoginResult>;
+  completeTwoFactorLogin: (accessToken: string, refreshToken: string, user: User) => Promise<void>;
   register: (
     data: RegisterRequest
   ) => Promise<{ success: boolean; message: string }>;
@@ -25,9 +34,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const TOKEN_KEY = "carrypass_access_token";
-const REFRESH_TOKEN_KEY = "carrypass_refresh_token";
-const USER_KEY = "carrypass_user";
+const TOKEN_KEY = "carypass_access_token";
+const REFRESH_TOKEN_KEY = "carypass_refresh_token";
+const USER_KEY = "carypass_user";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -68,8 +77,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(
     async (
       data: LoginRequest
-    ): Promise<{ success: boolean; message: string }> => {
+    ): Promise<LoginResult> => {
       const response = await authService.loginUser(data);
+
+      // Handle 2FA — don't save tokens yet
+      if (response.requiresTwoFactor) {
+        return {
+          success: true,
+          message: response.message,
+          requiresTwoFactor: true,
+          tempToken: response.tempToken,
+        };
+      }
 
       if (response.success && response.data) {
         await SecureStore.setItemAsync(TOKEN_KEY, response.data.accessToken);
@@ -85,6 +104,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       return { success: response.success, message: response.message };
+    },
+    []
+  );
+
+  const completeTwoFactorLogin = useCallback(
+    async (accessToken: string, refreshToken: string, user: User) => {
+      await SecureStore.setItemAsync(TOKEN_KEY, accessToken);
+      await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+      await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
+      setUser(user);
     },
     []
   );
@@ -117,6 +146,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
     await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
     await SecureStore.deleteItemAsync(USER_KEY);
+    // Clear all Zustand caches
+    useProfileStore.getState().clear();
+    useDashboardStore.getState().clear();
+    useMedicalStore.getState().clear();
     setUser(null);
   }, []);
 
@@ -148,12 +181,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: !!user,
       isLoading,
       login,
+      completeTwoFactorLogin,
       register,
       logout,
       refreshToken: refreshTokenFn,
       switchRole: switchRoleFn,
     }),
-    [user, isLoading, login, register, logout, refreshTokenFn, switchRoleFn]
+    [user, isLoading, login, completeTwoFactorLogin, register, logout, refreshTokenFn, switchRoleFn]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

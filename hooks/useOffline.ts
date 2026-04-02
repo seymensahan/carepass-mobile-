@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
-import NetInfo from "@react-native-community/netinfo";
+import { offlineManager } from "../services/offline-manager";
 
 export function useOffline() {
-  const [isOffline, setIsOffline] = useState(false);
+  const [isOnline, setIsOnline] = useState(offlineManager.online);
+  const [pendingCount, setPendingCount] = useState(offlineManager.pendingCount);
 
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      setIsOffline(!(state.isConnected ?? true));
+    const unsubscribe = offlineManager.onStatusChange((online) => {
+      setIsOnline(online);
+      setPendingCount(offlineManager.pendingCount);
     });
-    return () => unsubscribe();
+    return unsubscribe;
   }, []);
 
-  return isOffline;
+  return { isOnline, pendingCount };
 }

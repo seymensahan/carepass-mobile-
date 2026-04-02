@@ -13,7 +13,7 @@ import { Feather } from "@expo/vector-icons";
 import { storage } from "../../lib/storage";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const ONBOARDING_KEY = "carrypass_onboarding_done";
+const ONBOARDING_KEY = "carypass_onboarding_done";
 
 interface Slide {
   id: string;

@@ -1,4 +1,6 @@
 import { api } from "../lib/api-client";
+import { storage } from "../lib/storage";
+import { offlineManager } from "./offline-manager";
 import type { Medication } from "../types/medical";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -56,6 +58,12 @@ function mapMedication(item: Any, prescription: Any): Medication {
 }
 
 export async function getMedications(): Promise<Medication[]> {
+  // Return cached data when offline
+  if (!offlineManager.online) {
+    const cached = storage.getString("cache_medications");
+    if (cached) return JSON.parse(cached);
+  }
+
   const response = await api.get<Any>("/prescriptions?limit=50");
   const list =
     Array.isArray(response.data) ? response.data : [];
@@ -67,10 +75,15 @@ export async function getMedications(): Promise<Medication[]> {
     }
   }
 
-  return medications.sort(
+  const sorted = medications.sort(
     (a, b) =>
       new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
   );
+
+  // Cache for offline use
+  storage.set("cache_medications", JSON.stringify(sorted));
+
+  return sorted;
 }
 
 export async function getCurrentMedications(): Promise<Medication[]> {

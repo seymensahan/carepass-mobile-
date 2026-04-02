@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import {
   FlatList,
   Pressable,
@@ -21,6 +21,7 @@ import {
 } from "../../services/dashboard.service";
 import { getNotifications } from "../../services/patient.service";
 import { DashboardSkeleton } from "../../components/ui/Skeleton";
+import { useProfileStore, useDashboardStore } from "../../stores";
 import type { Appointment } from "../../types/dashboard";
 
 const s = StyleSheet.create({
@@ -45,9 +46,15 @@ export default function HomeScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  // Zustand stores — show cached data instantly
+  const dashboardStore = useDashboardStore();
+  const profileStore = useProfileStore();
+  const cachedDashboard = dashboardStore.getDashboard("patient");
+
   const summary = useQuery({
     queryKey: ["dashboard-summary"],
     queryFn: getDashboardSummary,
+    placeholderData: cachedDashboard as any,
   });
   const appointments = useQuery({
     queryKey: ["upcoming-appointments"],
@@ -63,14 +70,26 @@ export default function HomeScreen() {
   });
   const notifications = useQuery({
     queryKey: ["notifications"],
-    queryFn: getNotifications,
+    queryFn: () => profileStore.fetchNotifications().then(() => profileStore.notifications),
   });
 
+  // Cache dashboard data in Zustand when fetched
+  useEffect(() => {
+    if (summary.data) {
+      dashboardStore.setDashboard("patient", summary.data as any);
+    }
+  }, [summary.data]);
+
+  // Pre-fetch profile in background
+  useEffect(() => {
+    profileStore.fetchProfile();
+  }, []);
+
   const unreadCount =
-    notifications.data?.filter((n) => !n.read).length ?? 0;
+    (notifications.data ?? profileStore.notifications)?.filter((n) => !n.read).length ?? 0;
 
   const isInitialLoading =
-    summary.isLoading && appointments.isLoading && consultations.isLoading;
+    !cachedDashboard && summary.isLoading && appointments.isLoading && consultations.isLoading;
 
   const onRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
@@ -167,6 +186,13 @@ export default function HomeScreen() {
             </Text>
           </View>
           <View className="flex-row items-center gap-3">
+            <Pressable
+              onPress={() => router.push("/messages" as any)}
+              className="w-12 h-12 rounded-2xl bg-white items-center justify-center"
+              style={s.card}
+            >
+              <Feather name="message-square" size={20} color="#212529" />
+            </Pressable>
             <Pressable
               onPress={() => router.push("/notifications")}
               className="w-12 h-12 rounded-2xl bg-white items-center justify-center"

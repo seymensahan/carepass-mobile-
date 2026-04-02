@@ -9,7 +9,7 @@ export default function LoadingScreen() {
         <View className="w-20 h-20 bg-white rounded-2xl items-center justify-center mb-6">
           <Feather name="shield" size={40} color="#007bff" />
         </View>
-        <Text className="text-white text-2xl font-bold mb-2">CARRYPASS</Text>
+        <Text className="text-white text-2xl font-bold mb-2">CARYPASS</Text>
         <Text className="text-white/70 text-sm mb-8">
           Votre santé, votre contrôle
         </Text>

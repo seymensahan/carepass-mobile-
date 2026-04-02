@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import {
   FlatList,
   Pressable,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Text,
   View,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -14,6 +15,7 @@ import { Feather } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../contexts/AuthContext";
 import * as doctorService from "../../services/doctor.service";
+import QRScanner from "../../components/QRScanner";
 
 const s = StyleSheet.create({
   card: {
@@ -29,6 +31,19 @@ export default function DoctorHomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [scannerOpen, setScannerOpen] = useState(false);
+
+  const handleQRScan = (data: { carypassId?: string; token?: string; raw: string }) => {
+    setScannerOpen(false);
+    if (data.carypassId) {
+      // Navigate to patient detail with the scanned carypassId
+      router.push(`/doctor/patient/${data.carypassId}` as any);
+    } else if (data.token) {
+      router.push(`/doctor/patient/${data.token}` as any);
+    } else {
+      Alert.alert("QR non reconnu", "Ce QR code ne correspond pas à un patient CaryPass.");
+    }
+  };
 
   const { data: stats } = useQuery({
     queryKey: ["doctor-dashboard-stats"],
@@ -103,6 +118,9 @@ export default function DoctorHomeScreen() {
             </Text>
           </View>
           <View className="flex-row items-center gap-3">
+            <Pressable onPress={() => router.push("/messages" as any)} className="w-12 h-12 rounded-2xl bg-white items-center justify-center" style={s.card}>
+              <Feather name="message-square" size={20} color="#212529" />
+            </Pressable>
             <Pressable onPress={() => router.push("/notifications" as any)} className="w-12 h-12 rounded-2xl bg-white items-center justify-center" style={s.card}>
               <Feather name="bell" size={20} color="#212529" />
             </Pressable>
@@ -226,6 +244,28 @@ export default function DoctorHomeScreen() {
           )}
         </View>
       </ScrollView>
+      {/* Floating QR Scanner Button */}
+      <Pressable
+        onPress={() => setScannerOpen(true)}
+        className="absolute bottom-6 right-6 w-16 h-16 rounded-full bg-primary items-center justify-center"
+        style={{
+          shadowColor: "#007bff",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          elevation: 8,
+        }}
+      >
+        <Feather name="maximize" size={24} color="#fff" />
+      </Pressable>
+
+      {/* QR Scanner Modal */}
+      <QRScanner
+        visible={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={handleQRScan}
+        title="Scanner le QR du patient"
+      />
     </SafeAreaView>
   );
 }

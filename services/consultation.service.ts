@@ -1,4 +1,6 @@
 import { api } from "../lib/api-client";
+import { storage } from "../lib/storage";
+import { offlineManager } from "./offline-manager";
 import type { Consultation, ConsultationType } from "../types/medical";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -57,6 +59,27 @@ export async function getConsultations(filters?: {
   search?: string;
   type?: string;
 }): Promise<Consultation[]> {
+  // Return cached data when offline
+  if (!offlineManager.online) {
+    const cached = storage.getString("cache_consultations");
+    if (cached) {
+      let results: Consultation[] = JSON.parse(cached);
+      if (filters?.search) {
+        const q = filters.search.toLowerCase();
+        results = results.filter(
+          (c: Consultation) =>
+            c.doctorName.toLowerCase().includes(q) ||
+            c.diagnosis.toLowerCase().includes(q) ||
+            c.specialty.toLowerCase().includes(q)
+        );
+      }
+      if (filters?.type && filters.type !== "tous") {
+        results = results.filter((c: Consultation) => c.type === filters.type);
+      }
+      return results;
+    }
+  }
+
   const params = new URLSearchParams();
   params.set("limit", "50");
   if (filters?.type && filters.type !== "tous") params.set("type", filters.type);
@@ -66,6 +89,11 @@ export async function getConsultations(filters?: {
     Array.isArray(response.data) ? response.data : [];
 
   let results = list.map(mapConsultation);
+
+  // Cache the unfiltered list for offline use
+  if (!filters?.type || filters.type === "tous") {
+    storage.set("cache_consultations", JSON.stringify(results));
+  }
 
   if (filters?.search) {
     const q = filters.search.toLowerCase();

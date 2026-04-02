@@ -23,7 +23,7 @@ export default function ConsultationDetailScreen() {
     if (!consultation) return;
     try {
       await Share.share({
-        message: `Consultation CARRYPASS — ${consultation.doctorName} (${consultation.specialty})\nDate : ${format(new Date(consultation.date), "d MMMM yyyy", { locale: fr })}\nDiagnostic : ${consultation.diagnosis}`,
+        message: `Consultation CARYPASS — ${consultation.doctorName} (${consultation.specialty})\nDate : ${format(new Date(consultation.date), "d MMMM yyyy", { locale: fr })}\nDiagnostic : ${consultation.diagnosis}`,
         title: "Partager la consultation",
       });
     } catch {

@@ -1,7 +1,6 @@
-import React, { useRef, useState } from "react";
+import React from "react";
 import {
   Alert,
-  Animated,
   Pressable,
   ScrollView,
   Text,
@@ -14,7 +13,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   getPlans,
   subscribeToPlan,
-  type BillingCycle,
   type Plan,
   type PlanId,
 } from "../../services/subscription.service";
@@ -25,50 +23,8 @@ function formatFCFA(amount: number): string {
   return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
 
-const PLAN_STYLES: Record<
-  PlanId,
-  {
-    borderColor: string;
-    headerBg: string;
-    headerText: string;
-    buttonBg: string;
-    buttonText: string;
-  }
-> = {
-  basique: {
-    borderColor: "#dee2e6",
-    headerBg: "#f8f9fa",
-    headerText: "#212529",
-    buttonBg: "#dee2e6",
-    buttonText: "#6c757d",
-  },
-  essentiel: {
-    borderColor: "#007bff",
-    headerBg: "#ffffff",
-    headerText: "#007bff",
-    buttonBg: "#007bff",
-    buttonText: "#ffffff",
-  },
-  famille: {
-    borderColor: "#007bff",
-    headerBg: "#007bff10",
-    headerText: "#007bff",
-    buttonBg: "#007bff",
-    buttonText: "#ffffff",
-  },
-  premium: {
-    borderColor: "#28a745",
-    headerBg: "#28a74510",
-    headerText: "#28a745",
-    buttonBg: "#28a745",
-    buttonText: "#ffffff",
-  },
-};
-
 export default function PricingScreen() {
   const router = useRouter();
-  const [cycle, setCycle] = useState<BillingCycle>("mensuel");
-  const toggleAnim = useRef(new Animated.Value(0)).current;
 
   const { data: plans, isLoading } = useQuery({
     queryKey: ["plans"],
@@ -76,8 +32,8 @@ export default function PricingScreen() {
   });
 
   const subscribeMutation = useMutation({
-    mutationFn: ({ planId, billingCycle }: { planId: PlanId; billingCycle: BillingCycle }) =>
-      subscribeToPlan(planId, billingCycle),
+    mutationFn: ({ planId }: { planId: PlanId }) =>
+      subscribeToPlan(planId, planId === "patient" ? "annuel" : "mensuel"),
     onSuccess: (result) => {
       Alert.alert("Succès", result.message, [
         { text: "OK", onPress: () => router.back() },
@@ -85,39 +41,21 @@ export default function PricingScreen() {
     },
   });
 
-  const handleToggleCycle = (newCycle: BillingCycle) => {
-    setCycle(newCycle);
-    Animated.spring(toggleAnim, {
-      toValue: newCycle === "annuel" ? 1 : 0,
-      useNativeDriver: true,
-      tension: 80,
-      friction: 10,
-    }).start();
-  };
-
   const handleSubscribe = (plan: Plan) => {
-    if (plan.id === "basique") return;
-    const price =
-      cycle === "mensuel" ? plan.priceMonthly : plan.priceYearly;
-    const label = cycle === "mensuel" ? "/mois" : "/an";
+    const price = plan.id === "patient" ? plan.priceYearly : plan.priceMonthly;
+    const period = plan.id === "patient" ? "/an" : "/mois";
     Alert.alert(
       "Confirmer l'abonnement",
-      `Souscrire au plan ${plan.name} pour ${formatFCFA(price)} FCFA${label} ?\n\nPaiement via Mobile Money (Orange / MTN)`,
+      `Souscrire au plan ${plan.name} pour ${formatFCFA(price)} FCFA${period} ?\n\nPaiement via Mobile Money (Orange / MTN)`,
       [
         { text: "Annuler", style: "cancel" },
         {
           text: "Confirmer",
-          onPress: () =>
-            subscribeMutation.mutate({ planId: plan.id, billingCycle: cycle }),
+          onPress: () => subscribeMutation.mutate({ planId: plan.id }),
         },
       ]
     );
   };
-
-  const toggleTranslateX = toggleAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [2, 152],
-  });
 
   if (isLoading) {
     return (
@@ -153,117 +91,35 @@ export default function PricingScreen() {
               Choisissez votre plan
             </Text>
             <Text className="text-xs text-muted">
-              Débloquez tout le potentiel de CARRYPASS
+              Débloquez tout le potentiel de CARYPASS
             </Text>
-          </View>
-        </View>
-
-        {/* Billing toggle */}
-        <View className="mx-6 mt-4 mb-6">
-          <View
-            className="bg-white rounded-xl border border-border p-1 flex-row"
-            style={{ height: 44 }}
-          >
-            <Animated.View
-              className="absolute bg-primary rounded-lg"
-              style={{
-                top: 4,
-                width: 148,
-                height: 36,
-                transform: [{ translateX: toggleTranslateX }],
-              }}
-            />
-            <Pressable
-              onPress={() => handleToggleCycle("mensuel")}
-              className="flex-1 items-center justify-center z-10"
-            >
-              <Text
-                className={`text-xs font-semibold ${
-                  cycle === "mensuel" ? "text-white" : "text-foreground"
-                }`}
-              >
-                Mensuel
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => handleToggleCycle("annuel")}
-              className="flex-1 items-center justify-center z-10"
-            >
-              <View className="flex-row items-center">
-                <Text
-                  className={`text-xs font-semibold ${
-                    cycle === "annuel" ? "text-white" : "text-foreground"
-                  }`}
-                >
-                  Annuel
-                </Text>
-                <View
-                  className="ml-1.5 px-1.5 py-0.5 rounded"
-                  style={{
-                    backgroundColor:
-                      cycle === "annuel" ? "#ffffff30" : "#28a74520",
-                  }}
-                >
-                  <Text
-                    className="text-[9px] font-bold"
-                    style={{
-                      color: cycle === "annuel" ? "#ffffff" : "#28a745",
-                    }}
-                  >
-                    -20%
-                  </Text>
-                </View>
-              </View>
-            </Pressable>
           </View>
         </View>
 
         {/* Plan cards */}
         {plans?.map((plan) => {
-          const style = PLAN_STYLES[plan.id];
-          const price =
-            cycle === "mensuel" ? plan.priceMonthly : plan.priceYearly;
-          const period = cycle === "mensuel" ? "/mois" : "/an";
-          const isCurrentPlan = plan.id === "basique";
+          const isPatient = plan.id === "patient";
+          const price = isPatient ? plan.priceYearly : plan.priceMonthly;
+          const period = isPatient ? "/an" : "/mois";
+          const borderColor = isPatient ? "#007bff" : "#28a745";
+          const headerBg = isPatient ? "#007bff08" : "#28a74508";
+          const headerText = isPatient ? "#007bff" : "#28a745";
+          const buttonBg = isPatient ? "#007bff" : "#28a745";
 
           return (
             <View
               key={plan.id}
-              className="mx-6 mb-4 rounded-2xl overflow-hidden"
-              style={{
-                borderWidth: plan.popular ? 2 : 1,
-                borderColor: style.borderColor,
-              }}
+              className="mx-6 mb-4 mt-4 rounded-2xl overflow-hidden"
+              style={{ borderWidth: 1.5, borderColor }}
             >
-              {/* Popular badge */}
-              {plan.popular && (
-                <View className="bg-accent py-1.5 items-center">
-                  <Text className="text-xs font-bold text-white">
-                    POPULAIRE
-                  </Text>
-                </View>
-              )}
-
               {/* Header */}
-              <View
-                className="px-5 pt-5 pb-3"
-                style={{ backgroundColor: style.headerBg }}
-              >
-                <View className="flex-row items-center justify-between">
-                  <Text
-                    className="text-lg font-bold"
-                    style={{ color: style.headerText }}
-                  >
-                    {plan.name}
-                  </Text>
-                  {isCurrentPlan && (
-                    <View className="px-2.5 py-1 rounded-full bg-accent/15">
-                      <Text className="text-[10px] font-bold text-accent">
-                        Plan actuel
-                      </Text>
-                    </View>
-                  )}
-                </View>
+              <View className="px-5 pt-5 pb-3" style={{ backgroundColor: headerBg }}>
+                <Text
+                  className="text-lg font-bold"
+                  style={{ color: headerText }}
+                >
+                  {plan.name}
+                </Text>
                 <Text className="text-xs text-muted mt-0.5">
                   {plan.description}
                 </Text>
@@ -272,20 +128,14 @@ export default function PricingScreen() {
                 <View className="flex-row items-baseline mt-3">
                   <Text
                     className="text-3xl font-bold"
-                    style={{ color: style.headerText }}
+                    style={{ color: headerText }}
                   >
                     {formatFCFA(price)}
                   </Text>
                   <Text className="text-sm text-muted ml-1">
-                    {price === 0 ? "FCFA" : `FCFA${period}`}
+                    FCFA{period}
                   </Text>
                 </View>
-                {cycle === "annuel" && plan.priceMonthly > 0 && (
-                  <Text className="text-xs text-muted mt-0.5">
-                    soit {formatFCFA(Math.round(plan.priceYearly / 12))}{" "}
-                    FCFA/mois
-                  </Text>
-                )}
               </View>
 
               {/* Features */}
@@ -314,21 +164,15 @@ export default function PricingScreen() {
               <View className="px-5 pb-5 bg-white">
                 <Pressable
                   onPress={() => handleSubscribe(plan)}
-                  disabled={isCurrentPlan || subscribeMutation.isPending}
+                  disabled={subscribeMutation.isPending}
                   className="h-12 rounded-xl items-center justify-center"
                   style={{
-                    backgroundColor: isCurrentPlan
-                      ? "#dee2e6"
-                      : style.buttonBg,
-                    opacity:
-                      isCurrentPlan || subscribeMutation.isPending ? 0.6 : 1,
+                    backgroundColor: buttonBg,
+                    opacity: subscribeMutation.isPending ? 0.6 : 1,
                   }}
                 >
-                  <Text
-                    className="text-sm font-semibold"
-                    style={{ color: style.buttonText }}
-                  >
-                    {isCurrentPlan ? "Plan actuel" : "Choisir ce plan"}
+                  <Text className="text-sm font-semibold text-white">
+                    Choisir ce plan
                   </Text>
                 </Pressable>
               </View>
@@ -336,8 +180,20 @@ export default function PricingScreen() {
           );
         })}
 
+        {/* Info */}
+        <View className="mx-6 mt-4 bg-primary/5 rounded-xl border border-primary/20 p-4">
+          <View className="flex-row items-start">
+            <Feather name="info" size={14} color="#007bff" style={{ marginTop: 1 }} />
+            <Text className="text-xs text-muted ml-2 flex-1 leading-4">
+              Le plan Patient vous donne accès à toutes les fonctionnalités.
+              Le plan Médecin Premium est réservé aux professionnels de santé
+              qui souhaitent gérer leurs patients directement depuis l'application.
+            </Text>
+          </View>
+        </View>
+
         {/* Payment note */}
-        <View className="mx-6 mt-2 flex-row items-start bg-white rounded-xl border border-border p-4">
+        <View className="mx-6 mt-3 flex-row items-start bg-white rounded-xl border border-border p-4">
           <Feather
             name="lock"
             size={14}

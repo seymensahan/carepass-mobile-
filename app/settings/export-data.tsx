@@ -136,7 +136,7 @@ export default function ExportDataScreen() {
             <Text className="text-xs text-muted leading-4">
               Conformément aux réglementations sur la protection des données,
               vous pouvez télécharger une copie complète de toutes vos données
-              CARRYPASS à tout moment.
+              CARYPASS à tout moment.
             </Text>
           </View>
         </View>

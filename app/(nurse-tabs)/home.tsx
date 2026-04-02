@@ -1,16 +1,29 @@
-import React from "react";
-import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import React, { useState } from "react";
+import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { useAuth } from "../../contexts/AuthContext";
 import * as nurseService from "../../services/nurse.service";
+import QRScanner from "../../components/QRScanner";
 
 export default function NurseHomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [scannerOpen, setScannerOpen] = useState(false);
+
+  const handleQRScan = (data: { carypassId?: string; token?: string; raw: string }) => {
+    setScannerOpen(false);
+    const id = data.carypassId || data.token;
+    if (id) {
+      // Navigate to hospitalisation or patient detail
+      router.push(`/nurse/hospitalisation/${id}` as any);
+    } else {
+      Alert.alert("QR non reconnu", "Ce QR code ne correspond pas à un patient CaryPass.");
+    }
+  };
 
   const { data: dashboard, isLoading, isRefetching } = useQuery({
     queryKey: ["nurse-dashboard"],
@@ -99,6 +112,28 @@ export default function NurseHomeScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Floating QR Scanner Button */}
+      <Pressable
+        onPress={() => setScannerOpen(true)}
+        className="absolute bottom-6 right-6 w-16 h-16 rounded-full bg-primary items-center justify-center"
+        style={{
+          shadowColor: "#007bff",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          elevation: 8,
+        }}
+      >
+        <Feather name="maximize" size={24} color="#fff" />
+      </Pressable>
+
+      <QRScanner
+        visible={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={handleQRScan}
+        title="Scanner le QR du patient"
+      />
     </SafeAreaView>
   );
 }

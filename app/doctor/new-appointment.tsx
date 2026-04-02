@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import DatePickerField from "../../components/ui/DatePickerField";
@@ -27,10 +27,11 @@ const DURATIONS = [15, 30, 45, 60] as const;
 
 export default function NewAppointmentScreen() {
   const router = useRouter();
+  const { patientId: prefilledPatientId } = useLocalSearchParams<{ patientId?: string }>();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    patientId: "",
+    patientId: prefilledPatientId || "",
     type: "Consultation",
     duration: 30,
     reason: "",
@@ -87,7 +88,7 @@ export default function NewAppointmentScreen() {
         <ScrollView className="flex-1 px-6" contentContainerStyle={{ paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
           {/* Patient ID */}
           <View className="mb-4">
-            <Text className="text-xs font-semibold text-foreground mb-1.5">ID CarryPass du patient *</Text>
+            <Text className="text-xs font-semibold text-foreground mb-1.5">ID CaryPass du patient *</Text>
             <TextInput
               value={form.patientId}
               onChangeText={(v) => setForm({ ...form, patientId: v })}

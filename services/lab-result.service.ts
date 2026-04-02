@@ -1,4 +1,6 @@
 import { api } from "../lib/api-client";
+import { storage } from "../lib/storage";
+import { offlineManager } from "./offline-manager";
 import type { LabResult, LabResultCategory } from "../types/medical";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -62,11 +64,37 @@ export async function getLabResults(filters?: {
   search?: string;
   category?: LabResultCategory | "tous";
 }): Promise<LabResult[]> {
+  // Return cached data when offline
+  if (!offlineManager.online) {
+    const cached = storage.getString("cache_lab_results");
+    if (cached) {
+      let results: LabResult[] = JSON.parse(cached);
+      if (filters?.search) {
+        const q = filters.search.toLowerCase();
+        results = results.filter(
+          (r: LabResult) =>
+            r.title.toLowerCase().includes(q) ||
+            r.laboratory.toLowerCase().includes(q) ||
+            r.prescribedBy.toLowerCase().includes(q)
+        );
+      }
+      if (filters?.category && filters.category !== "tous") {
+        results = results.filter(
+          (r: LabResult) => r.category === filters.category
+        );
+      }
+      return results;
+    }
+  }
+
   const response = await api.get<Any>("/lab-results?limit=50");
   const list =
     Array.isArray(response.data) ? response.data : [];
 
   let results = list.map(mapLabResult);
+
+  // Cache unfiltered results for offline use
+  storage.set("cache_lab_results", JSON.stringify(results));
 
   if (filters?.search) {
     const q = filters.search.toLowerCase();

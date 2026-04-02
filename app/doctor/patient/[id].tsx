@@ -37,56 +37,60 @@ export default function DoctorPatientDetailScreen() {
     enabled: !!id,
   });
 
+  // When navigating via QR scan, the URL id may be a CaryPass ID (CP-YYYY-NNNNN).
+  // Sub-data endpoints require the actual UUID, so derive it from the fetched patient.
+  const resolvedId = patient?.id || id;
+
   const { data: consultations = [] } = useQuery({
-    queryKey: ["doctor-patient-consultations", id],
-    queryFn: () => doctorService.getConsultations(id!),
-    enabled: !!id,
+    queryKey: ["doctor-patient-consultations", resolvedId],
+    queryFn: () => doctorService.getConsultations(resolvedId!),
+    enabled: !!resolvedId && !!patient,
   });
 
   const { data: allergies = [] } = useQuery({
-    queryKey: ["doctor-patient-allergies", id],
-    queryFn: () => doctorService.getPatientAllergies(id!),
-    enabled: !!id,
+    queryKey: ["doctor-patient-allergies", resolvedId],
+    queryFn: () => doctorService.getPatientAllergies(resolvedId!),
+    enabled: !!resolvedId && !!patient,
   });
 
   const { data: conditions = [] } = useQuery({
-    queryKey: ["doctor-patient-conditions", id],
-    queryFn: () => doctorService.getPatientMedicalConditions(id!),
-    enabled: !!id,
+    queryKey: ["doctor-patient-conditions", resolvedId],
+    queryFn: () => doctorService.getPatientMedicalConditions(resolvedId!),
+    enabled: !!resolvedId && !!patient,
   });
 
   const { data: vaccinations = [] } = useQuery({
-    queryKey: ["doctor-patient-vaccinations", id],
-    queryFn: () => doctorService.getPatientVaccinations(id!),
-    enabled: !!id,
+    queryKey: ["doctor-patient-vaccinations", resolvedId],
+    queryFn: () => doctorService.getPatientVaccinations(resolvedId!),
+    enabled: !!resolvedId && !!patient,
   });
 
   const { data: labResults = [] } = useQuery({
-    queryKey: ["doctor-patient-lab-results", id],
-    queryFn: () => doctorService.getPatientLabResults(id!),
-    enabled: !!id,
+    queryKey: ["doctor-patient-lab-results", resolvedId],
+    queryFn: () => doctorService.getPatientLabResults(resolvedId!),
+    enabled: !!resolvedId && !!patient,
   });
 
   const { data: prescriptions = [] } = useQuery({
-    queryKey: ["doctor-patient-prescriptions", id],
-    queryFn: () => doctorService.getPatientPrescriptions(id!),
-    enabled: !!id,
+    queryKey: ["doctor-patient-prescriptions", resolvedId],
+    queryFn: () => doctorService.getPatientPrescriptions(resolvedId!),
+    enabled: !!resolvedId && !!patient,
   });
 
   const { data: emergencyContacts = [] } = useQuery({
-    queryKey: ["doctor-patient-emergency", id],
-    queryFn: () => doctorService.getPatientEmergencyContacts(id!),
-    enabled: !!id,
+    queryKey: ["doctor-patient-emergency", resolvedId],
+    queryFn: () => doctorService.getPatientEmergencyContacts(resolvedId!),
+    enabled: !!resolvedId && !!patient,
   });
 
   const onRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["doctor-patient-detail", id] });
-    queryClient.invalidateQueries({ queryKey: ["doctor-patient-consultations", id] });
-    queryClient.invalidateQueries({ queryKey: ["doctor-patient-allergies", id] });
-    queryClient.invalidateQueries({ queryKey: ["doctor-patient-conditions", id] });
-    queryClient.invalidateQueries({ queryKey: ["doctor-patient-vaccinations", id] });
-    queryClient.invalidateQueries({ queryKey: ["doctor-patient-lab-results", id] });
-    queryClient.invalidateQueries({ queryKey: ["doctor-patient-prescriptions", id] });
+    queryClient.invalidateQueries({ queryKey: ["doctor-patient-consultations", resolvedId] });
+    queryClient.invalidateQueries({ queryKey: ["doctor-patient-allergies", resolvedId] });
+    queryClient.invalidateQueries({ queryKey: ["doctor-patient-conditions", resolvedId] });
+    queryClient.invalidateQueries({ queryKey: ["doctor-patient-vaccinations", resolvedId] });
+    queryClient.invalidateQueries({ queryKey: ["doctor-patient-lab-results", resolvedId] });
+    queryClient.invalidateQueries({ queryKey: ["doctor-patient-prescriptions", resolvedId] });
   };
 
   if (!patient) {
@@ -121,13 +125,6 @@ export default function DoctorPatientDetailScreen() {
           <Feather name="arrow-left" size={24} color="#212529" />
         </Pressable>
         <Text className="text-xl font-bold text-foreground flex-1">Dossier patient</Text>
-        <Pressable
-          onPress={() => router.push(`/doctor/new-consultation?patientId=${id}` as any)}
-          className="bg-primary px-4 py-2 rounded-xl flex-row items-center gap-1.5"
-        >
-          <Feather name="plus" size={14} color="white" />
-          <Text className="text-white text-xs font-semibold">Consultation</Text>
-        </Pressable>
       </View>
 
       <ScrollView
@@ -151,7 +148,7 @@ export default function DoctorPatientDetailScreen() {
                 {p.user?.firstName} {p.user?.lastName}
               </Text>
               <Text className="text-xs text-muted mt-0.5">
-                {p.carrypassId}
+                {p.carypassId}
               </Text>
               <View className="flex-row items-center gap-2 mt-1.5">
                 {age !== null && (
@@ -192,6 +189,34 @@ export default function DoctorPatientDetailScreen() {
           </View>
         </View>
 
+        {/* Action Buttons */}
+        <View className="mx-6 mb-5 flex-row gap-3">
+          <Pressable
+            onPress={() => router.push(`/doctor/new-consultation?patientId=${resolvedId}` as any)}
+            className="flex-1 bg-primary rounded-2xl py-3.5 flex-row items-center justify-center gap-2"
+            style={s.card}
+          >
+            <Feather name="plus-circle" size={16} color="white" />
+            <Text className="text-white text-xs font-semibold">Consultation</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push(`/doctor/new-hospitalisation?patientId=${resolvedId}` as any)}
+            className="flex-1 bg-white border border-primary rounded-2xl py-3.5 flex-row items-center justify-center gap-2"
+            style={s.card}
+          >
+            <Feather name="home" size={16} color="#007bff" />
+            <Text className="text-primary text-xs font-semibold">Hospitalisation</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push(`/doctor/new-appointment?patientId=${resolvedId}` as any)}
+            className="flex-1 bg-white border border-primary rounded-2xl py-3.5 flex-row items-center justify-center gap-2"
+            style={s.card}
+          >
+            <Feather name="calendar" size={16} color="#007bff" />
+            <Text className="text-primary text-xs font-semibold">Rendez-vous</Text>
+          </Pressable>
+        </View>
+
         {/* Tab Bar */}
         <ScrollView
           horizontal
@@ -228,7 +253,7 @@ export default function DoctorPatientDetailScreen() {
             />
           )}
           {tab === "consultations" && (
-            <ConsultationsTab consultations={consultations} router={router} patientId={id!} />
+            <ConsultationsTab consultations={consultations} router={router} patientId={resolvedId!} />
           )}
           {tab === "lab" && <LabResultsTab labResults={labResults} />}
           {tab === "vaccinations" && <VaccinationsTab vaccinations={vaccinations} />}

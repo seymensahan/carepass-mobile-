@@ -108,7 +108,7 @@ export default function ChangePasswordScreen() {
               Changer le mot de passe
             </Text>
             <Text className="text-xs text-muted">
-              Sécurisez votre compte CARRYPASS
+              Sécurisez votre compte CARYPASS
             </Text>
           </View>
         </View>

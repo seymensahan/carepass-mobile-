@@ -82,7 +82,7 @@ export default function GrantAccessScreen() {
 
   const handleSearch = async () => {
     if (!doctorId.trim()) {
-      Alert.alert("Erreur", "Veuillez saisir un ID CARRYPASS.");
+      Alert.alert("Erreur", "Veuillez saisir un ID CARYPASS.");
       return;
     }
     setIsSearching(true);
@@ -160,7 +160,7 @@ export default function GrantAccessScreen() {
             {/* ID input */}
             <View className="mb-6">
               <Text className="text-sm font-semibold text-foreground mb-2">
-                ID CARRYPASS du médecin
+                ID CARYPASS du médecin
               </Text>
               <View className="flex-row items-center">
                 <TextInput
@@ -203,7 +203,7 @@ export default function GrantAccessScreen() {
                 Scanner le QR du médecin
               </Text>
               <Text className="text-xs text-muted text-center">
-                Demandez au médecin d'afficher son QR code CARRYPASS
+                Demandez au médecin d'afficher son QR code CARYPASS
               </Text>
             </Pressable>
 
@@ -228,8 +228,8 @@ export default function GrantAccessScreen() {
                 style={{ marginTop: 1 }}
               />
               <Text className="text-xs text-foreground ml-2 flex-1 leading-4">
-                L'ID CARRYPASS du médecin se trouve sur sa carte professionnelle
-                ou dans son profil CARRYPASS (format : CP-DOC-XXXXX).
+                L'ID CARYPASS du médecin se trouve sur sa carte professionnelle
+                ou dans son profil CARYPASS (format : CP-DOC-XXXXX).
               </Text>
             </View>
           </View>

@@ -49,7 +49,13 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const result = await login(data);
-      if (result.success) {
+      if (result.requiresTwoFactor && result.tempToken) {
+        // Redirect to OTP verification screen with tempToken
+        router.push({
+          pathname: "/(auth)/otp-verification",
+          params: { tempToken: result.tempToken },
+        });
+      } else if (result.success) {
         // Redirect to index which handles role-based routing
         router.replace("/");
       } else {

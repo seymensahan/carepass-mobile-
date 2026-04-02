@@ -165,7 +165,7 @@ export default function SearchScreen() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Rechercher dans CARRYPASS..."
+            placeholder="Rechercher dans CARYPASS..."
             placeholderTextColor="#6c757d"
             className="flex-1 ml-3 text-sm text-foreground"
             autoFocus

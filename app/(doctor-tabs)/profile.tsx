@@ -109,7 +109,7 @@ export default function DoctorProfileScreen() {
             <View className="w-36 h-36 bg-white rounded-xl items-center justify-center border border-border p-2">
               <QRCode
                 value={JSON.stringify({
-                  type: "carrypass-doctor",
+                  type: "carypass-doctor",
                   id: profile?.id || user?.id || "",
                   name: `Dr. ${profile?.firstName || user?.firstName} ${profile?.lastName || user?.lastName}`,
                   specialty: profile?.specialty || "",
@@ -133,8 +133,8 @@ export default function DoctorProfileScreen() {
             <Pressable
               onPress={() => {
                 Share.share({
-                  message: `Dr. ${profile?.firstName || user?.firstName} ${profile?.lastName || user?.lastName}\nSpécialité: ${profile?.specialty || "Médecin"}\nN° Licence: ${profile?.licenseNumber || "—"}\nCarryPass ID: ${profile?.id || ""}`,
-                  title: "Mon profil CarryPass",
+                  message: `Dr. ${profile?.firstName || user?.firstName} ${profile?.lastName || user?.lastName}\nSpécialité: ${profile?.specialty || "Médecin"}\nN° Licence: ${profile?.licenseNumber || "—"}\nCaryPass ID: ${profile?.id || ""}`,
+                  title: "Mon profil CaryPass",
                 });
               }}
               className="flex-1 flex-row items-center justify-center gap-1.5 bg-primary/10 rounded-xl py-3"
@@ -157,7 +157,7 @@ export default function DoctorProfileScreen() {
                 <Feather name="zap" size={18} color="#ffd700" />
               </View>
               <View>
-                <Text className="text-base font-bold text-white">CarryPass Premium</Text>
+                <Text className="text-base font-bold text-white">CaryPass Premium</Text>
                 <Text className="text-xs text-white/60">Débloquez tout le potentiel</Text>
               </View>
             </View>

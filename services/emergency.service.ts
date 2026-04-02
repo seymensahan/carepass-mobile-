@@ -48,7 +48,7 @@ export async function getEmergencyData(): Promise<EmergencyData> {
 
     const data: EmergencyData = {
       patientName: `${p?.firstName || ""} ${p?.lastName || ""}`.trim(),
-      carrypassId: pat?.carrypassId || "",
+      carypassId: pat?.carypassId || "",
       bloodGroup: pat?.bloodGroup || "",
       genotype: pat?.genotype || "",
       allergies: (pat?.allergies || []).map((a: Any) => ({
@@ -77,7 +77,7 @@ export async function getEmergencyData(): Promise<EmergencyData> {
           conditions: [],
         };
       }),
-      qrToken: pat?.carrypassId || "",
+      qrToken: pat?.carypassId || "",
       lastUpdated: new Date().toISOString(),
     };
 
@@ -89,7 +89,7 @@ export async function getEmergencyData(): Promise<EmergencyData> {
     return (
       getOfflineEmergencyData() || {
         patientName: "",
-        carrypassId: "",
+        carypassId: "",
         bloodGroup: "",
         genotype: "",
         allergies: [],
@@ -117,7 +117,7 @@ export async function generateEmergencyLink(
 
   const token = `share_tok_${Date.now()}`;
   const expiresAt = new Date(Date.now() + durationMs[duration]).toISOString();
-  const url = `https://carrypass.cm/emergency/${token}`;
+  const url = `https://carypass.cm/emergency/${token}`;
 
   // Store shared link locally
   const existingLinks = await getSharedLinks();

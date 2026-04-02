@@ -117,7 +117,7 @@ export default function OfflineCardScreen() {
                 {data.patientName}
               </Text>
               <Text className="text-white/70 text-xs">
-                {data.carrypassId} · Génotype {data.genotype}
+                {data.carypassId} · Génotype {data.genotype}
               </Text>
             </View>
           </View>

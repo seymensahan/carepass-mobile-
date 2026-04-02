@@ -1,4 +1,6 @@
 import { api } from "../lib/api-client";
+import { storage } from "../lib/storage";
+import { offlineManager } from "./offline-manager";
 import type {
   AddVaccinationData,
   Vaccination,
@@ -56,6 +58,14 @@ function mapVaccination(v: Any): Vaccination {
 export async function getVaccinations(
   patientId?: string | null
 ): Promise<Vaccination[]> {
+  const cacheKey = patientId ? `cache_vaccinations_${patientId}` : "cache_vaccinations";
+
+  // Return cached data when offline
+  if (!offlineManager.online) {
+    const cached = storage.getString(cacheKey);
+    if (cached) return JSON.parse(cached);
+  }
+
   const params = new URLSearchParams();
   params.set("limit", "100");
   if (patientId !== undefined && patientId !== null) {
@@ -68,8 +78,17 @@ export async function getVaccinations(
 
   const vaccinations = list.map(mapVaccination);
 
-  if (patientId === undefined) return vaccinations;
-  return vaccinations.filter((v: Vaccination) => v.patientId === patientId);
+  let result: Vaccination[];
+  if (patientId === undefined) {
+    result = vaccinations;
+  } else {
+    result = vaccinations.filter((v: Vaccination) => v.patientId === patientId);
+  }
+
+  // Cache for offline use
+  storage.set(cacheKey, JSON.stringify(result));
+
+  return result;
 }
 
 export async function getVaccinationById(

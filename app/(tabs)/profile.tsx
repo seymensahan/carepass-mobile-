@@ -16,6 +16,7 @@ import { Feather } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../contexts/AuthContext";
 import { getProfile } from "../../services/patient.service";
+import { useProfileStore } from "../../stores";
 import { ProfileSkeleton } from "../../components/ui/Skeleton";
 
 const s = StyleSheet.create({
@@ -33,16 +34,20 @@ export default function ProfileScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  const cachedProfile = useProfileStore((s) => s.profile);
+
   const {
     data: patient,
     isLoading,
     isRefetching,
   } = useQuery({
     queryKey: ["patient-profile"],
-    queryFn: getProfile,
+    queryFn: () => useProfileStore.getState().fetchProfile(),
+    placeholderData: cachedProfile ?? undefined,
   });
 
   const onRefresh = useCallback(() => {
+    useProfileStore.getState().refreshProfile();
     queryClient.invalidateQueries({ queryKey: ["patient-profile"] });
   }, [queryClient]);
 
@@ -136,7 +141,7 @@ export default function ProfileScreen() {
           </Text>
           <View className="mt-2 bg-white px-4 py-1.5 rounded-full" style={s.card}>
             <Text className="text-xs text-muted font-medium">
-              {patient?.carrypassId}
+              {patient?.carypassId}
             </Text>
           </View>
           <Pressable

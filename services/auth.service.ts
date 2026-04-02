@@ -51,14 +51,24 @@ function mapBackendUser(u: BackendAuthUser): User {
   };
 }
 
-export async function loginUser(data: LoginRequest): Promise<AuthResponse> {
-  const response = await api.post<{ accessToken: string; refreshToken: string; user: BackendAuthUser }>("/auth/login", {
+export async function loginUser(data: LoginRequest): Promise<AuthResponse & { requiresTwoFactor?: boolean; tempToken?: string }> {
+  const response = await api.post<{ accessToken?: string; refreshToken?: string; user?: BackendAuthUser; requiresTwoFactor?: boolean; tempToken?: string }>("/auth/login", {
     body: { email: data.email, password: data.password },
     authenticated: false,
   });
 
+  // Handle 2FA response
+  if (response.data?.requiresTwoFactor) {
+    return {
+      success: true,
+      message: "Vérification à deux facteurs requise",
+      requiresTwoFactor: true,
+      tempToken: response.data.tempToken,
+    };
+  }
+
   if (response.data?.accessToken) {
-    const { accessToken, refreshToken, user } = response.data;
+    const { accessToken, refreshToken, user } = response.data as { accessToken: string; refreshToken: string; user: BackendAuthUser };
     return {
       success: true,
       message: "Connexion réussie",
@@ -167,6 +177,89 @@ export async function verifyOtp(
   return {
     success: false,
     message: "Code invalide. Veuillez réessayer.",
+  };
+}
+
+// ─── Two-Factor Authentication ───
+
+export async function verifyTwoFactor(
+  tempToken: string,
+  code: string
+): Promise<AuthResponse> {
+  const response = await api.post<{ accessToken: string; refreshToken: string; user: BackendAuthUser }>("/auth/verify-2fa", {
+    body: { tempToken, code },
+    authenticated: false,
+  });
+
+  if (response.data?.accessToken) {
+    const { accessToken, refreshToken, user } = response.data;
+    return {
+      success: true,
+      message: "Vérification réussie",
+      data: {
+        user: mapBackendUser(user),
+        accessToken,
+        refreshToken,
+      },
+    };
+  }
+
+  return {
+    success: false,
+    message: response.error || "Code invalide. Veuillez réessayer.",
+  };
+}
+
+export async function resendOtp(
+  tempToken: string
+): Promise<{ success: boolean; message: string }> {
+  const response = await api.post<{ message: string }>("/auth/resend-otp", {
+    body: { tempToken },
+    authenticated: false,
+  });
+
+  return {
+    success: !response.error,
+    message: response.data?.message || response.error || "Erreur lors du renvoi du code",
+  };
+}
+
+export async function enableTwoFactor(
+  phone: string
+): Promise<{ success: boolean; message: string }> {
+  const response = await api.post<{ message: string }>("/auth/enable-2fa", {
+    body: { phone },
+  });
+
+  return {
+    success: !response.error,
+    message: response.data?.message || response.error || "Erreur lors de l'activation",
+  };
+}
+
+export async function confirmEnableTwoFactor(
+  code: string
+): Promise<{ success: boolean; message: string }> {
+  const response = await api.post<{ message: string }>("/auth/confirm-enable-2fa", {
+    body: { code },
+  });
+
+  return {
+    success: !response.error,
+    message: response.data?.message || response.error || "Erreur lors de la confirmation",
+  };
+}
+
+export async function disableTwoFactor(
+  password: string
+): Promise<{ success: boolean; message: string }> {
+  const response = await api.post<{ message: string }>("/auth/disable-2fa", {
+    body: { password },
+  });
+
+  return {
+    success: !response.error,
+    message: response.data?.message || response.error || "Erreur lors de la désactivation",
   };
 }
 
