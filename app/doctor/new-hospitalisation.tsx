@@ -33,6 +33,28 @@ export default function NewHospitalisationScreen() {
   });
   const [admissionDate, setAdmissionDate] = useState<Date | null>(new Date());
 
+  // Care plan items (cahier de charges)
+  const [carePlanItems, setCarePlanItems] = useState<Array<{
+    task: string;
+    frequency: string;
+    priority: "routine" | "urgent" | "critical";
+  }>>([]);
+  const [newTask, setNewTask] = useState("");
+  const [newFrequency, setNewFrequency] = useState("Toutes les 4h");
+  const [newPriority, setNewPriority] = useState<"routine" | "urgent" | "critical">("routine");
+
+  const addCarePlanItem = () => {
+    if (!newTask.trim()) return;
+    setCarePlanItems([...carePlanItems, { task: newTask.trim(), frequency: newFrequency, priority: newPriority }]);
+    setNewTask("");
+    setNewFrequency("Toutes les 4h");
+    setNewPriority("routine");
+  };
+
+  const removeCarePlanItem = (index: number) => {
+    setCarePlanItems(carePlanItems.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async () => {
     if (!form.patientId || !admissionDate || !form.reason) {
       Alert.alert("Erreur", "Le patient, la date d'admission et le motif sont requis.");
@@ -48,10 +70,11 @@ export default function NewHospitalisationScreen() {
         bed: form.bed || undefined,
         diagnosis: form.diagnosis || undefined,
         notes: form.notes || undefined,
+        carePlanItems: carePlanItems.length > 0 ? carePlanItems : undefined,
       });
       if (result.success) {
         queryClient.invalidateQueries({ queryKey: ["doctor-hospitalisations"] });
-        Alert.alert("Succes", "Hospitalisation creee avec succes.", [
+        Alert.alert("Succes", "Hospitalisation et cahier de charges crees.", [
           { text: "OK", onPress: () => router.back() },
         ]);
       } else {
@@ -164,6 +187,89 @@ export default function NewHospitalisationScreen() {
               placeholderTextColor="#adb5bd"
               textAlignVertical="top"
             />
+          </View>
+
+          {/* ── Cahier de charges (Care Plan) ── */}
+          <View className="mb-6">
+            <View className="flex-row items-center justify-between mb-3">
+              <Text className="text-sm font-bold text-foreground">Cahier de charges infirmier</Text>
+              <Text className="text-xs text-muted">{carePlanItems.length} tâche(s)</Text>
+            </View>
+
+            {/* Existing items */}
+            {carePlanItems.map((item, idx) => (
+              <View key={idx} className="bg-white rounded-2xl border border-border p-3 mb-2 flex-row items-start">
+                <View className={`w-2.5 h-2.5 rounded-full mt-1.5 mr-3 ${
+                  item.priority === "critical" ? "bg-[#dc3545]" : item.priority === "urgent" ? "bg-[#ffc107]" : "bg-[#28a745]"
+                }`} />
+                <View className="flex-1">
+                  <Text className="text-sm font-semibold text-foreground">{item.task}</Text>
+                  <Text className="text-xs text-muted mt-0.5">{item.frequency} — {
+                    item.priority === "critical" ? "Critique" : item.priority === "urgent" ? "Urgent" : "Routine"
+                  }</Text>
+                </View>
+                <Pressable onPress={() => removeCarePlanItem(idx)} className="ml-2 p-1">
+                  <Feather name="x-circle" size={18} color="#dc3545" />
+                </Pressable>
+              </View>
+            ))}
+
+            {/* Add new item */}
+            <View className="bg-[#f8f9fa] rounded-2xl border border-dashed border-[#dee2e6] p-3 space-y-2">
+              <TextInput
+                value={newTask}
+                onChangeText={setNewTask}
+                placeholder="Ex: Prise de constantes, Injection Furosemide 40mg..."
+                className="bg-white rounded-xl px-3 py-2.5 text-sm text-foreground border border-border"
+                placeholderTextColor="#adb5bd"
+              />
+              <View className="flex-row gap-2">
+                <View className="flex-1">
+                  <TextInput
+                    value={newFrequency}
+                    onChangeText={setNewFrequency}
+                    placeholder="Frequence"
+                    className="bg-white rounded-xl px-3 py-2.5 text-xs text-foreground border border-border"
+                    placeholderTextColor="#adb5bd"
+                  />
+                </View>
+                <View className="flex-row gap-1">
+                  {(["routine", "urgent", "critical"] as const).map((p) => (
+                    <Pressable
+                      key={p}
+                      onPress={() => setNewPriority(p)}
+                      className={`px-2.5 py-2.5 rounded-xl border ${
+                        newPriority === p
+                          ? p === "critical" ? "bg-[#dc3545]/10 border-[#dc3545]"
+                            : p === "urgent" ? "bg-[#ffc107]/10 border-[#ffc107]"
+                            : "bg-[#28a745]/10 border-[#28a745]"
+                          : "border-[#dee2e6]"
+                      }`}
+                    >
+                      <Text className={`text-[10px] font-bold ${
+                        newPriority === p
+                          ? p === "critical" ? "text-[#dc3545]"
+                            : p === "urgent" ? "text-[#d39e00]"
+                            : "text-[#28a745]"
+                          : "text-[#6c757d]"
+                      }`}>
+                        {p === "critical" ? "C" : p === "urgent" ? "U" : "R"}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+              <Pressable
+                onPress={addCarePlanItem}
+                disabled={!newTask.trim()}
+                className={`py-2.5 rounded-xl items-center flex-row justify-center ${
+                  newTask.trim() ? "bg-primary" : "bg-[#dee2e6]"
+                }`}
+              >
+                <Feather name="plus" size={14} color="#fff" />
+                <Text className="text-white font-semibold text-xs ml-1">Ajouter au cahier</Text>
+              </Pressable>
+            </View>
           </View>
 
           {/* Submit */}

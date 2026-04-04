@@ -24,6 +24,7 @@ function getDevUrl(): string {
 
 const BASE_URL = __DEV__ ? getDevUrl() : PROD_URL;
 const TOKEN_KEY = "carypass_access_token";
+const REFRESH_KEY = "carypass_refresh_token";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -77,6 +78,41 @@ export async function apiRequest<T>(
 
     if (response.ok) {
       return { data: json as T, error: null, status: response.status };
+    }
+
+    // Try refresh token on 401
+    if (response.status === 401 && authenticated && !endpoint.includes("/auth/")) {
+      try {
+        const refreshToken = await SecureStore.getItemAsync(REFRESH_KEY);
+        if (refreshToken) {
+          const refreshRes = await fetch(`${BASE_URL}/auth/refresh-token`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refreshToken }),
+          });
+          if (refreshRes.ok) {
+            const refreshJson = await refreshRes.json();
+            const data = refreshJson?.data ?? refreshJson;
+            await SecureStore.setItemAsync(TOKEN_KEY, data.accessToken);
+            if (data.refreshToken) {
+              await SecureStore.setItemAsync(REFRESH_KEY, data.refreshToken);
+            }
+            // Retry original request with new token
+            requestHeaders["Authorization"] = `Bearer ${data.accessToken}`;
+            const retryRes = await fetch(`${BASE_URL}${endpoint}`, {
+              method,
+              headers: requestHeaders,
+              body: body ? JSON.stringify(body) : undefined,
+            });
+            const retryJson = await retryRes.json().catch(() => null);
+            if (retryRes.ok) {
+              return { data: retryJson as T, error: null, status: retryRes.status };
+            }
+          }
+        }
+      } catch {
+        // Refresh failed
+      }
     }
 
     // Parse backend error message (can be string or array)
