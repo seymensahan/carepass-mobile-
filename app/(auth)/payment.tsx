@@ -3,12 +3,14 @@ import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-nativ
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 import { api } from "../../lib/api-client";
 
 type MNO = "mtn" | "orange";
 
 export default function PaymentScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { user } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -17,19 +19,28 @@ export default function PaymentScreen() {
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "pending" | "completed" | "failed">("idle");
   const [planId, setPlanId] = useState<string>("");
+  const [promoCode, setPromoCode] = useState("");
+  const [promoValid, setPromoValid] = useState<boolean | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoMessage, setPromoMessage] = useState("");
+  const [promoDiscount, setPromoDiscount] = useState(0);
 
   // Load the patient plan
   useEffect(() => {
     (async () => {
       try {
         const res = await api.get<any>("/subscriptions/plans");
-        const plans = res.data?.data ?? res.data ?? [];
-        const patientPlan = (Array.isArray(plans) ? plans : []).find(
-          (p: any) => p.slug === "patient"
-        );
+        const raw = res.data?.data ?? res.data ?? [];
+        const plans = Array.isArray(raw) ? raw : [];
+        // Try multiple matching strategies: slug, tier, or name containing "patient"
+        const patientPlan =
+          plans.find((p: any) => p.slug === "patient") ||
+          plans.find((p: any) => p.tier === "patient") ||
+          plans.find((p: any) => (p.name || "").toLowerCase().includes("patient")) ||
+          plans[0]; // Fallback to first plan if none match
         if (patientPlan) setPlanId(patientPlan.id);
       } catch {
-        // Plans might not load
+        // Plans might not load — button will remain disabled
       }
     })();
   }, []);
@@ -65,9 +76,50 @@ export default function PaymentScreen() {
     return () => clearInterval(interval);
   }, [paymentId, status]);
 
+  const handleValidatePromo = async () => {
+    if (!promoCode.trim()) return;
+    setPromoLoading(true);
+    setPromoValid(null);
+    setPromoMessage("");
+    try {
+      const res = await api.post<any>("/vouchers/validate", { body: { code: promoCode.trim().toUpperCase() } });
+      const voucher = res.data?.data ?? res.data;
+      if (res.error) {
+        setPromoValid(false);
+        setPromoMessage(res.error);
+        return;
+      }
+      setPromoValid(true);
+      setPromoDiscount(voucher?.discountPercent || 100);
+      setPromoMessage(`Code valide ! ${voucher?.discountPercent || 100}% de réduction pendant ${voucher?.durationMonths || 6} mois`);
+    } catch {
+      setPromoValid(false);
+      setPromoMessage("Code promo invalide");
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const handleRedeemPromo = async () => {
+    if (!promoCode.trim() || !promoValid) return;
+    setIsLoading(true);
+    try {
+      const res = await api.post<any>("/vouchers/redeem", { body: { code: promoCode.trim().toUpperCase() } });
+      if (res.error) {
+        Alert.alert("Erreur", res.error);
+        return;
+      }
+      setStatus("completed");
+    } catch {
+      Alert.alert("Erreur", "Impossible d'utiliser le code promo");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handlePay = async () => {
     if (!phoneNumber || phoneNumber.length < 9) {
-      Alert.alert("Erreur", "Veuillez entrer un numéro de téléphone valide");
+      Alert.alert(t("common.error"), t("payment.invalidPhone"));
       return;
     }
 
@@ -110,14 +162,14 @@ export default function PaymentScreen() {
             Paiement réussi !
           </Text>
           <Text className="text-sm text-muted text-center mb-8">
-            Votre abonnement CaryPass est actif pour 1 an.{"\n"}
-            Bienvenue, {user?.firstName} !
+            {t("payment.subscriptionActive")}{"\n"}
+            {t("payment.welcomeUser", { name: user?.firstName })}
           </Text>
           <Pressable
             onPress={() => router.replace("/")}
             className="bg-primary rounded-2xl py-4 px-12"
           >
-            <Text className="text-white font-bold text-base">Accéder à CaryPass</Text>
+            <Text className="text-white font-bold text-base">{t("payment.accessCarypass")}</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -141,13 +193,13 @@ export default function PaymentScreen() {
           </Text>
           <View className="flex-row items-center gap-2 mb-8">
             <View className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <Text className="text-xs text-muted">En attente de confirmation...</Text>
+            <Text className="text-xs text-muted">{t("payment.waitingConfirmation")}</Text>
           </View>
           <Pressable
             onPress={() => { setStatus("idle"); setPaymentId(null); }}
             className="border border-border rounded-xl py-3 px-8"
           >
-            <Text className="text-sm text-muted font-semibold">Annuler</Text>
+            <Text className="text-sm text-muted font-semibold">{t("common.cancel")}</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -159,7 +211,7 @@ export default function PaymentScreen() {
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Header */}
         <View className="px-6 pt-8 pb-4">
-          <Text className="text-2xl font-bold text-foreground">Dernière étape</Text>
+          <Text className="text-2xl font-bold text-foreground">{t("payment.lastStep")}</Text>
           <Text className="text-sm text-muted mt-1">
             Activez votre compte CaryPass
           </Text>
@@ -172,14 +224,14 @@ export default function PaymentScreen() {
               <Feather name="shield" size={24} color="#007bff" />
             </View>
             <View className="flex-1">
-              <Text className="text-base font-bold text-foreground">CaryPass Patient</Text>
-              <Text className="text-xs text-muted">Accès complet à la plateforme</Text>
+              <Text className="text-base font-bold text-foreground">{t("payment.planName")}</Text>
+              <Text className="text-xs text-muted">{t("payment.fullAccess")}</Text>
             </View>
           </View>
           <View className="bg-primary/5 rounded-xl p-4">
             <Text className="text-center">
               <Text className="text-3xl font-bold text-primary">1 000</Text>
-              <Text className="text-base text-muted"> FCFA / an</Text>
+              <Text className="text-base text-muted"> {t("payment.pricePerYear")}</Text>
             </Text>
           </View>
           <View className="mt-3 gap-2">
@@ -199,7 +251,7 @@ export default function PaymentScreen() {
 
         {/* MNO selection */}
         <View className="px-6 mb-4">
-          <Text className="text-sm font-bold text-foreground mb-3">Mode de paiement</Text>
+          <Text className="text-sm font-bold text-foreground mb-3">{t("payment.paymentMethod")}</Text>
           <View className="flex-row gap-3">
             <Pressable
               onPress={() => setSelectedMNO("mtn")}
@@ -224,7 +276,7 @@ export default function PaymentScreen() {
 
         {/* Phone number */}
         <View className="px-6 mb-6">
-          <Text className="text-sm font-bold text-foreground mb-2">Numéro de téléphone</Text>
+          <Text className="text-sm font-bold text-foreground mb-2">{t("payment.phoneNumber")}</Text>
           <View className="flex-row items-center border border-border rounded-2xl bg-white overflow-hidden">
             <View className="px-4 py-3 bg-gray-50 border-r border-border">
               <Text className="text-sm font-bold text-muted">+237</Text>
@@ -243,25 +295,79 @@ export default function PaymentScreen() {
           </Text>
         </View>
 
-        {/* Pay button */}
-        <View className="px-6">
-          <Pressable
-            onPress={handlePay}
-            disabled={isLoading || !phoneNumber || !planId}
-            className={`rounded-2xl py-4 items-center ${
-              isLoading || !phoneNumber || !planId ? "bg-primary/50" : "bg-primary"
-            }`}
-          >
-            <Text className="text-white font-bold text-base">
-              {isLoading ? "Traitement..." : "Payer 1 000 FCFA"}
+        {/* Promo code */}
+        <View className="px-6 mb-4">
+          <Text className="text-sm font-bold text-foreground mb-2">Code promo (optionnel)</Text>
+          <View className="flex-row gap-2">
+            <View className={`flex-1 flex-row items-center border rounded-2xl bg-white overflow-hidden ${
+              promoValid === true ? "border-green-500" : promoValid === false ? "border-red-500" : "border-border"
+            }`}>
+              <TextInput
+                value={promoCode}
+                onChangeText={(v) => { setPromoCode(v.toUpperCase()); setPromoValid(null); setPromoMessage(""); setPromoDiscount(0); }}
+                placeholder="CP-PAT-XXXXXX"
+                autoCapitalize="characters"
+                className="flex-1 px-4 py-3 text-sm font-mono"
+              />
+            </View>
+            <Pressable
+              onPress={handleValidatePromo}
+              disabled={!promoCode.trim() || promoLoading}
+              className={`rounded-2xl px-4 py-3 justify-center ${!promoCode.trim() || promoLoading ? "bg-gray-200" : "bg-primary/10"}`}
+            >
+              <Text className={`text-sm font-semibold ${!promoCode.trim() ? "text-gray-400" : "text-primary"}`}>
+                {promoLoading ? "..." : "Vérifier"}
+              </Text>
+            </Pressable>
+          </View>
+          {promoMessage ? (
+            <Text className={`text-xs mt-1.5 ${promoValid ? "text-green-600" : "text-red-500"}`}>
+              {promoMessage}
             </Text>
-          </Pressable>
+          ) : null}
+        </View>
+
+        {/* Pay button OR Redeem button */}
+        <View className="px-6">
+          {promoValid && promoDiscount >= 100 ? (
+            <>
+              <View className="bg-green-50 rounded-xl p-4 mb-3">
+                <Text className="text-sm font-semibold text-green-700 text-center">
+                  Accès gratuit pendant 6 mois !
+                </Text>
+                <Text className="text-xs text-green-600 text-center mt-1">
+                  Aucun paiement requis avec votre code promoteur.
+                </Text>
+              </View>
+              <Pressable
+                onPress={handleRedeemPromo}
+                disabled={isLoading}
+                className={`rounded-2xl py-4 items-center ${isLoading ? "bg-green-400" : "bg-green-600"}`}
+              >
+                <Text className="text-white font-bold text-base">
+                  {isLoading ? t("common.processing") : "Activer gratuitement"}
+                </Text>
+              </Pressable>
+            </>
+          ) : (
+            <Pressable
+              onPress={handlePay}
+              disabled={isLoading || !phoneNumber || !planId}
+              className={`rounded-2xl py-4 items-center ${
+                isLoading || !phoneNumber || !planId ? "bg-primary/50" : "bg-primary"
+              }`}
+            >
+              <Text className="text-white font-bold text-base">
+                {isLoading ? t("common.processing") : t("payment.payButton")}
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         {status === "failed" && (
           <View className="mx-6 mt-4 bg-red-50 rounded-xl p-4">
             <Text className="text-sm text-red-600 text-center">
-              Le paiement a échoué. Veuillez réessayer.
+              {t("payment.paymentFailed")}
             </Text>
           </View>
         )}

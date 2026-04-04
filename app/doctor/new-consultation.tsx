@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import * as doctorService from "../../services/doctor.service";
 
 const s = StyleSheet.create({
@@ -54,6 +55,7 @@ interface PrescriptionItem {
 }
 
 export default function NewConsultationScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { patientId } = useLocalSearchParams<{ patientId?: string }>();
   const queryClient = useQueryClient();

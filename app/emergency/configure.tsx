@@ -3,6 +3,7 @@ import { Alert, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useMutation } from "@tanstack/react-query";
 import {
   getEmergencyConfig,
@@ -74,6 +75,7 @@ const CONFIG_ITEMS: ConfigItem[] = [
 ];
 
 export default function ConfigureScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [config, setConfig] = useState<EmergencyConfig>(getEmergencyConfig());
 

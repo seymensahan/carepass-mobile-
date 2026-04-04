@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import QRCode from "react-native-qrcode-svg";
 import { useAuth } from "../../contexts/AuthContext";
 import * as doctorService from "../../services/doctor.service";
@@ -13,6 +14,7 @@ const s = StyleSheet.create({
 });
 
 export default function DoctorProfileScreen() {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const router = useRouter();
 
@@ -27,9 +29,9 @@ export default function DoctorProfileScreen() {
   });
 
   const handleLogout = () => {
-    Alert.alert("Déconnexion", "Voulez-vous vous déconnecter ?", [
-      { text: "Annuler", style: "cancel" },
-      { text: "Se déconnecter", style: "destructive", onPress: () => { logout(); router.replace("/(auth)/welcome"); } },
+    Alert.alert(t("doctor.logoutTitle"), t("doctor.logoutMessage"), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("doctor.logout"), style: "destructive", onPress: () => { logout(); router.replace("/(auth)/welcome"); } },
     ]);
   };
 
@@ -47,36 +49,36 @@ export default function DoctorProfileScreen() {
             Dr. {profile?.firstName || user?.firstName} {profile?.lastName || user?.lastName}
           </Text>
           <Text className="text-sm text-primary font-semibold mt-1">
-            {profile?.specialty || "Médecin"}
+            {profile?.specialty || t("doctor.doctor")}
           </Text>
           {profile?.isVerified && (
             <View className="flex-row items-center gap-1.5 mt-2 bg-green-50 px-3 py-1.5 rounded-full">
               <Feather name="check-circle" size={12} color="#28a745" />
-              <Text className="text-xs font-semibold text-green-700">Profil vérifié</Text>
+              <Text className="text-xs font-semibold text-green-700">{t("doctor.verifiedProfile")}</Text>
             </View>
           )}
         </View>
 
         {/* Info Card */}
         <View className="mx-6 mb-4 bg-white rounded-2xl p-5" style={s.card}>
-          <Text className="text-sm font-bold text-foreground mb-4">Informations</Text>
-          <InfoRow icon="mail" label="Email" value={profile?.email || user?.email || ""} />
-          <InfoRow icon="phone" label="Téléphone" value={profile?.phone || ""} />
-          <InfoRow icon="award" label="N° Licence" value={profile?.licenseNumber || ""} />
-          <InfoRow icon="map-pin" label="Ville" value={profile?.city || ""} />
-          <InfoRow icon="map" label="Région" value={profile?.region || ""} last />
+          <Text className="text-sm font-bold text-foreground mb-4">{t("doctor.information")}</Text>
+          <InfoRow icon="mail" label={t("doctor.email")} value={profile?.email || user?.email || ""} />
+          <InfoRow icon="phone" label={t("doctor.phone")} value={profile?.phone || ""} />
+          <InfoRow icon="award" label={t("doctor.license")} value={profile?.licenseNumber || ""} />
+          <InfoRow icon="map-pin" label={t("doctor.city")} value={profile?.city || ""} />
+          <InfoRow icon="map" label={t("doctor.region")} value={profile?.region || ""} last />
         </View>
 
         {/* Institutions */}
         <View className="mx-6 mb-4 bg-white rounded-2xl p-5" style={s.card}>
           <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-sm font-bold text-foreground">Établissements</Text>
+            <Text className="text-sm font-bold text-foreground">{t("doctor.institutions")}</Text>
             <Pressable onPress={() => router.push("/doctor/institutions" as any)} className="px-3 py-1.5 rounded-full bg-primary/8">
-              <Text className="text-primary text-xs font-semibold">Gérer</Text>
+              <Text className="text-primary text-xs font-semibold">{t("doctor.manage")}</Text>
             </Pressable>
           </View>
           {institutions.length === 0 ? (
-            <Text className="text-xs text-muted">Aucun établissement lié</Text>
+            <Text className="text-xs text-muted">{t("doctor.noInstitution")}</Text>
           ) : (
             institutions.map((inst, i) => (
               <View key={inst.id} className={`flex-row items-center py-3 ${i < institutions.length - 1 ? "border-b border-gray-50" : ""}`}>
@@ -101,8 +103,8 @@ export default function DoctorProfileScreen() {
               <Feather name="maximize" size={15} color="#007bff" />
             </View>
             <View className="flex-1">
-              <Text className="text-sm font-bold text-foreground">QR Code Professionnel</Text>
-              <Text className="text-[10px] text-muted">Partagez votre profil avec vos patients</Text>
+              <Text className="text-sm font-bold text-foreground">{t("doctor.professionalQR")}</Text>
+              <Text className="text-[10px] text-muted">{t("doctor.shareProfileQR")}</Text>
             </View>
           </View>
           <View className="items-center py-4 bg-gray-50 rounded-2xl mb-3">
@@ -133,18 +135,18 @@ export default function DoctorProfileScreen() {
             <Pressable
               onPress={() => {
                 Share.share({
-                  message: `Dr. ${profile?.firstName || user?.firstName} ${profile?.lastName || user?.lastName}\nSpécialité: ${profile?.specialty || "Médecin"}\nN° Licence: ${profile?.licenseNumber || "—"}\nCaryPass ID: ${profile?.id || ""}`,
+                  message: `Dr. ${profile?.firstName || user?.firstName} ${profile?.lastName || user?.lastName}\nSpécialité: ${profile?.specialty || t("doctor.doctor")}\nN° Licence: ${profile?.licenseNumber || "—"}\nCaryPass ID: ${profile?.id || ""}`,
                   title: "Mon profil CaryPass",
                 });
               }}
               className="flex-1 flex-row items-center justify-center gap-1.5 bg-primary/10 rounded-xl py-3"
             >
               <Feather name="share-2" size={14} color="#007bff" />
-              <Text className="text-xs font-semibold text-primary">Partager</Text>
+              <Text className="text-xs font-semibold text-primary">{t("doctor.shareProfile")}</Text>
             </Pressable>
             <Pressable className="flex-1 flex-row items-center justify-center gap-1.5 bg-primary/10 rounded-xl py-3">
               <Feather name="download" size={14} color="#007bff" />
-              <Text className="text-xs font-semibold text-primary">Télécharger</Text>
+              <Text className="text-xs font-semibold text-primary">{t("doctor.download")}</Text>
             </Pressable>
           </View>
         </View>
@@ -157,8 +159,8 @@ export default function DoctorProfileScreen() {
                 <Feather name="zap" size={18} color="#ffd700" />
               </View>
               <View>
-                <Text className="text-base font-bold text-white">CaryPass Premium</Text>
-                <Text className="text-xs text-white/60">Débloquez tout le potentiel</Text>
+                <Text className="text-base font-bold text-white">{t("doctor.premiumTitle")}</Text>
+                <Text className="text-xs text-white/60">{t("doctor.premiumSubtitle")}</Text>
               </View>
             </View>
             <View className="gap-2.5 mb-5">
@@ -175,22 +177,22 @@ export default function DoctorProfileScreen() {
               ))}
             </View>
             <Pressable onPress={() => router.push("/subscription" as any)} className="bg-white/20 rounded-2xl py-3 items-center">
-              <Text className="text-white font-bold text-sm">Souscrire au Premium</Text>
+              <Text className="text-white font-bold text-sm">{t("doctor.subscribePremium")}</Text>
             </Pressable>
           </View>
         </View>
 
         {/* Menu Items */}
         <View className="mx-6 mb-4 bg-white rounded-2xl overflow-hidden" style={s.card}>
-          <MenuItem icon="settings" label="Paramètres" onPress={() => router.push("/settings" as any)} />
-          <MenuItem icon="bell" label="Notifications" onPress={() => router.push("/notifications" as any)} last />
+          <MenuItem icon="settings" label={t("doctor.settings")} onPress={() => router.push("/settings" as any)} />
+          <MenuItem icon="bell" label={t("doctor.notifications")} onPress={() => router.push("/notifications" as any)} last />
         </View>
 
         {/* Logout */}
         <View className="mx-6">
           <Pressable onPress={handleLogout} className="flex-row items-center justify-center gap-2 py-4 bg-white rounded-2xl border border-red-100" style={s.card}>
             <Feather name="log-out" size={18} color="#dc3545" />
-            <Text className="text-danger font-semibold">Se déconnecter</Text>
+            <Text className="text-danger font-semibold">{t("doctor.logout")}</Text>
           </Pressable>
         </View>
       </ScrollView>

@@ -9,6 +9,7 @@ import {
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useQuery } from "@tanstack/react-query";
@@ -41,6 +42,7 @@ const RECENT_SEARCHES = [
 ];
 
 export default function SearchScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [query, setQuery] = useState("");
 

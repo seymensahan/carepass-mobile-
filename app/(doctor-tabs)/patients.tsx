@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import * as doctorService from "../../services/doctor.service";
 
 const s = StyleSheet.create({
@@ -11,6 +12,7 @@ const s = StyleSheet.create({
 });
 
 export default function DoctorPatientsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -29,11 +31,11 @@ export default function DoctorPatientsScreen() {
     <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
       <View className="px-6 pt-6 pb-2">
-        <Text className="text-2xl font-bold text-foreground mb-4">Mes patients</Text>
+        <Text className="text-2xl font-bold text-foreground mb-4">{t("doctor.myPatients")}</Text>
         <View className="flex-row items-center bg-white rounded-2xl px-4 border border-border" style={s.card}>
           <Feather name="search" size={18} color="#adb5bd" />
           <TextInput
-            placeholder="Rechercher un patient..."
+            placeholder={t("doctor.searchPatient")}
             value={search}
             onChangeText={setSearch}
             className="flex-1 py-3.5 ml-3 text-sm text-foreground"
@@ -45,7 +47,7 @@ export default function DoctorPatientsScreen() {
             </Pressable>
           )}
         </View>
-        <Text className="text-xs text-muted mt-3 mb-1">{filtered.length} patient(s)</Text>
+        <Text className="text-xs text-muted mt-3 mb-1">{t("doctor.patientCount", { count: filtered.length })}</Text>
       </View>
 
       <ScrollView
@@ -75,7 +77,7 @@ export default function DoctorPatientsScreen() {
             <View className="flex-1">
               <Text className="text-sm font-bold text-foreground">{p.firstName} {p.lastName}</Text>
               <Text className="text-xs text-muted mt-0.5">
-                {p.carypassId} · {p.age} ans · {p.gender === "M" ? "Homme" : "Femme"}
+                {p.carypassId} · {p.age} ans · {p.gender === "M" ? t("doctor.male") : t("doctor.female")}
               </Text>
             </View>
             <View className="w-8 h-8 rounded-lg bg-gray-50 items-center justify-center">
@@ -89,7 +91,7 @@ export default function DoctorPatientsScreen() {
             <View className="w-16 h-16 rounded-full bg-gray-100 items-center justify-center mb-4">
               <Feather name="users" size={28} color="#adb5bd" />
             </View>
-            <Text className="text-sm text-muted">Aucun patient trouvé</Text>
+            <Text className="text-sm text-muted">{t("doctor.noPatientFound")}</Text>
           </View>
         )}
       </ScrollView>

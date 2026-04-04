@@ -10,6 +10,7 @@ import {
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { changePassword } from "../../services/settings.service";
 import Button from "../../components/ui/Button";
 
@@ -38,6 +39,7 @@ function getPasswordStrength(password: string): {
 }
 
 export default function ChangePasswordScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");

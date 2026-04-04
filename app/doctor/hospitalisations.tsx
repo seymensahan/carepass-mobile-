@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import * as doctorService from "../../services/doctor.service";
 
 const s = StyleSheet.create({
@@ -28,6 +29,7 @@ const s = StyleSheet.create({
 type Tab = "active" | "all";
 
 export default function HospitalisationsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("active");

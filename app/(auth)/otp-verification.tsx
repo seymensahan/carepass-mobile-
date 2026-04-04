@@ -9,6 +9,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { verifyTwoFactor, resendOtp } from "../../services/auth.service";
 import { useAuth } from "../../contexts/AuthContext";
 import Button from "../../components/ui/Button";
@@ -17,6 +18,7 @@ const OTP_LENGTH = 6;
 const RESEND_TIMER = 60;
 
 export default function OtpVerificationScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { tempToken } = useLocalSearchParams<{ tempToken: string }>();
   const { completeTwoFactorLogin } = useAuth();
@@ -88,12 +90,12 @@ export default function OtpVerificationScreen() {
   const handleVerify = async () => {
     const code = otp.join("");
     if (code.length !== OTP_LENGTH) {
-      Alert.alert("Erreur", "Veuillez saisir le code a 6 chiffres");
+      Alert.alert(t("common.error"), t("otp.enterCodeError"));
       return;
     }
 
     if (!tempToken) {
-      Alert.alert("Erreur", "Session expirée. Veuillez vous reconnecter.");
+      Alert.alert(t("common.error"), t("otp.sessionExpired"));
       router.replace("/(auth)/login");
       return;
     }
@@ -110,12 +112,12 @@ export default function OtpVerificationScreen() {
         );
         router.replace("/");
       } else {
-        Alert.alert("Erreur", result.message);
+        Alert.alert(t("common.error"), result.message);
         setOtp(Array(OTP_LENGTH).fill(""));
         inputRefs.current[0]?.focus();
       }
     } catch {
-      Alert.alert("Erreur", "Une erreur est survenue. Veuillez réessayer.");
+      Alert.alert(t("common.error"), t("common.genericError"));
     } finally {
       setLoading(false);
     }
@@ -123,7 +125,7 @@ export default function OtpVerificationScreen() {
 
   const handleResend = async () => {
     if (!tempToken) {
-      Alert.alert("Erreur", "Session expirée. Veuillez vous reconnecter.");
+      Alert.alert(t("common.error"), t("otp.sessionExpired"));
       router.replace("/(auth)/login");
       return;
     }
@@ -135,10 +137,10 @@ export default function OtpVerificationScreen() {
     try {
       const result = await resendOtp(tempToken);
       if (!result.success) {
-        Alert.alert("Erreur", result.message);
+        Alert.alert(t("common.error"), result.message);
       }
     } catch {
-      Alert.alert("Erreur", "Impossible de renvoyer le code.");
+      Alert.alert(t("common.error"), t("otp.resendFailed"));
     }
   };
 
@@ -160,10 +162,10 @@ export default function OtpVerificationScreen() {
 
         {/* Header */}
         <Text className="text-3xl font-bold text-foreground mb-2">
-          Vérification
+          {t("otp.title")}
         </Text>
         <Text className="text-base text-muted mb-8 leading-6">
-          Entrez le code à 6 chiffres envoyé par SMS
+          {t("otp.subtitle")}
         </Text>
 
         {/* OTP Inputs */}
@@ -192,19 +194,19 @@ export default function OtpVerificationScreen() {
         </View>
 
         {/* Verify button */}
-        <Button title="Vérifier" onPress={handleVerify} loading={loading} />
+        <Button title={t("otp.verify")} onPress={handleVerify} loading={loading} />
 
         {/* Resend */}
         <View className="items-center mt-6">
           {timer > 0 ? (
             <Text className="text-muted text-sm">
-              Renvoyer dans{" "}
+              {t("otp.resendIn")}{" "}
               <Text className="text-primary font-semibold">{timer}s</Text>
             </Text>
           ) : (
             <Pressable onPress={handleResend}>
               <Text className="text-primary text-sm font-semibold">
-                Renvoyer le code
+                {t("otp.resend")}
               </Text>
             </Pressable>
           )}

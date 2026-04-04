@@ -353,11 +353,21 @@ export default function ProfileScreen() {
         </View>
 
         {/* Children / Family */}
-        {(patient?.children.length ?? 0) > 0 && (
-          <View className="px-6 mb-5">
-            <Text className="text-base font-bold text-foreground mb-3">
+        <View className="px-6 mb-5">
+          <View className="flex-row items-center justify-between mb-3">
+            <Text className="text-base font-bold text-foreground">
               {t("profile.family")}
             </Text>
+            <Pressable
+              onPress={() => router.push("/children/add" as any)}
+              className="flex-row items-center bg-primary/10 rounded-lg px-3 py-1.5"
+            >
+              <Feather name="plus" size={14} color="#007bff" />
+              <Text className="text-xs font-semibold text-primary ml-1">Ajouter</Text>
+            </Pressable>
+          </View>
+        {(patient?.children.length ?? 0) > 0 ? (
+          <View>
             <View className="bg-white rounded-3xl overflow-hidden" style={s.card}>
               {patient?.children.map((child, index, arr) => (
                 <Pressable
@@ -384,7 +394,15 @@ export default function ProfileScreen() {
               ))}
             </View>
           </View>
+        ) : (
+          <View className="bg-white rounded-3xl p-6 items-center" style={s.card}>
+            <Feather name="users" size={24} color="#6c757d" />
+            <Text className="text-sm text-muted mt-2 text-center">
+              Aucune personne à charge enregistrée
+            </Text>
+          </View>
         )}
+        </View>
 
         {/* Access Management */}
         <View className="px-6 mb-5">
@@ -417,6 +435,20 @@ export default function ProfileScreen() {
             {t("profile.settings")}
           </Text>
           <View className="bg-white rounded-3xl overflow-hidden" style={s.card}>
+            {/* Subscription */}
+            <Pressable
+              onPress={() => router.push("/subscription/pricing" as any)}
+              className="flex-row items-center px-5 py-4 border-b border-border/40"
+            >
+              <View className="w-10 h-10 rounded-xl bg-secondary/10 items-center justify-center mr-3">
+                <Feather name="credit-card" size={17} color="#28a745" />
+              </View>
+              <Text className="flex-1 text-sm font-semibold text-foreground">
+                Mon abonnement
+              </Text>
+              <Feather name="chevron-right" size={18} color="#6c757d" />
+            </Pressable>
+
             {/* Language */}
             <View className="flex-row items-center px-5 py-4 border-b border-border/40">
               <View className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center mr-3">

@@ -2,9 +2,11 @@ import React from "react";
 import { View } from "react-native";
 import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import OfflineBanner from "../../components/OfflineBanner";
 
 export default function NurseTabsLayout() {
+  const { t } = useTranslation();
   return (
     <View style={{ flex: 1 }}>
     <OfflineBanner />
@@ -35,7 +37,7 @@ export default function NurseTabsLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: "Accueil",
+          title: t("nurseTabs.home"),
           tabBarIcon: ({ color, size }) => (
             <Feather name="home" size={size} color={color} />
           ),
@@ -44,7 +46,7 @@ export default function NurseTabsLayout() {
       <Tabs.Screen
         name="hospitalisations"
         options={{
-          title: "Hospitalisés",
+          title: t("nurseTabs.hospitalisations"),
           tabBarIcon: ({ color, size }) => (
             <Feather name="activity" size={size} color={color} />
           ),
@@ -53,7 +55,7 @@ export default function NurseTabsLayout() {
       <Tabs.Screen
         name="tasks"
         options={{
-          title: "Mes tâches",
+          title: t("nurseTabs.tasks"),
           tabBarIcon: ({ color, size }) => (
             <Feather name="check-square" size={size} color={color} />
           ),
@@ -62,7 +64,7 @@ export default function NurseTabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profil",
+          title: t("nurseTabs.profile"),
           tabBarIcon: ({ color, size }) => (
             <Feather name="user" size={size} color={color} />
           ),

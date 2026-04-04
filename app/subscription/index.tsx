@@ -3,6 +3,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -15,6 +16,7 @@ function formatFCFA(amount: number): string {
 }
 
 export default function SubscriptionScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   const { data: subscription, isLoading } = useQuery({

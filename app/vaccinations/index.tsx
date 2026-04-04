@@ -9,6 +9,7 @@ import {
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Calendar, type DateData } from "react-native-calendars";
 import { format } from "date-fns";
@@ -28,6 +29,7 @@ const STATUS_CONFIG: Record<
 };
 
 export default function VaccinationsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);

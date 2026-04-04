@@ -10,6 +10,7 @@ import {
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addChild } from "../../services/child.service";
 import Button from "../../components/ui/Button";
@@ -27,6 +28,7 @@ const GENOTYPES = ["AA", "AS", "SS", "AC", "SC"];
 const SEVERITIES = ["légère", "modérée", "sévère"] as const;
 
 export default function AddChildScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [step, setStep] = useState(0);

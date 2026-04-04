@@ -9,6 +9,7 @@ import {
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { format, formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -44,6 +45,7 @@ const FILTER_OPTIONS: { key: FilterType; label: string }[] = [
 ];
 
 export default function AuditLogScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 

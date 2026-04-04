@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import * as doctorService from "../../../services/doctor.service";
 
 const s = StyleSheet.create({
@@ -29,6 +30,7 @@ const s = StyleSheet.create({
 type Tab = "vitals" | "medications" | "notes";
 
 export default function HospitalisationDetailScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();

@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import DatePickerField from "../../components/ui/DatePickerField";
 import * as doctorService from "../../services/doctor.service";
 
@@ -26,6 +27,7 @@ const TYPES = [
 const DURATIONS = [15, 30, 45, 60] as const;
 
 export default function NewAppointmentScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { patientId: prefilledPatientId } = useLocalSearchParams<{ patientId?: string }>();
   const queryClient = useQueryClient();

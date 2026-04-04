@@ -3,6 +3,7 @@ import { Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -13,6 +14,7 @@ import {
 import type { EmergencyData } from "../../types/emergency";
 
 export default function OfflineCardScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [data, setData] = useState<EmergencyData | null>(null);
   const [isOffline, setIsOffline] = useState(true);

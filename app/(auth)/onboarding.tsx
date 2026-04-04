@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { storage } from "../../lib/storage";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -20,8 +21,8 @@ interface Slide {
   icon: keyof typeof Feather.glyphMap;
   iconColor: string;
   iconBg: string;
-  title: string;
-  description: string;
+  titleKey: string;
+  descriptionKey: string;
 }
 
 const SLIDES: Slide[] = [
@@ -30,31 +31,29 @@ const SLIDES: Slide[] = [
     icon: "shield",
     iconColor: "#007bff",
     iconBg: "#007bff15",
-    title: "Votre carnet de santé\nnumérique",
-    description:
-      "Centralisez vos consultations, résultats d'analyses, vaccinations et ordonnances dans un seul endroit sécurisé.",
+    titleKey: "onboarding.slide1Title",
+    descriptionKey: "onboarding.slide1Description",
   },
   {
     id: "2",
     icon: "lock",
     iconColor: "#28a745",
     iconBg: "#28a74515",
-    title: "Vous contrôlez\nvos données",
-    description:
-      "Décidez quels médecins accèdent à votre dossier, pour combien de temps, et révoquez l'accès à tout moment.",
+    titleKey: "onboarding.slide2Title",
+    descriptionKey: "onboarding.slide2Description",
   },
   {
     id: "3",
     icon: "alert-circle",
     iconColor: "#dc3545",
     iconBg: "#dc354515",
-    title: "Accès d'urgence\nintelligent",
-    description:
-      "En cas d'urgence, un QR Code permet aux soignants d'accéder à vos informations vitales — groupe sanguin, allergies, traitements.",
+    titleKey: "onboarding.slide3Title",
+    descriptionKey: "onboarding.slide3Description",
   },
 ];
 
 export default function OnboardingScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const flatListRef = useRef<FlatList<Slide>>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -96,10 +95,10 @@ export default function OnboardingScreen() {
         <Feather name={item.icon} size={52} color={item.iconColor} />
       </View>
       <Text className="text-2xl font-bold text-foreground text-center leading-9 mb-4">
-        {item.title}
+        {t(item.titleKey)}
       </Text>
       <Text className="text-base text-muted text-center leading-6">
-        {item.description}
+        {t(item.descriptionKey)}
       </Text>
     </View>
   );
@@ -114,9 +113,9 @@ export default function OnboardingScreen() {
           <Pressable
             onPress={handleSkip}
             className="py-2 px-4"
-            accessibilityLabel="Passer l'introduction"
+            accessibilityLabel={t("onboarding.skipAccessibility")}
           >
-            <Text className="text-sm font-medium text-muted">Passer</Text>
+            <Text className="text-sm font-medium text-muted">{t("onboarding.skip")}</Text>
           </Pressable>
         )}
       </View>
@@ -183,10 +182,10 @@ export default function OnboardingScreen() {
           onPress={handleNext}
           className="bg-primary h-14 rounded-xl items-center justify-center flex-row active:opacity-90"
           accessibilityRole="button"
-          accessibilityLabel={isLast ? "Commencer" : "Suivant"}
+          accessibilityLabel={isLast ? t("onboarding.start") : t("onboarding.next")}
         >
           <Text className="text-base font-semibold text-white mr-2">
-            {isLast ? "Commencer" : "Suivant"}
+            {isLast ? t("onboarding.start") : t("onboarding.next")}
           </Text>
           <Feather
             name={isLast ? "check" : "arrow-right"}

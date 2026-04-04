@@ -2,12 +2,14 @@ import React, { useEffect, useRef } from "react";
 import { Animated, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import QRCode from "react-native-qrcode-svg";
 import * as Brightness from "expo-brightness";
 import { getEmergencyData } from "../../services/emergency.service";
 
 export default function QrFullscreenScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const scaleAnim = useRef(new Animated.Value(0.7)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;

@@ -10,6 +10,7 @@ import {
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import {
   requestDataExport,
   type ExportOptions,
@@ -52,6 +53,7 @@ const CONTENT_ITEMS: ContentItem[] = [
 ];
 
 export default function ExportDataScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [format, setFormat] = useState<"pdf" | "json">("pdf");
   const [content, setContent] = useState<Record<string, boolean>>({

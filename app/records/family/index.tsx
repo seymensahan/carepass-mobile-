@@ -3,11 +3,13 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native"
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getChildren } from "../../../services/family.service";
 import Skeleton from "../../../components/ui/Skeleton";
 
 export default function FamilyListScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -68,6 +70,12 @@ export default function FamilyListScreen() {
             {data?.length ?? 0} personne{(data?.length ?? 0) > 1 ? "s" : ""} à charge
           </Text>
         </View>
+        <Pressable
+          onPress={() => router.push("/children/add" as any)}
+          className="w-10 h-10 rounded-full bg-primary items-center justify-center"
+        >
+          <Feather name="plus" size={20} color="#fff" />
+        </Pressable>
       </View>
 
       {isLoading ? (
@@ -83,9 +91,18 @@ export default function FamilyListScreen() {
           <Text className="text-lg font-semibold text-foreground mb-2">
             Aucune personne à charge
           </Text>
-          <Text className="text-sm text-muted text-center">
+          <Text className="text-sm text-muted text-center mb-6">
             Les profils de vos personnes à charge apparaîtront ici.
           </Text>
+          <Pressable
+            onPress={() => router.push("/children/add" as any)}
+            className="bg-primary rounded-2xl py-3.5 px-8 flex-row items-center"
+          >
+            <Feather name="plus" size={16} color="#fff" />
+            <Text className="text-white font-bold text-sm ml-2">
+              Ajouter une personne
+            </Text>
+          </Pressable>
         </View>
       ) : (
         <ScrollView

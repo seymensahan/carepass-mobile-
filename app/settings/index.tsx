@@ -12,6 +12,7 @@ import {
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "../../contexts/AuthContext";
 import {
@@ -39,6 +40,7 @@ interface SettingRow {
 }
 
 export default function SettingsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { user, logout, switchRole } = useAuth();
   const [settings, setSettings] = useState<AppSettings>(getSettings());

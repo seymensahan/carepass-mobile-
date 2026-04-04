@@ -4,11 +4,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 import * as nurseService from "../../services/nurse.service";
 import QRScanner from "../../components/QRScanner";
 
 export default function NurseHomeScreen() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -21,7 +23,7 @@ export default function NurseHomeScreen() {
       // Navigate to hospitalisation or patient detail
       router.push(`/nurse/hospitalisation/${id}` as any);
     } else {
-      Alert.alert("QR non reconnu", "Ce QR code ne correspond pas à un patient CaryPass.");
+      Alert.alert(t("nurse.qrNotRecognized"), t("nurse.qrNotCarypass"));
     }
   };
 
@@ -31,9 +33,9 @@ export default function NurseHomeScreen() {
   });
 
   const stats = [
-    { label: "Patients hospitalisés", value: dashboard?.activeHospitalisations ?? 0, icon: "activity" as const, color: "#007bff", bg: "#e7f1ff" },
-    { label: "Tâches en attente", value: dashboard?.pendingTasks ?? 0, icon: "clipboard" as const, color: "#ffc107", bg: "#fff8e1" },
-    { label: "Exécutions aujourd'hui", value: dashboard?.completedToday ?? 0, icon: "check-circle" as const, color: "#28a745", bg: "#e8f5e9" },
+    { label: t("nurse.hospitalizedPatients"), value: dashboard?.activeHospitalisations ?? 0, icon: "activity" as const, color: "#007bff", bg: "#e7f1ff" },
+    { label: t("nurse.pendingTasks"), value: dashboard?.pendingTasks ?? 0, icon: "clipboard" as const, color: "#ffc107", bg: "#fff8e1" },
+    { label: t("nurse.completedToday"), value: dashboard?.completedToday ?? 0, icon: "check-circle" as const, color: "#28a745", bg: "#e8f5e9" },
   ];
 
   return (
@@ -80,7 +82,7 @@ export default function NurseHomeScreen() {
 
         {/* Quick actions */}
         <View className="px-6 mt-4">
-          <Text className="text-base font-bold text-foreground mb-3">Accès rapide</Text>
+          <Text className="text-base font-bold text-foreground mb-3">{t("nurse.quickAccess")}</Text>
           <View className="flex-row gap-3">
             <Pressable
               onPress={() => router.push("/(nurse-tabs)/hospitalisations" as any)}
@@ -132,7 +134,7 @@ export default function NurseHomeScreen() {
         visible={scannerOpen}
         onClose={() => setScannerOpen(false)}
         onScan={handleQRScan}
-        title="Scanner le QR du patient"
+        title={t("nurse.scanPatientQR")}
       />
     </SafeAreaView>
   );

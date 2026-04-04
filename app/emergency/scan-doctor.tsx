@@ -3,6 +3,7 @@ import { Alert, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getActiveGrants,
@@ -21,6 +22,7 @@ const DURATION_OPTIONS: { key: GrantDuration; label: string }[] = [
 ];
 
 export default function ScanDoctorScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [scanned, setScanned] = useState(false);

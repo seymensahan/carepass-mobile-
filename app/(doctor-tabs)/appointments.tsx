@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { Calendar, LocaleConfig } from "react-native-calendars";
 import * as doctorService from "../../services/doctor.service";
 
@@ -31,20 +32,21 @@ const DOT_COLORS: Record<string, string> = {
   cancelled: "#dc3545",   // rouge
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  scheduled: "Programmé",
-  confirmed: "Confirmé",
-  pending: "En attente",
-  completed: "Terminé",
-  cancelled: "Annulé",
-};
-
 function toDateKey(d: string | Date): string {
   const dt = typeof d === "string" ? new Date(d) : d;
   return dt.toISOString().slice(0, 10);
 }
 
 export default function DoctorAppointmentsScreen() {
+  const { t } = useTranslation();
+
+  const STATUS_LABELS: Record<string, string> = {
+    scheduled: t("doctor.statusScheduled"),
+    confirmed: t("doctor.statusConfirmed"),
+    pending: t("doctor.statusPending"),
+    completed: t("doctor.statusCompleted"),
+    cancelled: t("doctor.statusCancelled"),
+  };
   const router = useRouter();
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(toDateKey(new Date()));
@@ -110,8 +112,8 @@ export default function DoctorAppointmentsScreen() {
       >
         {/* Header */}
         <View className="px-6 pt-6 pb-2">
-          <Text className="text-2xl font-bold text-foreground">Agenda</Text>
-          <Text className="text-xs text-muted mt-1">Vos rendez-vous patients</Text>
+          <Text className="text-2xl font-bold text-foreground">{t("doctor.agenda")}</Text>
+          <Text className="text-xs text-muted mt-1">{t("doctor.yourAppointments")}</Text>
         </View>
 
         {/* Calendrier */}
@@ -162,8 +164,8 @@ export default function DoctorAppointmentsScreen() {
           <Text className="text-base font-bold text-foreground capitalize">{selectedDateLabel}</Text>
           <Text className="text-xs text-muted mt-0.5">
             {dayAppointments.length === 0
-              ? "Aucun rendez-vous"
-              : `${dayAppointments.length} rendez-vous`}
+              ? t("doctor.noAppointment")
+              : t("doctor.appointmentCount", { count: dayAppointments.length })}
           </Text>
         </View>
 

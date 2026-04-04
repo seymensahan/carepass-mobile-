@@ -13,23 +13,25 @@ import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { forgotPassword } from "../../services/auth.service";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 
-const forgotSchema = z.object({
-  email: z
-    .string()
-    .min(1, "L'email est requis")
-    .email("Adresse email invalide"),
-});
-
-type ForgotForm = z.infer<typeof forgotSchema>;
-
 export default function ForgotPasswordScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+
+  const forgotSchema = z.object({
+    email: z
+      .string()
+      .min(1, t("validation.emailRequired"))
+      .email(t("validation.emailInvalid")),
+  });
+
+  type ForgotForm = z.infer<typeof forgotSchema>;
 
   const {
     control,
@@ -63,22 +65,22 @@ export default function ForgotPasswordScreen() {
           </View>
 
           <Text className="text-2xl font-bold text-foreground mb-2 text-center">
-            Email envoyé !
+            {t("forgotPassword.successTitle")}
           </Text>
           <Text className="text-sm text-muted text-center leading-5 mb-8 px-4">
-            Un code de vérification a été envoyé à{" "}
+            {t("forgotPassword.successMessage")}{" "}
             <Text className="font-semibold text-foreground">
               {getValues("email")}
             </Text>
           </Text>
 
           <Button
-            title="Saisir le code"
+            title={t("forgotPassword.enterCode")}
             onPress={() => router.push("/(auth)/otp-verification")}
           />
           <View className="h-3" />
           <Button
-            title="Retour à la connexion"
+            title={t("forgotPassword.backToLogin")}
             onPress={() => router.replace("/(auth)/login")}
             variant="outline"
           />
@@ -114,10 +116,10 @@ export default function ForgotPasswordScreen() {
 
             {/* Header */}
             <Text className="text-3xl font-bold text-foreground mb-2">
-              Mot de passe oublié
+              {t("forgotPassword.title")}
             </Text>
             <Text className="text-base text-muted mb-8 leading-6">
-              Entrez votre adresse email pour recevoir un code de vérification
+              {t("forgotPassword.subtitle")}
             </Text>
 
             {/* Form */}
@@ -126,8 +128,8 @@ export default function ForgotPasswordScreen() {
               name="email"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
-                  label="Adresse email"
-                  placeholder="votre@email.com"
+                  label={t("forgotPassword.email")}
+                  placeholder={t("forgotPassword.emailPlaceholder")}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -141,7 +143,7 @@ export default function ForgotPasswordScreen() {
 
             <View className="mt-4">
               <Button
-                title="Envoyer le code"
+                title={t("forgotPassword.submit")}
                 onPress={handleSubmit(onSubmit)}
                 loading={loading}
               />
