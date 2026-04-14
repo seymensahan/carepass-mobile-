@@ -88,8 +88,9 @@ export async function getLabResults(filters?: {
   }
 
   const response = await api.get<Any>("/lab-results?limit=50");
+  const raw = response.data;
   const list =
-    Array.isArray(response.data) ? response.data : [];
+    Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
 
   let results = list.map(mapLabResult);
 
@@ -121,7 +122,7 @@ export async function getLabResultById(
   id: string
 ): Promise<LabResult | null> {
   const response = await api.get<Any>(`/lab-results/${id}`);
-  const r = response.data;
+  const r = response.data?.data ?? response.data;
   if (!r || response.error) return null;
   return mapLabResult(r);
 }

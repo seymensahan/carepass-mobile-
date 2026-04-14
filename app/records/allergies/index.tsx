@@ -1,7 +1,9 @@
 import React, { useCallback, useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -118,6 +120,11 @@ export default function AllergiesScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+        className="flex-1"
+      >
       {/* Header */}
       <View className="flex-row items-center px-6 pt-6 pb-4">
         <Pressable
@@ -146,8 +153,10 @@ export default function AllergiesScreen() {
       ) : (
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
+          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 240 }}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}
@@ -292,6 +301,8 @@ export default function AllergiesScreen() {
           </View>
         </ScrollView>
       )}
+
+      </KeyboardAvoidingView>
 
       {/* ─── Add Allergy Modal ─── */}
       <Modal

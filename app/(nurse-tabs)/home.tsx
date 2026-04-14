@@ -20,8 +20,22 @@ export default function NurseHomeScreen() {
     setScannerOpen(false);
     const id = data.carypassId || data.token;
     if (id) {
-      // Navigate to hospitalisation or patient detail
-      router.push(`/nurse/hospitalisation/${id}` as any);
+      // Show options: access request or direct consultation
+      Alert.alert(
+        "Patient scanné",
+        `ID: ${id}\nQue souhaitez-vous faire ?`,
+        [
+          {
+            text: "Demander accès",
+            onPress: () => router.push(`/nurse/request-access?patientId=${id}` as any),
+          },
+          {
+            text: "Prise en charge",
+            onPress: () => router.push(`/nurse/consultation-initiate?patientId=${id}` as any),
+          },
+          { text: "Annuler", style: "cancel" },
+        ],
+      );
     } else {
       Alert.alert(t("nurse.qrNotRecognized"), t("nurse.qrNotCarypass"));
     }
@@ -32,7 +46,13 @@ export default function NurseHomeScreen() {
     queryFn: nurseService.getDashboard,
   });
 
+  const { data: myPatients = [] } = useQuery({
+    queryKey: ["nurse-my-patients"],
+    queryFn: nurseService.getMyPatients,
+  });
+
   const stats = [
+    { label: "Mes patients", value: myPatients.length, icon: "users" as const, color: "#6f42c1", bg: "#f3e8ff" },
     { label: t("nurse.hospitalizedPatients"), value: dashboard?.activeHospitalisations ?? 0, icon: "activity" as const, color: "#007bff", bg: "#e7f1ff" },
     { label: t("nurse.pendingTasks"), value: dashboard?.pendingTasks ?? 0, icon: "clipboard" as const, color: "#ffc107", bg: "#fff8e1" },
     { label: t("nurse.completedToday"), value: dashboard?.completedToday ?? 0, icon: "check-circle" as const, color: "#28a745", bg: "#e8f5e9" },
@@ -83,34 +103,51 @@ export default function NurseHomeScreen() {
         {/* Quick actions */}
         <View className="px-6 mt-4">
           <Text className="text-base font-bold text-foreground mb-3">{t("nurse.quickAccess")}</Text>
-          <View className="flex-row gap-3">
-            <Pressable
-              onPress={() => router.push("/(nurse-tabs)/hospitalisations" as any)}
-              className="flex-1 bg-white rounded-2xl p-4 border border-border items-center"
-            >
-              <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center mb-2">
-                <Feather name="activity" size={20} color="#007bff" />
+          <View className="flex-row flex-wrap -mx-1">
+            {[
+              {
+                icon: "users" as const,
+                label: "Mes patients",
+                color: "#6f42c1",
+                bg: "bg-purple-50",
+                route: "/(nurse-tabs)/patients",
+              },
+              {
+                icon: "user-plus" as const,
+                label: "Demandes d'accès",
+                color: "#fd7e14",
+                bg: "bg-orange-50",
+                route: "/nurse/access-requests",
+              },
+              {
+                icon: "activity" as const,
+                label: "Hospitalisés",
+                color: "#007bff",
+                bg: "bg-blue-50",
+                route: "/(nurse-tabs)/hospitalisations",
+              },
+              {
+                icon: "check-square" as const,
+                label: "Mes tâches",
+                color: "#ffc107",
+                bg: "bg-yellow-50",
+                route: "/(nurse-tabs)/tasks",
+              },
+            ].map((action) => (
+              <View key={action.label} className="w-1/2 px-1 mb-2">
+                <Pressable
+                  onPress={() => router.push(action.route as any)}
+                  className="bg-white rounded-2xl p-4 border border-border items-center"
+                >
+                  <View className={`w-12 h-12 rounded-2xl ${action.bg} items-center justify-center mb-2`}>
+                    <Feather name={action.icon} size={22} color={action.color} />
+                  </View>
+                  <Text className="text-xs font-semibold text-foreground text-center">
+                    {action.label}
+                  </Text>
+                </Pressable>
               </View>
-              <Text className="text-xs font-semibold text-foreground text-center">Patients{"\n"}hospitalisés</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => router.push("/(nurse-tabs)/tasks" as any)}
-              className="flex-1 bg-white rounded-2xl p-4 border border-border items-center"
-            >
-              <View className="w-10 h-10 rounded-xl bg-orange-50 items-center justify-center mb-2">
-                <Feather name="check-square" size={20} color="#ffc107" />
-              </View>
-              <Text className="text-xs font-semibold text-foreground text-center">Mes{"\n"}tâches</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => router.push("/(nurse-tabs)/profile" as any)}
-              className="flex-1 bg-white rounded-2xl p-4 border border-border items-center"
-            >
-              <View className="w-10 h-10 rounded-xl bg-green-50 items-center justify-center mb-2">
-                <Feather name="user" size={20} color="#28a745" />
-              </View>
-              <Text className="text-xs font-semibold text-foreground text-center">Mon{"\n"}profil</Text>
-            </Pressable>
+            ))}
           </View>
         </View>
       </ScrollView>

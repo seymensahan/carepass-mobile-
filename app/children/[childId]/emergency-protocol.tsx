@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -134,10 +136,17 @@ export default function EmergencyProtocolScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+        className="flex-1"
+      >
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 240 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         {/* Header */}
         <View className="flex-row items-center px-6 pt-6 pb-2">
@@ -288,9 +297,12 @@ export default function EmergencyProtocolScreen() {
         <Feather name="plus" size={24} color="#ffffff" />
       </Pressable>
 
+      </KeyboardAvoidingView>
+
       {/* Add protocol modal */}
       <Modal visible={showModal} animationType="slide" transparent>
         <View className="flex-1 bg-black/40 justify-end">
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View className="bg-background rounded-t-3xl pt-6 pb-8 px-6 max-h-[85%]">
             <ScrollView
               showsVerticalScrollIndicator={false}
@@ -410,6 +422,7 @@ export default function EmergencyProtocolScreen() {
               />
             </ScrollView>
           </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </SafeAreaView>

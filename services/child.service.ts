@@ -73,8 +73,9 @@ function mapVaccination(v: Any, childId: string): Vaccination {
 
 export async function getChildren(): Promise<Child[]> {
   const response = await api.get<Any>("/children");
+  const raw = response.data;
   const list =
-    Array.isArray(response.data) ? response.data : [];
+    Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
   return list.map(mapChild);
 }
 
@@ -86,11 +87,12 @@ export async function getChildById(
     api.get<Any>(`/children/${id}/vaccinations`),
   ]);
 
-  const c = childRes.data;
+  const c = childRes.data?.data ?? childRes.data;
   if (!c || childRes.error) return null;
 
+  const rawV = vaccRes.data;
   const vaccList =
-    Array.isArray(vaccRes.data) ? vaccRes.data : [];
+    Array.isArray(rawV) ? rawV : Array.isArray(rawV?.data) ? rawV.data : [];
 
   const child = mapChild(c);
   const vaccinations: Vaccination[] = vaccList.map((v: Any) =>
@@ -151,8 +153,9 @@ export async function getChildVaccinations(
   childId: string
 ): Promise<Vaccination[]> {
   const response = await api.get<Any>(`/children/${childId}/vaccinations`);
+  const rawVc = response.data;
   const list =
-    Array.isArray(response.data) ? response.data : [];
+    Array.isArray(rawVc) ? rawVc : Array.isArray(rawVc?.data) ? rawVc.data : [];
   return list.map((v: Any) => mapVaccination(v, childId));
 }
 

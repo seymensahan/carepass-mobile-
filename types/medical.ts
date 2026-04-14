@@ -18,6 +18,9 @@ export interface ConsultationVitals {
   temperatureCelsius?: number;
   bloodSugar?: number;
   heartRate?: number;
+  oxygenSaturation?: number;
+  respiratoryRate?: number;
+  notes?: string;
   symptoms?: string[];
 }
 
@@ -45,6 +48,11 @@ export interface Consultation {
   linkedLabResultIds: string[];
   nextAppointmentDate?: string;
   nextAppointmentNote?: string;
+  // Nurse-initiated fields
+  nurseName?: string;
+  externalDoctorName?: string;
+  externalDoctorSpecialty?: string;
+  externalDoctorPhone?: string;
 }
 
 // ─── Lab Results ───

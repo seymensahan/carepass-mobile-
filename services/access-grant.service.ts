@@ -26,6 +26,30 @@ function mapDoctor(d: Any): DoctorPreview {
   };
 }
 
+function mapNurse(n: Any): DoctorPreview {
+  if (!n) return { id: "", name: "Inconnu", specialty: "", hospital: "" };
+  return {
+    id: n.id,
+    name: n.user
+      ? `Inf. ${n.user.firstName} ${n.user.lastName}`
+      : "Infirmier(e) inconnu(e)",
+    specialty: n.specialty || "Infirmier(e)",
+    hospital: n.institution?.name || "",
+    orderNumber: n.licenseNumber,
+    avatarUrl: null,
+  };
+}
+
+/**
+ * Map the requester (doctor or nurse) to a unified preview.
+ * Nurse has precedence only if doctor is null.
+ */
+function mapRequester(r: Any): DoctorPreview {
+  if (r.doctor) return mapDoctor(r.doctor);
+  if (r.nurse) return mapNurse(r.nurse);
+  return { id: "", name: "Inconnu", specialty: "", hospital: "" };
+}
+
 function mapGrant(g: Any): AccessGrant {
   return {
     id: g.id,
@@ -84,7 +108,7 @@ export async function getPendingRequests(): Promise<AccessRequest[]> {
     .filter((r: Any) => r.status === "pending")
     .map((r: Any) => ({
       id: r.id,
-      doctor: mapDoctor(r.doctor),
+      doctor: mapRequester(r),
       requestedAt: r.requestedAt || r.createdAt,
       message: r.reason,
       status: r.status as AccessRequest["status"],

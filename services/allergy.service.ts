@@ -12,8 +12,9 @@ function mapSeverity(s: string): MedicalAllergy["severity"] {
 
 export async function getAllergies(): Promise<MedicalAllergy[]> {
   const response = await api.get<Any>("/allergies");
+  const raw = response.data;
   const list =
-    Array.isArray(response.data) ? response.data : [];
+    Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
 
   return list.map((a: Any) => ({
     id: a.id,
@@ -51,8 +52,9 @@ export async function deleteAllergy(id: string): Promise<void> {
 
 export async function getChronicConditions(): Promise<ChronicCondition[]> {
   const response = await api.get<Any>("/medical-conditions");
+  const raw = response.data;
   const list =
-    Array.isArray(response.data) ? response.data : [];
+    Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
 
   return list.map((c: Any) => ({
     id: c.id,

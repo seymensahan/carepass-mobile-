@@ -189,13 +189,6 @@ export default function HomeScreen() {
           </View>
           <View className="flex-row items-center gap-3">
             <Pressable
-              onPress={() => router.push("/messages" as any)}
-              className="w-12 h-12 rounded-2xl bg-white items-center justify-center"
-              style={s.card}
-            >
-              <Feather name="message-square" size={20} color="#212529" />
-            </Pressable>
-            <Pressable
               onPress={() => router.push("/notifications")}
               className="w-12 h-12 rounded-2xl bg-white items-center justify-center"
               style={s.card}

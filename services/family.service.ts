@@ -6,8 +6,9 @@ type Any = any;
 
 export async function getChildren(): Promise<ChildProfile[]> {
   const response = await api.get<Any>("/children");
+  const raw = response.data;
   const list =
-    Array.isArray(response.data) ? response.data : [];
+    Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
 
   return list.map((c: Any) => ({
     id: c.id,
@@ -33,11 +34,12 @@ export async function getChildById(
     api.get<Any>(`/children/${id}/vaccinations`),
   ]);
 
-  const c = childRes.data;
+  const c = childRes.data?.data ?? childRes.data;
   if (!c || childRes.error) return null;
 
+  const rawV = vaccRes.data;
   const vaccList =
-    Array.isArray(vaccRes.data) ? vaccRes.data : [];
+    Array.isArray(rawV) ? rawV : Array.isArray(rawV?.data) ? rawV.data : [];
 
   return {
     id: c.id,

@@ -65,3 +65,57 @@ export async function getMyExecutions() {
   const response = await api.get<any>("/nurses/my-executions");
   return unwrapList(response.data);
 }
+
+// ─── Patient lookup (QR scan) ───
+
+export async function lookupPatient(carypassId: string) {
+  const response = await api.get<any>(`/nurses/patient-lookup/${carypassId}`);
+  return unwrap(response.data);
+}
+
+// ─── Consultation (nurse-initiated) ───
+
+export async function initiateConsultation(data: {
+  patientId: string;
+  motif: string;
+  temperature?: number;
+  heartRate?: number;
+  bloodPressure?: string;
+  weight?: number;
+  height?: number;
+  oxygenSaturation?: number;
+  respiratoryRate?: number;
+  vitalNotes?: string;
+}) {
+  const response = await api.post<any>("/consultations/nurse-initiate", { body: data });
+  if (response.error) throw new Error(response.error);
+  return unwrap(response.data);
+}
+
+export async function transferConsultation(consultationId: string, data: {
+  doctorId?: string;
+  externalDoctorName?: string;
+  externalDoctorSpecialty?: string;
+  externalDoctorPhone?: string;
+}) {
+  const response = await api.patch<any>(`/consultations/${consultationId}/transfer`, { body: data });
+  if (response.error) throw new Error(response.error);
+  return unwrap(response.data);
+}
+
+export async function getAvailableDoctors() {
+  const response = await api.get<any>("/consultations/available-doctors");
+  return unwrapList(response.data);
+}
+
+export async function getNurseConsultations() {
+  const response = await api.get<any>("/consultations/nurse-initiated");
+  return unwrapList(response.data);
+}
+
+// ─── My patients ───
+
+export async function getMyPatients() {
+  const response = await api.get<any>("/nurses/my-patients");
+  return unwrapList(response.data);
+}

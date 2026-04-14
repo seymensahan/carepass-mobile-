@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -15,6 +17,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addChild } from "../../services/child.service";
 import Button from "../../components/ui/Button";
 import DatePickerField from "../../components/ui/DatePickerField";
+import PhoneInput from "../../components/ui/PhoneInput";
 
 const STEPS = [
   "Identité",
@@ -139,11 +142,17 @@ export default function AddChildScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+        className="flex-1"
+      >
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: 240 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         {/* Header */}
         <View className="flex-row items-center px-6 pt-6 pb-2">
@@ -477,12 +486,10 @@ export default function AddChildScreen() {
                   onChange={setNewContactRelation}
                   placeholder="Ex: Mère, Nourrice..."
                 />
-                <FormField
+                <PhoneInput
                   label="Téléphone"
                   value={newContactPhone}
-                  onChange={setNewContactPhone}
-                  placeholder="+237 6XX XXX XXX"
-                  keyboardType="phone-pad"
+                  onChangeText={setNewContactPhone}
                 />
                 <Pressable
                   onPress={addContact}
@@ -509,6 +516,7 @@ export default function AddChildScreen() {
           </View>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

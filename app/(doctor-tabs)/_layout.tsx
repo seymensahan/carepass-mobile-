@@ -1,12 +1,18 @@
 import React from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import OfflineBanner from "../../components/OfflineBanner";
 
 export default function DoctorTabsLayout() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Platform.OS === "ios"
+    ? Math.max(insets.bottom, 8)
+    : Math.max(insets.bottom, 12);
+  const tabBarHeight = 56 + bottomPadding;
 
   return (
     <View style={{ flex: 1 }}>
@@ -20,9 +26,9 @@ export default function DoctorTabsLayout() {
           backgroundColor: "#ffffff",
           borderTopColor: "#dee2e620",
           borderTopWidth: 0,
-          height: 80,
-          paddingBottom: 22,
-          paddingTop: 10,
+          height: tabBarHeight,
+          paddingBottom: bottomPadding,
+          paddingTop: 8,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: -4 },
           shadowOpacity: 0.06,

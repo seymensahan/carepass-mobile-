@@ -146,7 +146,8 @@ export async function getUpcomingAppointments(): Promise<Appointment[]> {
   const fallback = await api.get<PaginatedResponse<BackendAppointment>>(
     "/appointments?limit=5"
   );
-  const items = Array.isArray(fallback.data) ? fallback.data : [];
+  const rawA = fallback.data;
+  const items = Array.isArray(rawA) ? rawA : Array.isArray(rawA?.data) ? rawA.data : [];
   return items.map(mapAppointment);
 }
 
@@ -162,10 +163,9 @@ export async function getRecentConsultations(): Promise<ConsultationPreview[]> {
   const fallback = await api.get<PaginatedResponse<BackendConsultation>>(
     "/consultations?limit=5"
   );
-  const items = Array.isArray(fallback.data) ? fallback.data : [];
+  const rawC = fallback.data;
+  const items = Array.isArray(rawC) ? rawC : Array.isArray(rawC?.data) ? rawC.data : [];
   return items.map(mapConsultation);
-
-  return [];
 }
 
 export async function getVaccinationReminders(): Promise<VaccinationReminder[]> {
@@ -173,6 +173,7 @@ export async function getVaccinationReminders(): Promise<VaccinationReminder[]> 
     "/vaccinations?status=scheduled&limit=5"
   );
 
-  const items = Array.isArray(response.data) ? response.data : [];
+  const rawV = response.data;
+  const items = Array.isArray(rawV) ? rawV : Array.isArray(rawV?.data) ? rawV.data : [];
   return items.map(mapVaccination);
 }

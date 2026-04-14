@@ -20,6 +20,7 @@ import { getProfile } from "../../services/patient.service";
 import { useProfileStore } from "../../stores";
 import { ProfileSkeleton } from "../../components/ui/Skeleton";
 import i18n from "../../i18n";
+import RoleSwitcher from "../../components/ui/RoleSwitcher";
 
 const s = StyleSheet.create({
   card: {
@@ -163,6 +164,9 @@ export default function ProfileScreen() {
             </Text>
           </Pressable>
         </View>
+
+        {/* Role switcher (shown only if user has multiple roles) */}
+        <RoleSwitcher />
 
         {/* Personal Information */}
         <View className="px-6 mb-5">
@@ -446,6 +450,44 @@ export default function ProfileScreen() {
               <Text className="flex-1 text-sm font-semibold text-foreground">
                 Mon abonnement
               </Text>
+              <Feather name="chevron-right" size={18} color="#6c757d" />
+            </Pressable>
+
+            {/* Become a doctor */}
+            <Pressable
+              onPress={() => router.push("/become-doctor" as any)}
+              className="flex-row items-center px-5 py-4 border-b border-border/40"
+            >
+              <View className="w-10 h-10 rounded-xl bg-secondary/10 items-center justify-center mr-3">
+                <Feather name="user-check" size={17} color="#28a745" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-foreground">
+                  Devenir médecin
+                </Text>
+                <Text className="text-xs text-muted mt-0.5">
+                  Ajouter le rôle médecin à votre compte
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={18} color="#6c757d" />
+            </Pressable>
+
+            {/* Become a nurse */}
+            <Pressable
+              onPress={() => router.push("/become-nurse" as any)}
+              className="flex-row items-center px-5 py-4 border-b border-border/40"
+            >
+              <View className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center mr-3">
+                <Feather name="user-plus" size={17} color="#6f42c1" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-foreground">
+                  Devenir infirmier
+                </Text>
+                <Text className="text-xs text-muted mt-0.5">
+                  Ajouter le rôle infirmier à votre compte
+                </Text>
+              </View>
               <Feather name="chevron-right" size={18} color="#6c757d" />
             </Pressable>
 

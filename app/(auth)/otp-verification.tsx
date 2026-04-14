@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   Text,
   TextInput,
@@ -146,6 +148,7 @@ export default function OtpVerificationScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
       <View className="flex-1 px-6 pt-8">
         {/* Back button */}
         <Pressable
@@ -212,6 +215,7 @@ export default function OtpVerificationScreen() {
           )}
         </View>
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

@@ -101,14 +101,30 @@ export default function ConsultationDetailScreen() {
           </Pressable>
         </View>
 
+        {/* Nurse-initiated badge */}
+        {consultation.nurseName && (
+          <View className="mx-6 mb-3 bg-purple-50 border border-purple-200 rounded-xl p-3 flex-row items-center">
+            <Feather name="heart" size={14} color="#6f42c1" />
+            <Text className="text-xs text-foreground ml-2">
+              Prise en charge par <Text className="font-bold">{consultation.nurseName}</Text>
+            </Text>
+          </View>
+        )}
+
         {/* Doctor + date card */}
         <View className="mx-6 bg-white rounded-2xl border border-border p-5 mb-4">
           <Text className="text-lg font-bold text-foreground mb-0.5">
-            {consultation.doctorName}
+            {consultation.doctorName || "En attente de transfert"}
           </Text>
           <Text className="text-sm text-primary font-medium mb-2">
             {consultation.specialty}
           </Text>
+          {consultation.externalDoctorPhone && (
+            <View className="flex-row items-center mb-1">
+              <Feather name="phone" size={13} color="#6c757d" />
+              <Text className="text-sm text-muted ml-1.5">{consultation.externalDoctorPhone}</Text>
+            </View>
+          )}
           <View className="flex-row items-center mb-1">
             <Feather name="calendar" size={13} color="#6c757d" />
             <Text className="text-sm text-muted ml-1.5">
@@ -117,12 +133,14 @@ export default function ConsultationDetailScreen() {
               })}
             </Text>
           </View>
-          <View className="flex-row items-center">
-            <Feather name="map-pin" size={13} color="#6c757d" />
-            <Text className="text-sm text-muted ml-1.5">
-              {consultation.hospital}
-            </Text>
-          </View>
+          {consultation.hospital ? (
+            <View className="flex-row items-center">
+              <Feather name="map-pin" size={13} color="#6c757d" />
+              <Text className="text-sm text-muted ml-1.5">
+                {consultation.hospital}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Motif */}

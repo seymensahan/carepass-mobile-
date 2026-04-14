@@ -1,80 +1,79 @@
 import React, { useState, useEffect } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "../../contexts/AuthContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "../../lib/api-client";
+import { useAuth } from "../../contexts/AuthContext";
+import PhoneInput from "../../components/ui/PhoneInput";
 
 type MNO = "mtn" | "orange";
 
 export default function PaymentScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { user } = useAuth();
+  const { login } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState("");
   const [selectedMNO, setSelectedMNO] = useState<MNO>("mtn");
   const [isLoading, setIsLoading] = useState(false);
-  const [paymentId, setPaymentId] = useState<string | null>(null);
+  const [depositId, setDepositId] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "pending" | "completed" | "failed">("idle");
   const [planId, setPlanId] = useState<string>("");
+  const [registrationData, setRegistrationData] = useState<any>(null);
   const [promoCode, setPromoCode] = useState("");
   const [promoValid, setPromoValid] = useState<boolean | null>(null);
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoMessage, setPromoMessage] = useState("");
   const [promoDiscount, setPromoDiscount] = useState(0);
 
-  // Load the patient plan
+  // Load pending registration data + patient plan
   useEffect(() => {
     (async () => {
+      // Load registration data stored by register screen
+      try {
+        const stored = await AsyncStorage.getItem("pending_registration");
+        if (stored) {
+          const data = JSON.parse(stored);
+          setRegistrationData(data);
+          // Pre-fill phone from registration
+          if (data.phone) {
+            const cleaned = data.phone.replace(/[^0-9]/g, "");
+            setPhoneNumber(cleaned.startsWith("237") ? cleaned.slice(3) : cleaned);
+          }
+        }
+      } catch { /* ignore */ }
+
+      // Load the patient plan
       try {
         const res = await api.get<any>("/subscriptions/plans");
         const raw = res.data?.data ?? res.data ?? [];
         const plans = Array.isArray(raw) ? raw : [];
-        // Try multiple matching strategies: slug, tier, or name containing "patient"
         const patientPlan =
           plans.find((p: any) => p.slug === "patient") ||
           plans.find((p: any) => p.tier === "patient") ||
           plans.find((p: any) => (p.name || "").toLowerCase().includes("patient")) ||
-          plans[0]; // Fallback to first plan if none match
+          plans[0];
         if (patientPlan) setPlanId(patientPlan.id);
-      } catch {
-        // Plans might not load — button will remain disabled
-      }
+      } catch { /* ignore */ }
     })();
   }, []);
 
-  // Auto-detect MNO from phone number
+  // Auto-detect MNO from phone number (handles both +237XXXXXXX and 6XXXXXXXX formats)
   useEffect(() => {
     const cleaned = phoneNumber.replace(/[^0-9]/g, "");
-    if (cleaned.startsWith("69") || cleaned.startsWith("23769")) {
+    // Extract local part (after country code)
+    const local = cleaned.startsWith("237") ? cleaned.slice(3) : cleaned;
+    if (local.startsWith("69")) {
       setSelectedMNO("orange");
     } else {
       setSelectedMNO("mtn");
     }
   }, [phoneNumber]);
 
-  // Poll payment status
-  useEffect(() => {
-    if (!paymentId || status !== "pending") return;
-    const interval = setInterval(async () => {
-      try {
-        const res = await api.get<any>(`/payments/${paymentId}/poll`);
-        const data = res.data?.data ?? res.data;
-        if (data?.status === "completed") {
-          setStatus("completed");
-          clearInterval(interval);
-        } else if (data?.status === "failed") {
-          setStatus("failed");
-          clearInterval(interval);
-        }
-      } catch {
-        // Silent
-      }
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [paymentId, status]);
+  // No polling needed — the webhook creates the account.
+  // The user just needs to confirm on their phone, then go to login.
 
   const handleValidatePromo = async () => {
     if (!promoCode.trim()) return;
@@ -82,7 +81,11 @@ export default function PaymentScreen() {
     setPromoValid(null);
     setPromoMessage("");
     try {
-      const res = await api.post<any>("/vouchers/validate", { body: { code: promoCode.trim().toUpperCase() } });
+      // Validate without auth — only checks format, type, and expiration on backend
+      const res = await api.post<any>("/vouchers/validate-public", {
+        body: { code: promoCode.trim().toUpperCase() },
+        authenticated: false,
+      });
       const voucher = res.data?.data ?? res.data;
       if (res.error) {
         setPromoValid(false);
@@ -102,14 +105,59 @@ export default function PaymentScreen() {
 
   const handleRedeemPromo = async () => {
     if (!promoCode.trim() || !promoValid) return;
+    if (!registrationData) {
+      Alert.alert("Erreur", "Données d'inscription manquantes. Veuillez recommencer.");
+      router.replace("/(auth)/register");
+      return;
+    }
     setIsLoading(true);
     try {
-      const res = await api.post<any>("/vouchers/redeem", { body: { code: promoCode.trim().toUpperCase() } });
-      if (res.error) {
-        Alert.alert("Erreur", res.error);
+      // Step 1: Create the user account first
+      const regRes = await api.post<any>("/auth/register", {
+        body: registrationData,
+        authenticated: false,
+      });
+      if (regRes.error) {
+        Alert.alert("Erreur", regRes.error);
         return;
       }
-      setStatus("completed");
+
+      // Step 2: Get token from registration response
+      const token = regRes.data?.accessToken ?? regRes.data?.data?.accessToken;
+      if (!token) {
+        Alert.alert("Erreur", "Impossible de récupérer le token d'authentification.");
+        return;
+      }
+
+      // Step 3: Redeem the voucher with the token
+      const redeemRes = await api.post<any>("/vouchers/redeem", {
+        body: { code: promoCode.trim().toUpperCase() },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (redeemRes.error) {
+        Alert.alert("Erreur", redeemRes.error);
+        return;
+      }
+
+      // Clean up registration data
+      await AsyncStorage.removeItem("pending_registration");
+
+      // Step 4: Auto-login the user and redirect to dashboard
+      const loginResult = await login({
+        email: registrationData.email,
+        password: registrationData.password,
+      });
+
+      if (loginResult.success) {
+        router.replace("/(tabs)/home" as any);
+      } else {
+        // Login failed but account + voucher were created — send to login page
+        Alert.alert(
+          "Compte créé !",
+          "Votre compte a été créé et le voucher activé. Connectez-vous pour accéder à votre espace.",
+          [{ text: "Se connecter", onPress: () => router.replace("/(auth)/login" as any) }],
+        );
+      }
     } catch {
       Alert.alert("Erreur", "Impossible d'utiliser le code promo");
     } finally {
@@ -122,24 +170,36 @@ export default function PaymentScreen() {
       Alert.alert(t("common.error"), t("payment.invalidPhone"));
       return;
     }
+    if (!registrationData) {
+      Alert.alert("Erreur", "Données d'inscription manquantes. Veuillez recommencer.");
+      router.replace("/(auth)/register");
+      return;
+    }
 
     setIsLoading(true);
     try {
-      const normalized = phoneNumber.replace(/[^0-9]/g, "");
-      const fullNumber = normalized.startsWith("237") ? normalized : "237" + normalized;
+      const fullNumber = phoneNumber.replace(/[^0-9]/g, "");
 
-      const res = await api.post<any>("/payments/initiate", {
+      // Call PUBLIC endpoint — no account created, payment first
+      const res = await api.post<any>("/payments/initiate-registration", {
         body: {
           planId,
           phoneNumber: fullNumber,
           period: "yearly",
+          registrationData,
         },
       });
 
       const data = res.data?.data ?? res.data;
-      if (data?.paymentId) {
-        setPaymentId(data.paymentId);
-        setStatus(data.status === "completed" ? "completed" : "pending");
+      if (res.error) {
+        Alert.alert("Erreur", res.error);
+        return;
+      }
+      if (data?.depositId) {
+        setDepositId(data.depositId);
+        setStatus("pending");
+        // Clean up stored registration data
+        await AsyncStorage.removeItem("pending_registration");
       } else {
         Alert.alert("Erreur", data?.message || "Impossible d'initier le paiement");
       }
@@ -150,33 +210,7 @@ export default function PaymentScreen() {
     }
   };
 
-  // Success state
-  if (status === "completed") {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center px-8">
-          <View className="w-20 h-20 rounded-full bg-green-50 items-center justify-center mb-6">
-            <Feather name="check-circle" size={40} color="#28a745" />
-          </View>
-          <Text className="text-2xl font-bold text-foreground text-center mb-2">
-            Paiement réussi !
-          </Text>
-          <Text className="text-sm text-muted text-center mb-8">
-            {t("payment.subscriptionActive")}{"\n"}
-            {t("payment.welcomeUser", { name: user?.firstName })}
-          </Text>
-          <Pressable
-            onPress={() => router.replace("/")}
-            className="bg-primary rounded-2xl py-4 px-12"
-          >
-            <Text className="text-white font-bold text-base">{t("payment.accessCarypass")}</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // Waiting for confirmation
+  // Pending state — user must confirm on phone, then account is created via webhook
   if (status === "pending") {
     return (
       <SafeAreaView className="flex-1 bg-background">
@@ -191,15 +225,21 @@ export default function PaymentScreen() {
             Un message a été envoyé sur votre téléphone.{"\n"}
             Entrez votre code PIN {selectedMNO === "mtn" ? "MTN MoMo" : "Orange Money"} pour confirmer.
           </Text>
-          <View className="flex-row items-center gap-2 mb-8">
-            <View className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <Text className="text-xs text-muted">{t("payment.waitingConfirmation")}</Text>
-          </View>
+          <Text className="text-xs text-muted text-center mb-8">
+            Votre compte sera créé automatiquement après confirmation du paiement.{"\n"}
+            Vous pourrez ensuite vous connecter.
+          </Text>
           <Pressable
-            onPress={() => { setStatus("idle"); setPaymentId(null); }}
+            onPress={() => router.replace("/(auth)/login")}
+            className="bg-primary rounded-2xl py-4 px-12 mb-4"
+          >
+            <Text className="text-white font-bold text-base">Aller à la connexion</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => { setStatus("idle"); setDepositId(null); }}
             className="border border-border rounded-xl py-3 px-8"
           >
-            <Text className="text-sm text-muted font-semibold">{t("common.cancel")}</Text>
+            <Text className="text-sm text-muted font-semibold">Réessayer</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -208,7 +248,18 @@ export default function PaymentScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 40 }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+        className="flex-1"
+      >
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 240 }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
         <View className="px-6 pt-8 pb-4">
           <Text className="text-2xl font-bold text-foreground">{t("payment.lastStep")}</Text>
@@ -275,45 +326,34 @@ export default function PaymentScreen() {
         </View>
 
         {/* Phone number */}
-        <View className="px-6 mb-6">
-          <Text className="text-sm font-bold text-foreground mb-2">{t("payment.phoneNumber")}</Text>
-          <View className="flex-row items-center border border-border rounded-2xl bg-white overflow-hidden">
-            <View className="px-4 py-3 bg-gray-50 border-r border-border">
-              <Text className="text-sm font-bold text-muted">+237</Text>
-            </View>
-            <TextInput
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              placeholder="6XX XXX XXX"
-              keyboardType="phone-pad"
-              className="flex-1 px-4 py-3 text-base"
-              maxLength={9}
-            />
-          </View>
-          <Text className="text-[10px] text-muted mt-1">
-            Le numéro {selectedMNO === "mtn" ? "MTN MoMo" : "Orange Money"} depuis lequel le paiement sera effectué
-          </Text>
+        <View className="px-6 mb-2">
+          <PhoneInput
+            label={t("payment.phoneNumber")}
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            placeholder="6XX XXX XXX"
+          />
         </View>
 
         {/* Promo code */}
         <View className="px-6 mb-4">
           <Text className="text-sm font-bold text-foreground mb-2">Code promo (optionnel)</Text>
-          <View className="flex-row gap-2">
-            <View className={`flex-1 flex-row items-center border rounded-2xl bg-white overflow-hidden ${
-              promoValid === true ? "border-green-500" : promoValid === false ? "border-red-500" : "border-border"
-            }`}>
-              <TextInput
-                value={promoCode}
-                onChangeText={(v) => { setPromoCode(v.toUpperCase()); setPromoValid(null); setPromoMessage(""); setPromoDiscount(0); }}
-                placeholder="CP-PAT-XXXXXX"
-                autoCapitalize="characters"
-                className="flex-1 px-4 py-3 text-sm font-mono"
-              />
-            </View>
+          <View className={`flex-row items-center border rounded-2xl bg-white overflow-hidden mb-2 ${
+            promoValid === true ? "border-green-500" : promoValid === false ? "border-red-500" : "border-border"
+          }`}>
+            <TextInput
+              value={promoCode}
+              onChangeText={(v) => { setPromoCode(v.toUpperCase()); setPromoValid(null); setPromoMessage(""); setPromoDiscount(0); }}
+              placeholder="CP-PAT-XXXXXX"
+              autoCapitalize="characters"
+              className="flex-1 h-12 px-4 text-base text-foreground"
+              placeholderTextColor="#adb5bd"
+              style={{ letterSpacing: 1 }}
+            />
             <Pressable
               onPress={handleValidatePromo}
               disabled={!promoCode.trim() || promoLoading}
-              className={`rounded-2xl px-4 py-3 justify-center ${!promoCode.trim() || promoLoading ? "bg-gray-200" : "bg-primary/10"}`}
+              className={`h-12 px-5 justify-center ${!promoCode.trim() || promoLoading ? "bg-gray-100" : "bg-primary/10"}`}
             >
               <Text className={`text-sm font-semibold ${!promoCode.trim() ? "text-gray-400" : "text-primary"}`}>
                 {promoLoading ? "..." : "Vérifier"}
@@ -372,6 +412,7 @@ export default function PaymentScreen() {
           </View>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

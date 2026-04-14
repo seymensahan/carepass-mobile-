@@ -29,6 +29,7 @@ import {
   disableTwoFactor,
 } from "../../services/auth.service";
 import Button from "../../components/ui/Button";
+import PhoneInput from "../../components/ui/PhoneInput";
 
 interface SettingRow {
   icon: keyof typeof Feather.glyphMap;
@@ -522,16 +523,10 @@ export default function SettingsScreen() {
             </Text>
 
             <View className="mb-6">
-              <Text className="text-sm font-semibold text-foreground mb-1.5">
-                Numéro de téléphone
-              </Text>
-              <TextInput
+              <PhoneInput
+                label="Numéro de téléphone"
                 value={twoFAPhone}
                 onChangeText={setTwoFAPhone}
-                placeholder="+237 6XX XXX XXX"
-                placeholderTextColor="#6c757d"
-                keyboardType="phone-pad"
-                className="bg-white border border-border rounded-xl px-4 py-3.5 text-sm text-foreground"
               />
             </View>
 

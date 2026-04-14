@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import {
   Alert,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -236,7 +238,19 @@ function NewHospitalisationForm({ onClose, onSuccess }: { onClose: () => void; o
     reason: "",
     diagnosis: "",
   });
+  const [selectedNurses, setSelectedNurses] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const { data: availableNurses = [] } = useQuery({
+    queryKey: ["doctor-available-nurses"],
+    queryFn: doctorService.getAvailableNursesForHosp,
+  });
+
+  const toggleNurse = (id: string) => {
+    setSelectedNurses((prev) =>
+      prev.includes(id) ? prev.filter((n) => n !== id) : [...prev, id],
+    );
+  };
 
   const handleSubmit = async () => {
     if (!form.patientId || !form.reason) {
@@ -252,9 +266,13 @@ function NewHospitalisationForm({ onClose, onSuccess }: { onClose: () => void; o
         room: form.room || undefined,
         bed: form.bed || undefined,
         diagnosis: form.diagnosis || undefined,
+        nurseIds: selectedNurses.length > 0 ? selectedNurses : undefined,
       });
       if (result.success) {
-        Alert.alert("Succès", "Hospitalisation créée.", [{ text: "OK", onPress: onSuccess }]);
+        const msg = selectedNurses.length > 0
+          ? `Hospitalisation créée et ${selectedNurses.length} infirmier(e)(s) assigné(s).`
+          : "Hospitalisation créée.";
+        Alert.alert("Succès", msg, [{ text: "OK", onPress: onSuccess }]);
       } else {
         Alert.alert("Erreur", result.message || "Impossible de créer l'hospitalisation.");
       }
@@ -266,8 +284,12 @@ function NewHospitalisationForm({ onClose, onSuccess }: { onClose: () => void; o
   };
 
   return (
-    <View className="absolute inset-0 bg-black/50 justify-end">
-      <View className="bg-white rounded-t-3xl p-6 max-h-[85%]">
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      className="absolute inset-0 bg-black/50 justify-end"
+      keyboardVerticalOffset={0}
+    >
+      <View className="bg-white rounded-t-3xl p-6 max-h-[90%]">
         <View className="flex-row items-center justify-between mb-5">
           <Text className="text-lg font-bold text-foreground">Nouvelle hospitalisation</Text>
           <Pressable onPress={onClose} className="p-2">
@@ -275,7 +297,11 @@ function NewHospitalisationForm({ onClose, onSuccess }: { onClose: () => void; o
           </Pressable>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 40 }}
+        >
           <View className="mb-4">
             <Text className="text-xs font-semibold text-foreground mb-2">ID Patient *</Text>
             <TextInput
@@ -323,7 +349,7 @@ function NewHospitalisationForm({ onClose, onSuccess }: { onClose: () => void; o
             />
           </View>
 
-          <View className="mb-6">
+          <View className="mb-4">
             <Text className="text-xs font-semibold text-foreground mb-2">Diagnostic</Text>
             <TextInput
               value={form.diagnosis}
@@ -332,6 +358,49 @@ function NewHospitalisationForm({ onClose, onSuccess }: { onClose: () => void; o
               className="bg-gray-50 rounded-xl px-4 py-3 text-sm text-foreground"
               placeholderTextColor="#adb5bd"
             />
+          </View>
+
+          {/* Nurse assignment */}
+          <View className="mb-6">
+            <Text className="text-xs font-semibold text-foreground mb-2">
+              Assigner des infirmier(e)s ({selectedNurses.length} sélectionné{selectedNurses.length > 1 ? "s" : ""})
+            </Text>
+            {availableNurses.length === 0 ? (
+              <View className="bg-gray-50 rounded-xl p-4 items-center">
+                <Feather name="user-x" size={20} color="#6c757d" />
+                <Text className="text-xs text-muted mt-2">
+                  Aucun(e) infirmier(e) disponible dans votre institution
+                </Text>
+              </View>
+            ) : (
+              availableNurses.map((nurse: any) => {
+                const isSelected = selectedNurses.includes(nurse.id);
+                return (
+                  <Pressable
+                    key={nurse.id}
+                    onPress={() => toggleNurse(nurse.id)}
+                    className={`flex-row items-center rounded-xl p-3 mb-2 border-2 ${
+                      isSelected ? "border-primary bg-primary/5" : "border-border bg-gray-50"
+                    }`}
+                  >
+                    <View className="w-10 h-10 rounded-full bg-danger/10 items-center justify-center mr-3">
+                      <Feather name="user" size={16} color="#dc3545" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-semibold text-foreground">
+                        {nurse.firstName} {nurse.lastName}
+                      </Text>
+                      {nurse.specialty && (
+                        <Text className="text-xs text-muted">{nurse.specialty}</Text>
+                      )}
+                    </View>
+                    {isSelected && (
+                      <Feather name="check-circle" size={20} color="#007bff" />
+                    )}
+                  </Pressable>
+                );
+              })
+            )}
           </View>
 
           <Pressable
@@ -349,6 +418,6 @@ function NewHospitalisationForm({ onClose, onSuccess }: { onClose: () => void; o
           </Pressable>
         </ScrollView>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }

@@ -73,8 +73,9 @@ export async function getVaccinations(
   }
 
   const response = await api.get<Any>(`/vaccinations?${params.toString()}`);
+  const raw = response.data;
   const list =
-    Array.isArray(response.data) ? response.data : [];
+    Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
 
   const vaccinations = list.map(mapVaccination);
 
@@ -95,7 +96,7 @@ export async function getVaccinationById(
   id: string
 ): Promise<Vaccination | null> {
   const response = await api.get<Any>(`/vaccinations/${id}`);
-  const v = response.data;
+  const v = response.data?.data ?? response.data;
   if (!v || response.error) return null;
   return mapVaccination(v);
 }

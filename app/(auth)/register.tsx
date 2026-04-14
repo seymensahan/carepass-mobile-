@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -15,11 +14,12 @@ import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Feather } from "@expo/vector-icons";
-import { Calendar } from "react-native-calendars";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
+import PhoneInput from "../../components/ui/PhoneInput";
+import BeautifulDatePicker from "../../components/ui/BeautifulDatePicker";
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 const TOTAL_STEPS = 3;
@@ -30,15 +30,6 @@ export default function RegisterScreen() {
   const { register: registerUser } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [calYear, setCalYear] = useState(2000);
-  const [calMonth, setCalMonth] = useState(1);
-  const MONTH_NAMES = [
-    t("months.january"), t("months.february"), t("months.march"),
-    t("months.april"), t("months.may"), t("months.june"),
-    t("months.july"), t("months.august"), t("months.september"),
-    t("months.october"), t("months.november"), t("months.december"),
-  ];
 
   const registerSchema = z
     .object({
@@ -113,19 +104,29 @@ export default function RegisterScreen() {
   };
 
   const onSubmit = async (data: RegisterForm) => {
-    setLoading(true);
+    // Don't create account yet — store registration data and go to payment
+    // Account will be created only after payment is confirmed via webhook
     try {
-      const result = await registerUser(data);
-      if (result.success) {
-        // Redirect to payment page for patient subscription
-        router.replace("/(auth)/payment");
-      } else {
-        Alert.alert(t("common.error"), result.message);
-      }
+      // Store registration data in memory for the payment screen
+      const { default: AsyncStorage } = await import("@react-native-async-storage/async-storage");
+      await AsyncStorage.setItem("pending_registration", JSON.stringify({
+        email: data.email,
+        password: data.password,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone,
+        gender: data.gender,
+        dateOfBirth: data.dateOfBirth,
+        bloodGroup: data.bloodGroup || undefined,
+        role: "patient",
+      }));
+      // Track registration step completed
+      const { trackEvent } = await import("../../lib/posthog");
+      trackEvent("registration_started", { gender: data.gender });
+
+      router.replace("/(auth)/payment");
     } catch {
       Alert.alert(t("common.error"), t("common.genericError"));
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -204,15 +205,13 @@ export default function RegisterScreen() {
         control={control}
         name="phone"
         render={({ field: { onChange, onBlur, value } }) => (
-          <Input
+          <PhoneInput
             label={t("register.phone")}
             placeholder={t("register.phonePlaceholder")}
             value={value}
             onChangeText={onChange}
             onBlur={onBlur}
             error={errors.phone?.message}
-            keyboardType="phone-pad"
-            iconLeft="phone"
           />
         )}
       />
@@ -312,129 +311,15 @@ export default function RegisterScreen() {
         control={control}
         name="dateOfBirth"
         render={({ field: { onChange, value } }) => (
-          <>
-            <Text className="text-sm font-medium text-foreground mb-2">
-              {t("register.dateOfBirth")}
-            </Text>
-            <Pressable
-              onPress={() => {
-                if (value) {
-                  const [y, m] = value.split("-").map(Number);
-                  setCalYear(y);
-                  setCalMonth(m);
-                }
-                setShowCalendar(true);
-              }}
-              className={`flex-row items-center h-14 px-4 rounded-xl border mb-1 ${
-                errors.dateOfBirth ? "border-danger" : "border-border"
-              } bg-white`}
-            >
-              <Feather name="calendar" size={18} color="#6c757d" />
-              <Text
-                className={`ml-3 text-base ${
-                  value ? "text-foreground" : "text-muted"
-                }`}
-              >
-                {value || t("register.dateOfBirthPlaceholder")}
-              </Text>
-            </Pressable>
-            {errors.dateOfBirth && (
-              <Text className="text-xs text-danger mb-2">
-                {errors.dateOfBirth.message}
-              </Text>
-            )}
-
-            <Modal
-              visible={showCalendar}
-              transparent
-              animationType="fade"
-              onRequestClose={() => setShowCalendar(false)}
-            >
-              <Pressable
-                onPress={() => setShowCalendar(false)}
-                className="flex-1 bg-black/50 justify-center px-6"
-              >
-                <Pressable
-                  onPress={() => {}}
-                  className="bg-white rounded-2xl p-4"
-                >
-                  <Text className="text-lg font-semibold text-foreground mb-3 text-center">
-                    {t("register.dateOfBirth")}
-                  </Text>
-
-                  {/* Year & Month selectors */}
-                  <View className="flex-row justify-between items-center mb-2">
-                    {/* Year */}
-                    <View className="flex-row items-center">
-                      <Pressable
-                        onPress={() => setCalYear((y) => Math.max(y - 1, 1926))}
-                        className="w-9 h-9 rounded-full bg-gray-100 items-center justify-center"
-                      >
-                        <Feather name="chevron-left" size={18} color="#0066FF" />
-                      </Pressable>
-                      <Text className="text-base font-bold text-foreground mx-3 w-12 text-center">
-                        {calYear}
-                      </Text>
-                      <Pressable
-                        onPress={() => setCalYear((y) => Math.min(y + 1, new Date().getFullYear()))}
-                        className="w-9 h-9 rounded-full bg-gray-100 items-center justify-center"
-                      >
-                        <Feather name="chevron-right" size={18} color="#0066FF" />
-                      </Pressable>
-                    </View>
-
-                    {/* Month */}
-                    <View className="flex-row items-center">
-                      <Pressable
-                        onPress={() => setCalMonth((m) => (m <= 1 ? 12 : m - 1))}
-                        className="w-9 h-9 rounded-full bg-gray-100 items-center justify-center"
-                      >
-                        <Feather name="chevron-left" size={18} color="#0066FF" />
-                      </Pressable>
-                      <Text className="text-sm font-semibold text-foreground mx-2 w-20 text-center">
-                        {MONTH_NAMES[calMonth - 1]}
-                      </Text>
-                      <Pressable
-                        onPress={() => setCalMonth((m) => (m >= 12 ? 1 : m + 1))}
-                        className="w-9 h-9 rounded-full bg-gray-100 items-center justify-center"
-                      >
-                        <Feather name="chevron-right" size={18} color="#0066FF" />
-                      </Pressable>
-                    </View>
-                  </View>
-
-                  <Calendar
-                    key={`${calYear}-${calMonth}`}
-                    maxDate={new Date().toISOString().split("T")[0]}
-                    initialDate={`${calYear}-${String(calMonth).padStart(2, "0")}-01`}
-                    hideArrows
-                    hideExtraDays
-                    renderHeader={() => null}
-                    onDayPress={(day: { dateString: string }) => {
-                      onChange(day.dateString);
-                      setShowCalendar(false);
-                    }}
-                    markedDates={
-                      value
-                        ? { [value]: { selected: true, selectedColor: "#0066FF" } }
-                        : {}
-                    }
-                    theme={{
-                      todayTextColor: "#0066FF",
-                      textDayFontSize: 15,
-                      textDayHeaderFontSize: 13,
-                    }}
-                  />
-                  <Pressable
-                    onPress={() => setShowCalendar(false)}
-                    className="mt-3 h-12 bg-primary rounded-xl items-center justify-center"
-                  >
-                    <Text className="text-white font-semibold">{t("common.close")}</Text>
-                  </Pressable>
-                </Pressable>
-              </Pressable>
-            </Modal>
-          </>
+          <BeautifulDatePicker
+            label={t("register.dateOfBirth")}
+            value={value ? new Date(value) : null}
+            onChange={(d) => onChange(d.toISOString().split("T")[0])}
+            mode="date"
+            placeholder={t("register.dateOfBirthPlaceholder")}
+            maxDate={new Date()}
+            error={errors.dateOfBirth?.message}
+          />
         )}
       />
 
@@ -488,11 +373,14 @@ export default function RegisterScreen() {
     <SafeAreaView className="flex-1 bg-background">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
         className="flex-1"
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
+          className="flex-1"
+          contentContainerStyle={{ paddingBottom: 240 }}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
         >
           <View className="flex-1 px-6 pt-8">

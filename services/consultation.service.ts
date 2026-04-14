@@ -13,9 +13,33 @@ function mapConsultationType(type: string): ConsultationType {
 }
 
 function mapConsultation(c: Any): Consultation {
+  // Doctor name: internal CaryPass doctor or external doctor
   const doctorName = c.doctor?.user
     ? `Dr. ${c.doctor.user.firstName} ${c.doctor.user.lastName}`
-    : "";
+    : c.externalDoctorName
+      ? `Dr. ${c.externalDoctorName} (externe)`
+      : "";
+
+  // Nurse who initiated
+  const nurseName = c.initiatedByNurse?.user
+    ? `${c.initiatedByNurse.user.firstName} ${c.initiatedByNurse.user.lastName}`
+    : undefined;
+
+  // Vital signs: from JSON field (backend stores as vitalSigns JSON)
+  const rawVitals = c.vitalSigns || c.vitals;
+  const vitals = rawVitals
+    ? {
+        temperatureCelsius: rawVitals.temperature ?? rawVitals.temperatureCelsius,
+        heartRate: rawVitals.heartRate,
+        bloodPressure: rawVitals.bloodPressure,
+        weightKg: rawVitals.weight ?? rawVitals.weightKg,
+        heightCm: rawVitals.height ?? rawVitals.heightCm,
+        oxygenSaturation: rawVitals.oxygenSaturation,
+        respiratoryRate: rawVitals.respiratoryRate,
+        notes: rawVitals.notes,
+        symptoms: rawVitals.symptoms,
+      }
+    : undefined;
 
   return {
     id: c.id,
@@ -23,14 +47,19 @@ function mapConsultation(c: Any): Consultation {
       ? new Date(c.date).toISOString().split("T")[0]
       : c.createdAt?.split("T")[0] || "",
     doctorName,
-    specialty: c.doctor?.specialty || "Médecine générale",
+    specialty: c.doctor?.specialty || c.externalDoctorSpecialty || "Médecine générale",
     hospital: c.doctor?.institution?.name || "",
     type: mapConsultationType(c.type),
     reason: c.reason || c.motif || "",
-    vitals: c.vitals || undefined,
+    vitals,
     doctorNotes: c.notes || "",
     diagnosis: c.diagnosis || "",
     diagnosisCodes: c.diagnosisCodes || [],
+    // New nurse fields
+    nurseName,
+    externalDoctorName: c.externalDoctorName,
+    externalDoctorSpecialty: c.externalDoctorSpecialty,
+    externalDoctorPhone: c.externalDoctorPhone,
     examOrders: (c.examOrders || []).map((e: Any) => ({
       id: e.id,
       examType: e.examType || "",
@@ -85,8 +114,9 @@ export async function getConsultations(filters?: {
   if (filters?.type && filters.type !== "tous") params.set("type", filters.type);
 
   const response = await api.get<Any>(`/consultations?${params.toString()}`);
+  const raw = response.data;
   const list =
-    Array.isArray(response.data) ? response.data : [];
+    Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
 
   let results = list.map(mapConsultation);
 
@@ -115,7 +145,7 @@ export async function getConsultationById(
   id: string
 ): Promise<Consultation | null> {
   const response = await api.get<Any>(`/consultations/${id}`);
-  const c = response.data;
+  const c = response.data?.data ?? response.data;
   if (!c || response.error) return null;
   return mapConsultation(c);
 }

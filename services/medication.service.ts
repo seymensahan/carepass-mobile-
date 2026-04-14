@@ -65,8 +65,9 @@ export async function getMedications(): Promise<Medication[]> {
   }
 
   const response = await api.get<Any>("/prescriptions?limit=50");
+  const raw = response.data;
   const list =
-    Array.isArray(response.data) ? response.data : [];
+    Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
 
   const medications: Medication[] = [];
   for (const p of list) {

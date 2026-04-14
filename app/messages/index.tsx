@@ -1,6 +1,8 @@
 import React, { useCallback, useState } from "react";
 import {
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   RefreshControl,
   Text,
@@ -131,6 +133,7 @@ export default function MessagesListScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
       {/* Header */}
       <View className="px-4 pt-2 pb-3 border-b border-border/30">
         <View className="flex-row items-center justify-between mb-3">
@@ -185,6 +188,7 @@ export default function MessagesListScreen() {
           contentContainerStyle={{ flexGrow: 1 }}
         />
       )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

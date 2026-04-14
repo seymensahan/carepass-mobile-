@@ -25,6 +25,7 @@ import { getProfile, updateProfile } from "../../services/patient.service";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import DatePickerField from "../../components/ui/DatePickerField";
+import PhoneInput from "../../components/ui/PhoneInput";
 import type { Patient, Allergy, EmergencyContact } from "../../types/patient";
 
 const editProfileSchema = z.object({
@@ -227,11 +228,14 @@ export default function EditProfileScreen() {
     <SafeAreaView className="flex-1 bg-background">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
         className="flex-1"
       >
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 32 }}
+          className="flex-1"
+          contentContainerStyle={{ paddingBottom: 240 }}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
         >
           {/* ─── Header ─── */}
@@ -314,15 +318,12 @@ export default function EditProfileScreen() {
               control={control}
               name="phone"
               render={({ field: { onChange, onBlur, value } }) => (
-                <Input
+                <PhoneInput
                   label="Téléphone"
-                  placeholder="+237 6XX XXX XXX"
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
                   error={errors.phone?.message}
-                  keyboardType="phone-pad"
-                  iconLeft="phone"
                 />
               )}
             />
@@ -588,13 +589,9 @@ export default function EditProfileScreen() {
                     updateContact(contact.id, "relation", v)
                   }
                 />
-                <TextInput
-                  className="h-10 bg-background rounded-lg px-3 text-sm text-foreground"
-                  placeholder="+237 6XX XXX XXX"
-                  placeholderTextColor="#6c757d"
+                <PhoneInput
                   value={contact.phone}
                   onChangeText={(v) => updateContact(contact.id, "phone", v)}
-                  keyboardType="phone-pad"
                 />
               </View>
             ))}

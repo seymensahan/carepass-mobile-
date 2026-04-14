@@ -77,8 +77,9 @@ const DEFAULT_PLANS: Plan[] = [
 export async function getCurrentPlan(): Promise<CurrentSubscription> {
   try {
     const response = await api.get<Any>("/subscriptions");
+    const rawSub = response.data;
     const list =
-      Array.isArray(response.data) ? response.data : [];
+      Array.isArray(rawSub) ? rawSub : Array.isArray(rawSub?.data) ? rawSub.data : [];
 
     if (list.length > 0) {
       const sub = list[0];
@@ -128,24 +129,64 @@ export async function getCurrentPlan(): Promise<CurrentSubscription> {
   };
 }
 
+// Slugs/tiers exposed in the mobile app pricing screen.
+// Only the basic patient plan and the doctor premium plan are shown to end users.
+// All other plans (institution tiers, etc.) are hidden — institutions subscribe via the web admin portal.
+const ALLOWED_PLAN_KEYS = new Set([
+  "patient",
+  "doctor_premium",
+  "medecin-premium",
+  "doctor-premium",
+]);
+
+function normalizePlanKey(p: Any): PlanId {
+  const key = String(p.slug || p.tier || p.id || "").toLowerCase();
+  if (key === "doctor_premium" || key === "doctor-premium" || key === "medecin-premium") {
+    return "medecin-premium";
+  }
+  return "patient";
+}
+
 export async function getPlans(): Promise<Plan[]> {
   try {
     const response = await api.get<Any>("/subscriptions/plans");
+    const rawPl = response.data;
     const list =
-      Array.isArray(response.data) ? response.data : [];
+      Array.isArray(rawPl) ? rawPl : Array.isArray(rawPl?.data) ? rawPl.data : [];
 
     if (list.length > 0) {
-      return list.map((p: Any) => ({
-        id: (p.tier || p.id || "patient") as PlanId,
-        name: p.name || "",
-        description: p.description || "",
-        priceMonthly: p.priceMonthly || p.price || 0,
-        priceYearly: p.priceYearly || (p.priceMonthly || p.price || 0) * 10,
-        features:
-          (p.tier || p.id) === "medecin-premium"
-            ? MEDECIN_PREMIUM_FEATURES
-            : PATIENT_FEATURES,
-      }));
+      const filtered = list.filter((p: Any) => {
+        const key = String(p.slug || p.tier || p.id || "").toLowerCase();
+        return ALLOWED_PLAN_KEYS.has(key);
+      });
+
+      // If filtering removed everything (e.g. backend uses different slugs), fall back to defaults
+      if (filtered.length === 0) return DEFAULT_PLANS;
+
+      const mapped = filtered.map((p: Any) => {
+        const normalizedId = normalizePlanKey(p);
+        return {
+          id: normalizedId,
+          name: p.name || (normalizedId === "patient" ? "Patient" : "Médecin Premium"),
+          description: p.description || "",
+          priceMonthly: Number(p.priceMonthly ?? p.price_monthly ?? p.price ?? 0),
+          priceYearly: Number(p.priceYearly ?? p.price_yearly ?? (p.priceMonthly ?? 0) * 10),
+          features:
+            normalizedId === "medecin-premium"
+              ? MEDECIN_PREMIUM_FEATURES
+              : PATIENT_FEATURES,
+        };
+      });
+
+      // Deduplicate by id (keep first occurrence)
+      const seen = new Set<PlanId>();
+      const unique = mapped.filter((p: Plan) => {
+        if (seen.has(p.id)) return false;
+        seen.add(p.id);
+        return true;
+      });
+
+      return unique;
     }
   } catch {
     // Fallback below
@@ -160,8 +201,9 @@ export async function subscribeToPlan(
 ): Promise<{ success: boolean; message: string }> {
   try {
     const plansRes = await api.get<Any>("/subscriptions/plans");
+    const rawPls = plansRes.data;
     const plans =
-      Array.isArray(plansRes.data) ? plansRes.data : [];
+      Array.isArray(rawPls) ? rawPls : Array.isArray(rawPls?.data) ? rawPls.data : [];
     const plan = plans.find(
       (p: Any) => p.tier === planId || p.id === planId
     );
@@ -190,8 +232,9 @@ export async function cancelSubscription(): Promise<{
 }> {
   try {
     const response = await api.get<Any>("/subscriptions");
+    const rawCancel = response.data;
     const list =
-      Array.isArray(response.data) ? response.data : [];
+      Array.isArray(rawCancel) ? rawCancel : Array.isArray(rawCancel?.data) ? rawCancel.data : [];
     if (list.length > 0) {
       await api.delete(`/subscriptions/${list[0].id}/cancel`);
     }

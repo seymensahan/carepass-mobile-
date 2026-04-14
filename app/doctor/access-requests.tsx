@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as doctorService from "../../services/doctor.service";
+import QRScanner from "../../components/QRScanner";
 
 const s = StyleSheet.create({
   card: { shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 16, elevation: 3 },
@@ -19,6 +20,18 @@ export default function AccessRequestsScreen() {
   const [carypassId, setCarypassId] = useState("");
   const [reason, setReason] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+
+  const handleQRScan = (data: { carypassId?: string; token?: string; raw: string }) => {
+    setScannerOpen(false);
+    const id = data.carypassId || data.token;
+    if (id) {
+      setCarypassId(id);
+      setShowForm(true);
+    } else {
+      Alert.alert("QR non reconnu", "Ce QR code ne correspond pas à un patient CaryPass.");
+    }
+  };
 
   // Pending access requests
   const { data: requests = [], isRefetching: isRefetchingRequests } = useQuery({
@@ -56,6 +69,11 @@ export default function AccessRequestsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+        className="flex-1"
+      >
       {/* Header */}
       <View className="flex-row items-center px-6 pt-6 pb-4">
         <Pressable onPress={() => router.back()} className="mr-4">
@@ -87,7 +105,10 @@ export default function AccessRequestsScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 32 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 240 }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
@@ -100,27 +121,45 @@ export default function AccessRequestsScreen() {
           />
         }
       >
-        {/* New Request Button */}
+        {/* New Request Buttons */}
         {!showForm ? (
-          <Pressable
-            onPress={() => setShowForm(true)}
-            className="bg-primary rounded-2xl p-4 flex-row items-center justify-center mb-5"
-            style={s.card}
-          >
-            <Feather name="user-plus" size={18} color="white" />
-            <Text className="text-white font-semibold text-sm ml-2">Demander accès à un patient</Text>
-          </Pressable>
+          <View className="flex-row gap-3 mb-5">
+            <Pressable
+              onPress={() => setScannerOpen(true)}
+              className="flex-1 bg-primary rounded-2xl p-4 flex-row items-center justify-center"
+              style={s.card}
+            >
+              <Feather name="maximize" size={18} color="white" />
+              <Text className="text-white font-semibold text-sm ml-2">Scanner QR</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setShowForm(true)}
+              className="flex-1 bg-white rounded-2xl p-4 flex-row items-center justify-center border border-primary"
+              style={s.card}
+            >
+              <Feather name="edit-3" size={18} color="#007bff" />
+              <Text className="text-primary font-semibold text-sm ml-2">Saisir l'ID</Text>
+            </Pressable>
+          </View>
         ) : (
           <View className="bg-white rounded-2xl p-5 mb-5 border border-border">
             <Text className="text-base font-bold text-foreground mb-4">Nouvelle demande</Text>
             <Text className="text-xs font-medium text-foreground mb-1">CaryPass ID du patient</Text>
-            <TextInput
-              value={carypassId}
-              onChangeText={setCarypassId}
-              placeholder="Ex: CP-2025-00001"
-              className="bg-gray-50 rounded-xl px-4 py-3 mb-3 text-sm text-foreground border border-border"
-              placeholderTextColor="#adb5bd"
-            />
+            <View className="flex-row gap-2 mb-3">
+              <TextInput
+                value={carypassId}
+                onChangeText={setCarypassId}
+                placeholder="Ex: CP-2025-00001"
+                className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-sm text-foreground border border-border"
+                placeholderTextColor="#adb5bd"
+              />
+              <Pressable
+                onPress={() => setScannerOpen(true)}
+                className="w-12 h-12 rounded-xl bg-primary/10 items-center justify-center"
+              >
+                <Feather name="maximize" size={20} color="#007bff" />
+              </Pressable>
+            </View>
             <Text className="text-xs font-medium text-foreground mb-1">Motif (optionnel)</Text>
             <TextInput
               value={reason}
@@ -209,6 +248,14 @@ export default function AccessRequestsScreen() {
           </>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
+
+      <QRScanner
+        visible={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={handleQRScan}
+        title="Scanner le QR du patient"
+      />
     </SafeAreaView>
   );
 }

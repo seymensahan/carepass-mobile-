@@ -226,6 +226,19 @@ export async function createConsultation(data: CreateConsultationData): Promise<
   return { success: false, message: "Réponse inattendue du serveur" };
 }
 
+export async function updateConsultation(id: string, data: {
+  diagnosis?: string;
+  notes?: string;
+  symptoms?: string;
+  status?: string;
+}): Promise<{ success: boolean; message?: string }> {
+  const response = await api.patch<any>(`/consultations/${id}`, { body: data });
+  if (response.error) {
+    return { success: false, message: response.error };
+  }
+  return { success: true };
+}
+
 // ─── Appointments ───
 
 export async function getAppointments(): Promise<DoctorAppointment[]> {
@@ -349,6 +362,7 @@ export async function createHospitalisation(data: {
   bed?: string;
   diagnosis?: string;
   notes?: string;
+  nurseIds?: string[];
 }): Promise<{ success: boolean; id?: string; message?: string }> {
   const response = await api.post<any>("/hospitalisations", { body: data as any });
   if (response.error) {
@@ -357,6 +371,19 @@ export async function createHospitalisation(data: {
   const result = unwrapOne(response.data);
   if (result?.id) return { success: true, id: result.id };
   return { success: false, message: "Réponse inattendue du serveur" };
+}
+
+export async function getAvailableNursesForHosp(): Promise<Array<{
+  id: string;
+  firstName: string;
+  lastName: string;
+  specialty?: string;
+  avatarUrl?: string;
+}>> {
+  const response = await api.get<any>("/hospitalisations/available-nurses");
+  if (response.error) return [];
+  const data = response.data;
+  return Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
 }
 
 export async function dischargePatient(id: string): Promise<boolean> {
@@ -431,6 +458,24 @@ function mapConsultation(c: any): DoctorConsultation {
     }))
   ) || [];
 
+  // Vital signs from JSON field
+  const rawVitals = c.vitalSigns || c.vitals;
+  const vitals = rawVitals
+    ? {
+        temperature: rawVitals.temperature,
+        temperatureCelsius: rawVitals.temperatureCelsius ?? rawVitals.temperature,
+        heartRate: rawVitals.heartRate,
+        bloodPressure: rawVitals.bloodPressure,
+        weight: rawVitals.weight,
+        weightKg: rawVitals.weightKg ?? rawVitals.weight,
+        height: rawVitals.height,
+        heightCm: rawVitals.heightCm ?? rawVitals.height,
+        oxygenSaturation: rawVitals.oxygenSaturation,
+        respiratoryRate: rawVitals.respiratoryRate,
+        notes: rawVitals.notes,
+      }
+    : undefined;
+
   return {
     id: c.id,
     patientId: c.patientId,
@@ -438,10 +483,18 @@ function mapConsultation(c: any): DoctorConsultation {
     date: c.date,
     type: c.type || "consultation",
     motif: c.motif || "",
+    symptoms: c.symptoms || "",
     diagnosis: c.diagnosis || "",
     notes: c.notes || "",
     status: c.status || "en_cours",
     prescriptions,
+    vitalSigns: vitals,
+    vitals,
+    initiatedByNurseId: c.initiatedByNurseId ?? null,
+    initiatedByNurse: c.initiatedByNurse ?? null,
+    externalDoctorName: c.externalDoctorName,
+    externalDoctorSpecialty: c.externalDoctorSpecialty,
+    externalDoctorPhone: c.externalDoctorPhone,
   };
 }
 

@@ -16,6 +16,7 @@ import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import DatePickerField from "../../components/ui/DatePickerField";
 import * as doctorService from "../../services/doctor.service";
+import { useQuery } from "@tanstack/react-query";
 
 const TYPES = [
   { key: "Consultation", label: "Consultation" },
@@ -38,13 +39,32 @@ export default function NewAppointmentScreen() {
     duration: 30,
     reason: "",
     notes: "",
+    institutionId: "" as string,
   });
   const [date, setDate] = useState<Date | null>(null);
   const [time, setTime] = useState<Date | null>(null);
 
+  // Fetch doctor's institutions
+  const { data: institutions = [] } = useQuery({
+    queryKey: ["doctor-institutions"],
+    queryFn: doctorService.getDoctorInstitutions,
+  });
+
+  // Auto-select primary institution on load
+  React.useEffect(() => {
+    if (institutions.length > 0 && !form.institutionId) {
+      const primary = institutions.find((i: any) => i.isPrimary) || institutions[0];
+      setForm((prev) => ({ ...prev, institutionId: primary.id }));
+    }
+  }, [institutions]);
+
   const handleSubmit = async () => {
     if (!form.patientId || !date || !time) {
       Alert.alert("Erreur", "Le patient, la date et l'heure sont requis.");
+      return;
+    }
+    if (institutions.length > 1 && !form.institutionId) {
+      Alert.alert("Erreur", "Veuillez choisir l'institution pour ce rendez-vous.");
       return;
     }
     setLoading(true);
@@ -58,6 +78,7 @@ export default function NewAppointmentScreen() {
         type: form.type,
         reason: form.reason || undefined,
         notes: form.notes || undefined,
+        institutionId: form.institutionId || undefined,
       });
       if (result.success) {
         queryClient.invalidateQueries({ queryKey: ["doctor-appointments"] });
@@ -86,8 +107,18 @@ export default function NewAppointmentScreen() {
         </View>
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
-        <ScrollView className="flex-1 px-6" contentContainerStyle={{ paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+        className="flex-1"
+      >
+        <ScrollView
+          className="flex-1 px-6"
+          contentContainerStyle={{ paddingBottom: 240 }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+        >
           {/* Patient ID */}
           <View className="mb-4">
             <Text className="text-xs font-semibold text-foreground mb-1.5">ID CaryPass du patient *</Text>
@@ -99,6 +130,41 @@ export default function NewAppointmentScreen() {
               placeholderTextColor="#adb5bd"
             />
           </View>
+
+          {/* Institution selector (only if multi-institution) */}
+          {institutions.length > 1 && (
+            <View className="mb-4">
+              <Text className="text-xs font-semibold text-foreground mb-2">Institution *</Text>
+              {institutions.map((inst: any) => {
+                const isSelected = form.institutionId === inst.id;
+                return (
+                  <Pressable
+                    key={inst.id}
+                    onPress={() => setForm({ ...form, institutionId: inst.id })}
+                    className={`flex-row items-center rounded-2xl p-3 mb-2 border-2 ${
+                      isSelected ? "border-primary bg-primary/5" : "border-border bg-white"
+                    }`}
+                  >
+                    <View className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center mr-3">
+                      <Feather name="home" size={16} color="#007bff" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-semibold text-foreground">{inst.name}</Text>
+                      {inst.city && (
+                        <Text className="text-xs text-muted">{inst.city}</Text>
+                      )}
+                    </View>
+                    {inst.isPrimary && !isSelected && (
+                      <View className="bg-primary/10 rounded-full px-2 py-0.5 mr-2">
+                        <Text className="text-[9px] text-primary font-bold">Principal</Text>
+                      </View>
+                    )}
+                    {isSelected && <Feather name="check-circle" size={20} color="#007bff" />}
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
 
           {/* Date & Time pickers */}
           <View className="flex-row gap-3 mb-4">

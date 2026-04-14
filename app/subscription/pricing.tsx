@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
   TextInput,
   View,
-  Modal,
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -21,6 +23,7 @@ import {
 } from "../../services/subscription.service";
 import { initiatePayment } from "../../services/payment.service";
 import Skeleton from "../../components/ui/Skeleton";
+import PhoneInput from "../../components/ui/PhoneInput";
 
 function formatFCFA(amount: number): string {
   if (amount === 0) return "0";
@@ -32,7 +35,7 @@ export default function PricingScreen() {
   const router = useRouter();
   const [showPayment, setShowPayment] = useState(false);
   const [selectedPlanForPayment, setSelectedPlanForPayment] = useState<Plan | null>(null);
-  const [phone, setPhone] = useState("+237 ");
+  const [phone, setPhone] = useState("");
   const [provider, setProvider] = useState<"mtn" | "orange">("mtn");
   const [paying, setPaying] = useState(false);
 
@@ -47,7 +50,7 @@ export default function PricingScreen() {
   };
 
   const handlePay = async () => {
-    if (!selectedPlanForPayment || phone.replace(/\s/g, "").length < 10) {
+    if (!selectedPlanForPayment || phone.length < 10) {
       Alert.alert("Erreur", "Veuillez entrer un numéro de téléphone valide.");
       return;
     }
@@ -55,7 +58,7 @@ export default function PricingScreen() {
     try {
       const result = await initiatePayment({
         planId: selectedPlanForPayment.id,
-        phoneNumber: phone.replace(/\s/g, ""),
+        phoneNumber: phone,
         period: selectedPlanForPayment.id === "patient" ? "yearly" : "monthly",
       });
       setPaying(false);
@@ -91,10 +94,17 @@ export default function PricingScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+        className="flex-1"
+      >
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: 240 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         {/* Header */}
         <View className="flex-row items-center px-6 pt-6 pb-2">
@@ -224,6 +234,7 @@ export default function PricingScreen() {
           </Text>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Payment Modal */}
       <Modal visible={showPayment} animationType="slide" transparent>
@@ -268,14 +279,13 @@ export default function PricingScreen() {
             </View>
 
             {/* Phone number */}
-            <Text className="text-sm font-medium text-foreground mb-2">Numéro Mobile Money</Text>
-            <TextInput
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="6XX XXX XXX"
-              keyboardType="phone-pad"
-              className="h-12 rounded-xl border border-border px-4 text-base text-foreground mb-5"
-            />
+            <View className="mb-5">
+              <PhoneInput
+                label="Numéro Mobile Money"
+                value={phone}
+                onChangeText={setPhone}
+              />
+            </View>
 
             {/* Pay button */}
             <Pressable

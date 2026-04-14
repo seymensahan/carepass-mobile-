@@ -40,6 +40,20 @@ export interface DoctorPatient {
   accessStatus: "active" | "expiring_soon" | "expired";
 }
 
+export interface DoctorVitalSigns {
+  temperature?: number;
+  temperatureCelsius?: number;
+  heartRate?: number;
+  bloodPressure?: string;
+  weight?: number;
+  weightKg?: number;
+  height?: number;
+  heightCm?: number;
+  oxygenSaturation?: number;
+  respiratoryRate?: number;
+  notes?: string;
+}
+
 export interface DoctorConsultation {
   id: string;
   patientId: string;
@@ -47,10 +61,21 @@ export interface DoctorConsultation {
   date: string;
   type: string;
   motif: string;
+  symptoms?: string;
   diagnosis: string;
   notes: string;
   status: "en_cours" | "terminee" | "annulee";
   prescriptions: DoctorPrescription[];
+  vitalSigns?: DoctorVitalSigns;
+  vitals?: DoctorVitalSigns;
+  initiatedByNurseId?: string | null;
+  initiatedByNurse?: {
+    id: string;
+    user?: { firstName: string; lastName: string };
+  } | null;
+  externalDoctorName?: string;
+  externalDoctorSpecialty?: string;
+  externalDoctorPhone?: string;
 }
 
 export interface DoctorPrescription {
@@ -123,4 +148,5 @@ export interface CreateAppointmentData {
   type?: string;
   reason?: string;
   notes?: string;
+  institutionId?: string;
 }
