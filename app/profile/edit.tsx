@@ -110,7 +110,7 @@ export default function EditProfileScreen() {
       const token = await SecureStore.getItemAsync("carypass_access_token");
       const debuggerHost =
         Constants.expoConfig?.hostUri ?? (Constants.manifest2 as any)?.extra?.expoGo?.debuggerHost;
-      let baseUrl = "https://carypass-backend.zylo-platform.cloud/api";
+      let baseUrl = process.env.EXPO_PUBLIC_API_URL || "https://carypass-backend.zylo-platform.cloud/api";
       if (__DEV__ && debuggerHost) {
         const ip = debuggerHost.split(":")[0];
         baseUrl = `http://${ip}:8000/api`;

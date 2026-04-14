@@ -4,9 +4,16 @@ import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 
-const PROD_URL = "https://carypass-backend.zylo-platform.cloud";
+// Socket URL — derived from EXPO_PUBLIC_API_URL (without the /api suffix)
+const PROD_URL = (
+  process.env.EXPO_PUBLIC_API_URL ||
+  "https://carypass-backend.zylo-platform.cloud/api"
+).replace(/\/api\/?$/, "");
 
 function getDevSocketUrl(): string {
+  if (process.env.EXPO_PUBLIC_DEV_API_URL) {
+    return process.env.EXPO_PUBLIC_DEV_API_URL.replace(/\/api\/?$/, "");
+  }
   const debuggerHost =
     Constants.expoConfig?.hostUri ?? Constants.manifest2?.extra?.expoGo?.debuggerHost;
   if (debuggerHost) {

@@ -2,13 +2,21 @@ import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 
-const PROD_URL = "https://carypass-backend.zylo-platform.cloud/api";
+// Production URL — read from EXPO_PUBLIC_API_URL env var with fallback
+const PROD_URL =
+  process.env.EXPO_PUBLIC_API_URL ||
+  "https://carypass-backend.zylo-platform.cloud/api";
 
 // Resolve the dev server URL dynamically:
+// - If EXPO_PUBLIC_DEV_API_URL is set, use it directly
 // - Physical device (Expo Go): use the debuggerHost IP (the machine running Metro)
 // - Android emulator: 10.0.2.2 reaches host machine
 // - iOS simulator: localhost
 function getDevUrl(): string {
+  // Allow override via env variable
+  if (process.env.EXPO_PUBLIC_DEV_API_URL) {
+    return process.env.EXPO_PUBLIC_DEV_API_URL;
+  }
   // expo-constants provides the IP of the machine running Metro
   const debuggerHost =
     Constants.expoConfig?.hostUri ?? Constants.manifest2?.extra?.expoGo?.debuggerHost;
@@ -19,7 +27,7 @@ function getDevUrl(): string {
   // Fallback for emulators
   return Platform.OS === "android"
     ? "http://10.0.2.2:8000/api"
-    : "https://carepass-backend.zylo-platform.cloud/api";
+    : PROD_URL;
 }
 
 const BASE_URL = __DEV__ ? getDevUrl() : PROD_URL;
