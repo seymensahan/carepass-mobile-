@@ -162,6 +162,23 @@ export async function forgotPassword(
   }
 }
 
+export async function resetPassword(
+  token: string,
+  newPassword: string
+): Promise<{ success: boolean; message: string }> {
+  const response = await api.post<{ message: string }>("/auth/reset-password", {
+    body: { token, newPassword },
+    authenticated: false,
+  });
+  if (response.error) {
+    return { success: false, message: response.error };
+  }
+  return {
+    success: true,
+    message: response.data?.message || "Mot de passe réinitialisé avec succès",
+  };
+}
+
 export async function verifyOtp(
   code: string
 ): Promise<OtpVerificationResponse> {

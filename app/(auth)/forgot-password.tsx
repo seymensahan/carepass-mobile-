@@ -61,26 +61,29 @@ export default function ForgotPasswordScreen() {
         <View className="flex-1 px-6 justify-center items-center">
           {/* Success icon */}
           <View className="w-20 h-20 rounded-full bg-secondary/10 items-center justify-center mb-6">
-            <Feather name="check-circle" size={40} color="#28a745" />
+            <Feather name="mail" size={40} color="#28a745" />
           </View>
 
           <Text className="text-2xl font-bold text-foreground mb-2 text-center">
-            {t("forgotPassword.successTitle")}
+            Email envoyé
+          </Text>
+          <Text className="text-sm text-muted text-center leading-5 mb-2 px-4">
+            Si un compte existe avec
+          </Text>
+          <Text className="text-sm font-semibold text-foreground text-center mb-2 px-4">
+            {getValues("email")}
           </Text>
           <Text className="text-sm text-muted text-center leading-5 mb-8 px-4">
-            {t("forgotPassword.successMessage")}{" "}
-            <Text className="font-semibold text-foreground">
-              {getValues("email")}
-            </Text>
+            vous recevrez un lien de réinitialisation par email. Cliquez dessus pour choisir un nouveau mot de passe.
           </Text>
 
           <Button
-            title={t("forgotPassword.enterCode")}
-            onPress={() => router.push("/(auth)/otp-verification")}
+            title="J'ai déjà reçu le code"
+            onPress={() => router.push("/(auth)/reset-password" as any)}
           />
           <View className="h-3" />
           <Button
-            title={t("forgotPassword.backToLogin")}
+            title="Retour à la connexion"
             onPress={() => router.replace("/(auth)/login")}
             variant="outline"
           />
