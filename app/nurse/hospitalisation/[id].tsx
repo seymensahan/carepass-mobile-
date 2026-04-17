@@ -21,11 +21,31 @@ export default function NurseHospitalisationDetailScreen() {
     glycemia: "",
     weight: "",
   });
+  // Custom vital parameters that the nurse can add on the fly
+  const [customVitals, setCustomVitals] = useState<
+    { id: string; name: string; value: string; unit: string }[]
+  >([]);
 
   const resetForm = () => {
     setNotes("");
     setVitals({ temperature: "", systolic: "", diastolic: "", heartRate: "", spO2: "", glycemia: "", weight: "" });
+    setCustomVitals([]);
     setExecutingId(null);
+  };
+
+  const addCustomVital = () => {
+    setCustomVitals((prev) => [
+      ...prev,
+      { id: `cv_${Date.now()}_${prev.length}`, name: "", value: "", unit: "" },
+    ]);
+  };
+
+  const updateCustomVital = (id: string, field: "name" | "value" | "unit", value: string) => {
+    setCustomVitals((prev) => prev.map((cv) => (cv.id === id ? { ...cv, [field]: value } : cv)));
+  };
+
+  const removeCustomVital = (id: string) => {
+    setCustomVitals((prev) => prev.filter((cv) => cv.id !== id));
   };
 
   const { data: detail, isLoading } = useQuery({
@@ -235,6 +255,63 @@ export default function NurseHospitalisationDetailScreen() {
                                   />
                                 </View>
                               </View>
+
+                              {/* Custom vital parameters (added on the fly) */}
+                              {customVitals.length > 0 && (
+                                <View className="mt-3 pt-3 border-t border-border/60">
+                                  <Text className="text-[10px] font-semibold text-muted mb-2 uppercase tracking-wide">
+                                    Paramètres personnalisés
+                                  </Text>
+                                  {customVitals.map((cv) => (
+                                    <View key={cv.id} className="flex-row gap-2 mb-2 items-end">
+                                      <View className="flex-1">
+                                        <Text className="text-[10px] text-muted mb-1">Nom</Text>
+                                        <TextInput
+                                          value={cv.name}
+                                          onChangeText={(v) => updateCustomVital(cv.id, "name", v)}
+                                          placeholder="Ex: Diurèse"
+                                          className="border border-border rounded-lg p-2 text-sm"
+                                        />
+                                      </View>
+                                      <View className="flex-1">
+                                        <Text className="text-[10px] text-muted mb-1">Valeur</Text>
+                                        <TextInput
+                                          value={cv.value}
+                                          onChangeText={(v) => updateCustomVital(cv.id, "value", v)}
+                                          placeholder="Ex: 500"
+                                          className="border border-border rounded-lg p-2 text-sm"
+                                        />
+                                      </View>
+                                      <View style={{ width: 70 }}>
+                                        <Text className="text-[10px] text-muted mb-1">Unité</Text>
+                                        <TextInput
+                                          value={cv.unit}
+                                          onChangeText={(v) => updateCustomVital(cv.id, "unit", v)}
+                                          placeholder="ml"
+                                          className="border border-border rounded-lg p-2 text-sm"
+                                        />
+                                      </View>
+                                      <Pressable
+                                        onPress={() => removeCustomVital(cv.id)}
+                                        className="w-9 h-9 rounded-lg bg-red-50 items-center justify-center"
+                                      >
+                                        <Feather name="trash-2" size={14} color="#dc3545" />
+                                      </Pressable>
+                                    </View>
+                                  ))}
+                                </View>
+                              )}
+
+                              {/* Add custom vital button */}
+                              <Pressable
+                                onPress={addCustomVital}
+                                className="mt-3 py-2.5 rounded-lg border border-dashed border-primary/40 items-center flex-row justify-center"
+                              >
+                                <Feather name="plus" size={14} color="#007bff" style={{ marginRight: 6 }} />
+                                <Text className="text-xs font-semibold text-primary">
+                                  Ajouter un paramètre personnalisé
+                                </Text>
+                              </Pressable>
                             </View>
                           )}
 
@@ -272,6 +349,15 @@ export default function NurseHospitalisationDetailScreen() {
                                 if (vitals.spO2) data.spO2 = parseInt(vitals.spO2);
                                 if (vitals.glycemia) data.glycemia = parseFloat(vitals.glycemia);
                                 if (vitals.weight) data.weight = parseFloat(vitals.weight);
+                                // Include custom vitals (filter empty ones)
+                                const validCustom = customVitals
+                                  .filter((cv) => cv.name.trim() && cv.value.trim())
+                                  .map((cv) => ({
+                                    name: cv.name.trim(),
+                                    value: cv.value.trim(),
+                                    unit: cv.unit.trim() || undefined,
+                                  }));
+                                if (validCustom.length > 0) data.customVitals = validCustom;
                                 executeMut.mutate({ itemId: item.id, data });
                               }}
                               className="flex-1 py-2.5 rounded-xl bg-secondary items-center"
