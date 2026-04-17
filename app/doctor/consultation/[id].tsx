@@ -16,6 +16,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import * as doctorService from "../../../services/doctor.service";
+import { parseVitalNotes } from "../../../lib/vital-notes";
 
 const s = StyleSheet.create({
   card: {
@@ -178,10 +179,25 @@ export default function ConsultationDetailScreen() {
               {vitals.respiratoryRate != null && (
                 <VitalBadge icon="wind" label="FR" value={`${vitals.respiratoryRate}/min`} color="#6f42c1" />
               )}
+              {(() => {
+                const { customVitals } = parseVitalNotes(vitals.notes);
+                return customVitals.map((cv, idx) => (
+                  <VitalBadge
+                    key={`cv-${idx}`}
+                    icon="plus-circle"
+                    label={cv.name}
+                    value={cv.unit ? `${cv.value} ${cv.unit}` : cv.value}
+                    color="#fd7e14"
+                  />
+                ));
+              })()}
             </View>
-            {vitals.notes && (
-              <Text className="text-xs text-muted mt-3 italic">{vitals.notes}</Text>
-            )}
+            {(() => {
+              const { cleanNotes } = parseVitalNotes(vitals.notes);
+              return cleanNotes ? (
+                <Text className="text-xs text-muted mt-3 italic">{cleanNotes}</Text>
+              ) : null;
+            })()}
           </View>
         )}
 

@@ -363,6 +363,7 @@ export async function createHospitalisation(data: {
   diagnosis?: string;
   notes?: string;
   nurseIds?: string[];
+  carePlanItems?: any[];
 }): Promise<{ success: boolean; id?: string; message?: string }> {
   const response = await api.post<any>("/hospitalisations", { body: data as any });
   if (response.error) {
@@ -510,4 +511,36 @@ function mapAppointment(a: any): DoctorAppointment {
     status: a.status || "scheduled",
     notes: a.notes,
   };
+}
+
+// ─── Nurse Invitations ───
+export interface NurseInvitation {
+  id: string;
+  email: string;
+  message?: string | null;
+  status: "pending" | "accepted" | "expired";
+  createdAt: string;
+  expiresAt: string;
+}
+
+export async function inviteNurse(payload: { email: string; message?: string }): Promise<NurseInvitation> {
+  const result = await getDoctorProfile();
+  if (!result) throw new Error("Profil médecin introuvable");
+  const response = await api.post<any>(`/doctors/${result.doctorId}/invitations`, { body: payload });
+  if (response.error) throw new Error(response.error);
+  return unwrapOne(response.data);
+}
+
+export async function listNurseInvitations(): Promise<NurseInvitation[]> {
+  const result = await getDoctorProfile();
+  if (!result) return [];
+  const response = await api.get<any>(`/doctors/${result.doctorId}/invitations`);
+  return unwrapList(response.data);
+}
+
+export async function cancelNurseInvitation(invitationId: string): Promise<void> {
+  const result = await getDoctorProfile();
+  if (!result) throw new Error("Profil médecin introuvable");
+  const response = await api.delete<any>(`/doctors/${result.doctorId}/invitations/${invitationId}`);
+  if (response.error) throw new Error(response.error);
 }

@@ -23,20 +23,22 @@ const DEFAULT_CONFIG: EmergencyConfig = {
 
 export async function getEmergencyData(): Promise<EmergencyData> {
   try {
-    // Assemble emergency data from user profile + related data
-    const [profileRes, childrenRes, prescRes] = await Promise.all([
+    // Assemble emergency data from user profile + emergency token + related data
+    // /users/profile now includes dependents via LegalGuardian
+    const [profileRes, tokenRes, prescRes] = await Promise.all([
       api.get<Any>("/users/profile"),
-      api.get<Any>("/children"),
+      api.get<Any>("/emergency/me/token"),
       api.get<Any>("/prescriptions?limit=20"),
     ]);
 
-    const p = profileRes.data;
+    const profileRaw = profileRes.data;
+    const p = profileRaw?.data ?? profileRaw;
     const pat = p?.patient;
+    const dependents = p?.dependents || [];
 
-    const childrenList =
-      Array.isArray(childrenRes.data) ? childrenRes.data : [];
+    const prescRaw = prescRes.data;
     const prescList =
-      Array.isArray(prescRes.data) ? prescRes.data : [];
+      Array.isArray(prescRaw) ? prescRaw : Array.isArray(prescRaw?.data) ? prescRaw.data : [];
 
     // Extract current medications from prescriptions
     const medications: { name: string; dosage: string }[] = [];
@@ -45,6 +47,23 @@ export async function getEmergencyData(): Promise<EmergencyData> {
         medications.push({ name: item.name || "", dosage: item.dosage || "" });
       }
     }
+
+    // Get token from dedicated endpoint (auto-generated if missing)
+    const tokenInner = tokenRes.data?.data ?? tokenRes.data;
+    const token = tokenInner?.token || "";
+
+    // For each dependent, we'll need their token too — fetch in parallel
+    const dependentTokens = await Promise.all(
+      dependents.map(async (d: Any) => {
+        try {
+          const r = await api.get<Any>(`/emergency/dependents/${d.patientId}/token`);
+          const inner = r.data?.data ?? r.data;
+          return { patientId: d.patientId, token: inner?.token || "" };
+        } catch {
+          return { patientId: d.patientId, token: "" };
+        }
+      })
+    );
 
     const data: EmergencyData = {
       patientName: `${p?.firstName || ""} ${p?.lastName || ""}`.trim(),
@@ -55,29 +74,32 @@ export async function getEmergencyData(): Promise<EmergencyData> {
         name: a.allergen || a.name || "",
         severity: a.severity || "modérée",
       })),
-      conditions: (pat?.conditions || []).map((c: Any) => c.name || ""),
+      conditions: (pat?.medicalConditions || pat?.conditions || []).map((c: Any) => c.name || ""),
       currentMedications: medications,
       emergencyContacts: (pat?.emergencyContacts || []).map((e: Any) => ({
         name: e.name || "",
         relation: e.relation || e.relationship || "",
         phone: e.phone || "",
       })),
-      children: childrenList.map((c: Any) => {
-        const dob = new Date(c.dateOfBirth);
+      children: dependents.map((d: Any) => {
+        const dob = new Date(d.dateOfBirth);
         const ageYears = Math.floor(
           (Date.now() - dob.getTime()) / (365.25 * 86400000)
         );
+        const tokenEntry = dependentTokens.find((t) => t.patientId === d.patientId);
         return {
-          id: c.id,
-          firstName: c.firstName || "",
-          lastName: c.lastName || "",
+          id: d.patientId,
+          firstName: d.firstName || "",
+          lastName: d.lastName || "",
           age: `${ageYears} ans`,
-          bloodGroup: c.bloodGroup || null,
+          bloodGroup: d.bloodGroup || null,
           allergies: [],
           conditions: [],
+          qrToken: tokenEntry?.token || "",
+          carypassId: d.carypassId || "",
         };
       }),
-      qrToken: pat?.carypassId || "",
+      qrToken: token,
       lastUpdated: new Date().toISOString(),
     };
 

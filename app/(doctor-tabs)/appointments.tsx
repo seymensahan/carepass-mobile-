@@ -69,7 +69,7 @@ export default function DoctorAppointmentsScreen() {
       // Avoid duplicate dot colors on same day
       const existing = marks[key].dots as { color: string }[];
       if (!existing.find((d: { color: string }) => d.color === color)) {
-        existing.push({ key: a.status, color });
+        existing.push({ color });
       }
     });
 

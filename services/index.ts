@@ -15,3 +15,5 @@ export * from "./child.service";
 export * from "./access-grant.service";
 export * from "./subscription.service";
 export * from "./settings.service";
+export * from "./wallet.service";
+export * from "./referral.service";

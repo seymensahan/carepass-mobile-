@@ -141,9 +141,12 @@ export interface InstitutionOption {
 }
 
 export async function searchInstitutions(query?: string): Promise<InstitutionOption[]> {
-  const response = await api.get<Any>(`/institutions`, {
-    params: { search: query || "", limit: 50, isVerified: "true" },
+  const params = new URLSearchParams({
+    search: query || "",
+    limit: "50",
+    isVerified: "true",
   });
+  const response = await api.get<Any>(`/institutions?${params.toString()}`);
   const raw = response.data;
   const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
   return list.map((i: Any) => ({

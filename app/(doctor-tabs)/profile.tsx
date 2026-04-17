@@ -7,6 +7,7 @@ import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 import * as doctorService from "../../services/doctor.service";
+import * as walletService from "../../services/wallet.service";
 import i18n from "../../i18n";
 import RoleSwitcher from "../../components/ui/RoleSwitcher";
 
@@ -22,9 +23,35 @@ const s = StyleSheet.create({
 
 export default function DoctorProfileScreen() {
   const { t } = useTranslation();
-  const { user, logout } = useAuth();
+  const { user, logout, switchRole, refreshUser } = useAuth();
   const router = useRouter();
   const currentLang = i18n.language;
+  const [isQuickSwitching, setIsQuickSwitching] = React.useState(false);
+
+  // Refresh user on mount to make sure availableRoles is up to date
+  React.useEffect(() => {
+    refreshUser().catch(() => {});
+  }, [refreshUser]);
+
+  const availableRoles: string[] = ((user as any)?.availableRoles || []).filter(Boolean);
+  const canSwitchToPatient = availableRoles.includes("patient");
+
+  const handleQuickSwitchToPatient = async () => {
+    if (!canSwitchToPatient || isQuickSwitching) return;
+    setIsQuickSwitching(true);
+    try {
+      const result = await switchRole("patient");
+      if (result.success) {
+        router.replace("/");
+      } else {
+        Alert.alert("Erreur", result.message || "Impossible de changer de rôle");
+      }
+    } catch {
+      Alert.alert("Erreur", "Une erreur est survenue");
+    } finally {
+      setIsQuickSwitching(false);
+    }
+  };
 
   const { data: profile } = useQuery({
     queryKey: ["doctor-profile"],
@@ -34,6 +61,11 @@ export default function DoctorProfileScreen() {
   const { data: institutions = [] } = useQuery({
     queryKey: ["doctor-institutions"],
     queryFn: doctorService.getDoctorInstitutions,
+  });
+
+  const { data: wallet } = useQuery({
+    queryKey: ["wallet"],
+    queryFn: walletService.getWallet,
   });
 
   const handleLogout = () => {
@@ -62,8 +94,21 @@ export default function DoctorProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View className="px-6 pt-6 pb-2">
+        <View className="px-6 pt-6 pb-2 flex-row items-center justify-between">
           <Text className="text-2xl font-bold text-foreground">Mon profil</Text>
+          {canSwitchToPatient && (
+            <Pressable
+              onPress={handleQuickSwitchToPatient}
+              disabled={isQuickSwitching}
+              className="flex-row items-center px-3 py-2 rounded-full bg-primary/10"
+              style={{ opacity: isQuickSwitching ? 0.5 : 1 }}
+            >
+              <Feather name="user" size={14} color="#007bff" />
+              <Text className="text-primary text-xs font-semibold ml-1.5">
+                Passer en Patient
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Avatar + Name + Specialty */}
@@ -191,6 +236,31 @@ export default function DoctorProfileScreen() {
           </View>
         )}
 
+        {/* Wallet */}
+        <View className="px-6 mb-5">
+          <Pressable
+            onPress={() => router.push("/doctor/wallet" as any)}
+            className="bg-white rounded-3xl overflow-hidden flex-row items-center px-5 py-4"
+            style={s.card}
+          >
+            <View className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center mr-3">
+              <Feather name="credit-card" size={17} color="#007bff" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-foreground">Portefeuille</Text>
+              <Text className="text-xs text-muted mt-0.5">Gains & retraits</Text>
+            </View>
+            {wallet?.balance != null && (
+              <View className="bg-primary/10 px-3 py-1.5 rounded-full mr-2">
+                <Text className="text-xs font-bold text-primary">
+                  {wallet.balance.toLocaleString("fr-FR").replace(/,/g, " ")} F
+                </Text>
+              </View>
+            )}
+            <Feather name="chevron-right" size={18} color="#6c757d" />
+          </Pressable>
+        </View>
+
         {/* Premium Card (key feature kept) */}
         <View className="px-6 mb-5">
           <View className="bg-primary rounded-3xl overflow-hidden" style={s.card}>
@@ -231,6 +301,18 @@ export default function DoctorProfileScreen() {
         <View className="px-6 mb-5">
           <Text className="text-base font-bold text-foreground mb-3">Paramètres</Text>
           <View className="bg-white rounded-3xl overflow-hidden" style={s.card}>
+            {/* My Team */}
+            <Pressable
+              onPress={() => router.push("/doctor/team" as any)}
+              className="flex-row items-center px-5 py-4 border-b border-border/40"
+            >
+              <View className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center mr-3">
+                <Feather name="users" size={17} color="#007bff" />
+              </View>
+              <Text className="flex-1 text-sm font-semibold text-foreground">Mon équipe</Text>
+              <Feather name="chevron-right" size={18} color="#6c757d" />
+            </Pressable>
+
             {/* Subscription */}
             <Pressable
               onPress={() => router.push("/subscription/pricing" as any)}

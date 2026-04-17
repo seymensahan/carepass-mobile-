@@ -12,6 +12,7 @@ export default function DoctorLayout() {
       <Stack.Screen name="hospitalisation/[id]" />
       <Stack.Screen name="institutions" />
       <Stack.Screen name="sync-dashboard" />
+      <Stack.Screen name="wallet" />
     </Stack>
   );
 }

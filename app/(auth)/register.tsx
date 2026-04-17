@@ -6,6 +6,7 @@ import {
   Pressable,
   ScrollView,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -20,6 +21,7 @@ import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import PhoneInput from "../../components/ui/PhoneInput";
 import BeautifulDatePicker from "../../components/ui/BeautifulDatePicker";
+import * as referralService from "../../services/referral.service";
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 const TOTAL_STEPS = 3;
@@ -30,6 +32,10 @@ export default function RegisterScreen() {
   const { register: registerUser } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [referralCode, setReferralCode] = useState("");
+  const [referralValid, setReferralValid] = useState<boolean | null>(null);
+  const [referralDoctorName, setReferralDoctorName] = useState("");
+  const [referralLoading, setReferralLoading] = useState(false);
 
   const registerSchema = z
     .object({
@@ -119,6 +125,7 @@ export default function RegisterScreen() {
         dateOfBirth: data.dateOfBirth,
         bloodGroup: data.bloodGroup || undefined,
         role: "patient",
+        ...(referralCode.trim() && referralValid ? { referralCode: referralCode.trim() } : {}),
       }));
       // Track registration step completed
       const { trackEvent } = await import("../../lib/posthog");
@@ -366,6 +373,75 @@ export default function RegisterScreen() {
           </>
         )}
       />
+
+      {/* Referral code */}
+      <Text className="text-sm font-medium text-foreground mb-2">
+        Code de parrainage (optionnel)
+      </Text>
+      <View
+        className={`flex-row items-center border rounded-2xl bg-white overflow-hidden mb-2 ${
+          referralValid === true
+            ? "border-green-500"
+            : referralValid === false
+            ? "border-red-500"
+            : "border-border"
+        }`}
+      >
+        <TextInput
+          value={referralCode}
+          onChangeText={(v) => {
+            setReferralCode(v.toUpperCase());
+            setReferralValid(null);
+            setReferralDoctorName("");
+          }}
+          placeholder="DR-XXXXX-2026"
+          autoCapitalize="characters"
+          className="flex-1 h-12 px-4 text-base text-foreground"
+          placeholderTextColor="#adb5bd"
+          style={{ letterSpacing: 1 }}
+        />
+        <Pressable
+          onPress={async () => {
+            if (!referralCode.trim()) return;
+            setReferralLoading(true);
+            setReferralValid(null);
+            try {
+              const result = await referralService.validateCode(referralCode.trim());
+              if (result?.valid) {
+                setReferralValid(true);
+                setReferralDoctorName(result.doctorName);
+              } else {
+                setReferralValid(false);
+                setReferralDoctorName("");
+              }
+            } catch {
+              setReferralValid(false);
+            } finally {
+              setReferralLoading(false);
+            }
+          }}
+          disabled={!referralCode.trim() || referralLoading}
+          className={`h-12 px-5 justify-center ${
+            !referralCode.trim() || referralLoading ? "bg-gray-100" : "bg-primary/10"
+          }`}
+        >
+          <Text
+            className={`text-sm font-semibold ${
+              !referralCode.trim() ? "text-gray-400" : "text-primary"
+            }`}
+          >
+            {referralLoading ? "..." : "Verifier"}
+          </Text>
+        </Pressable>
+      </View>
+      {referralValid === true && (
+        <Text className="text-xs text-green-600 mb-2">
+          Parraine par Dr. {referralDoctorName}
+        </Text>
+      )}
+      {referralValid === false && (
+        <Text className="text-xs text-red-500 mb-2">Code de parrainage invalide</Text>
+      )}
     </>
   );
 

@@ -22,6 +22,8 @@ export interface EmergencyChildData {
   bloodGroup: string | null;
   allergies: EmergencyAllergy[];
   conditions: string[];
+  qrToken?: string;
+  carypassId?: string;
 }
 
 export interface EmergencyData {

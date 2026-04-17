@@ -382,7 +382,21 @@ function EmptyState({ icon, text }: { icon: string; text: string }) {
 // ─── Forms ───
 function VitalForm({ hospId, onClose, onSuccess }: { hospId: string; onClose: () => void; onSuccess: () => void }) {
   const [form, setForm] = useState({ temperature: "", systolic: "", diastolic: "", heartRate: "", spO2: "", glycemia: "", weight: "", nurseName: "", notes: "" });
+  const [customVitals, setCustomVitals] = useState<{ id: string; name: string; value: string; unit: string }[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const addCustomVital = () => {
+    setCustomVitals((prev) => [
+      ...prev,
+      { id: `cv_${Date.now()}_${prev.length}`, name: "", value: "", unit: "" },
+    ]);
+  };
+  const updateCustomVital = (id: string, field: "name" | "value" | "unit", value: string) => {
+    setCustomVitals((prev) => prev.map((cv) => (cv.id === id ? { ...cv, [field]: value } : cv)));
+  };
+  const removeCustomVital = (id: string) => {
+    setCustomVitals((prev) => prev.filter((cv) => cv.id !== id));
+  };
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -395,7 +409,17 @@ function VitalForm({ hospId, onClose, onSuccess }: { hospId: string; onClose: ()
     if (form.glycemia) data.glycemia = parseFloat(form.glycemia);
     if (form.weight) data.weight = parseFloat(form.weight);
     if (form.nurseName) data.nurseName = form.nurseName;
-    if (form.notes) data.notes = form.notes;
+
+    // Serialize custom vitals into notes (no schema migration required)
+    let enrichedNotes = form.notes || "";
+    const validCustom = customVitals.filter((cv) => cv.name.trim() && cv.value.trim());
+    if (validCustom.length > 0) {
+      const lines = validCustom.map(
+        (cv) => `• ${cv.name.trim()}: ${cv.value.trim()}${cv.unit.trim() ? " " + cv.unit.trim() : ""}`
+      );
+      enrichedNotes = `[Paramètres personnalisés]\n${lines.join("\n")}${enrichedNotes ? "\n\n" + enrichedNotes : ""}`;
+    }
+    if (enrichedNotes) data.notes = enrichedNotes;
 
     const ok = await doctorService.addVitalSigns(hospId, data);
     setLoading(false);
@@ -428,6 +452,62 @@ function VitalForm({ hospId, onClose, onSuccess }: { hospId: string; onClose: ()
               <MiniInput label="Glycémie (g/L)" value={form.glycemia} onChange={(v) => setForm({ ...form, glycemia: v })} keyboardType="decimal-pad" />
               <MiniInput label="Infirmier(e)" value={form.nurseName} onChange={(v) => setForm({ ...form, nurseName: v })} />
             </View>
+            {/* Custom vital parameters — for vitals not in the default list */}
+            {customVitals.length > 0 && (
+              <View className="mb-3">
+                <Text className="text-xs font-semibold text-muted mb-2 uppercase tracking-wide">
+                  Paramètres personnalisés
+                </Text>
+                {customVitals.map((cv) => (
+                  <View key={cv.id} className="flex-row gap-2 mb-2 items-end">
+                    <View className="flex-1">
+                      <Text className="text-[10px] text-muted mb-1">Nom</Text>
+                      <TextInput
+                        value={cv.name}
+                        onChangeText={(v) => updateCustomVital(cv.id, "name", v)}
+                        placeholder="Ex: Diurèse"
+                        className="bg-gray-50 rounded-lg px-2.5 py-2 text-sm"
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-[10px] text-muted mb-1">Valeur</Text>
+                      <TextInput
+                        value={cv.value}
+                        onChangeText={(v) => updateCustomVital(cv.id, "value", v)}
+                        placeholder="500"
+                        className="bg-gray-50 rounded-lg px-2.5 py-2 text-sm"
+                      />
+                    </View>
+                    <View style={{ width: 62 }}>
+                      <Text className="text-[10px] text-muted mb-1">Unité</Text>
+                      <TextInput
+                        value={cv.unit}
+                        onChangeText={(v) => updateCustomVital(cv.id, "unit", v)}
+                        placeholder="ml"
+                        className="bg-gray-50 rounded-lg px-2.5 py-2 text-sm"
+                      />
+                    </View>
+                    <Pressable
+                      onPress={() => removeCustomVital(cv.id)}
+                      className="w-9 h-9 rounded-lg bg-red-50 items-center justify-center"
+                    >
+                      <Feather name="trash-2" size={14} color="#dc3545" />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            <Pressable
+              onPress={addCustomVital}
+              className="mb-4 py-2.5 rounded-xl border border-dashed border-primary/40 items-center flex-row justify-center"
+            >
+              <Feather name="plus" size={14} color="#007bff" style={{ marginRight: 6 }} />
+              <Text className="text-xs font-semibold text-primary">
+                Ajouter un paramètre personnalisé
+              </Text>
+            </Pressable>
+
             <View className="mb-4">
               <Text className="text-xs font-semibold text-foreground mb-1">Notes</Text>
               <TextInput

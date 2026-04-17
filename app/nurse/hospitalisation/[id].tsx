@@ -255,65 +255,65 @@ export default function NurseHospitalisationDetailScreen() {
                                   />
                                 </View>
                               </View>
-
-                              {/* Custom vital parameters (added on the fly) */}
-                              {customVitals.length > 0 && (
-                                <View className="mt-3 pt-3 border-t border-border/60">
-                                  <Text className="text-[10px] font-semibold text-muted mb-2 uppercase tracking-wide">
-                                    Paramètres personnalisés
-                                  </Text>
-                                  {customVitals.map((cv) => (
-                                    <View key={cv.id} className="flex-row gap-2 mb-2 items-end">
-                                      <View className="flex-1">
-                                        <Text className="text-[10px] text-muted mb-1">Nom</Text>
-                                        <TextInput
-                                          value={cv.name}
-                                          onChangeText={(v) => updateCustomVital(cv.id, "name", v)}
-                                          placeholder="Ex: Diurèse"
-                                          className="border border-border rounded-lg p-2 text-sm"
-                                        />
-                                      </View>
-                                      <View className="flex-1">
-                                        <Text className="text-[10px] text-muted mb-1">Valeur</Text>
-                                        <TextInput
-                                          value={cv.value}
-                                          onChangeText={(v) => updateCustomVital(cv.id, "value", v)}
-                                          placeholder="Ex: 500"
-                                          className="border border-border rounded-lg p-2 text-sm"
-                                        />
-                                      </View>
-                                      <View style={{ width: 70 }}>
-                                        <Text className="text-[10px] text-muted mb-1">Unité</Text>
-                                        <TextInput
-                                          value={cv.unit}
-                                          onChangeText={(v) => updateCustomVital(cv.id, "unit", v)}
-                                          placeholder="ml"
-                                          className="border border-border rounded-lg p-2 text-sm"
-                                        />
-                                      </View>
-                                      <Pressable
-                                        onPress={() => removeCustomVital(cv.id)}
-                                        className="w-9 h-9 rounded-lg bg-red-50 items-center justify-center"
-                                      >
-                                        <Feather name="trash-2" size={14} color="#dc3545" />
-                                      </Pressable>
-                                    </View>
-                                  ))}
-                                </View>
-                              )}
-
-                              {/* Add custom vital button */}
-                              <Pressable
-                                onPress={addCustomVital}
-                                className="mt-3 py-2.5 rounded-lg border border-dashed border-primary/40 items-center flex-row justify-center"
-                              >
-                                <Feather name="plus" size={14} color="#007bff" style={{ marginRight: 6 }} />
-                                <Text className="text-xs font-semibold text-primary">
-                                  Ajouter un paramètre personnalisé
-                                </Text>
-                              </Pressable>
                             </View>
                           )}
+
+                          {/* Custom vital parameters — always available regardless of task type */}
+                          <View className="mb-3">
+                            <Text className="text-xs font-bold text-foreground mb-2">
+                              Paramètres vitaux supplémentaires
+                            </Text>
+                            {customVitals.length > 0 && (
+                              <View className="mb-2">
+                                {customVitals.map((cv) => (
+                                  <View key={cv.id} className="flex-row gap-2 mb-2 items-end">
+                                    <View className="flex-1">
+                                      <Text className="text-[10px] text-muted mb-1">Nom</Text>
+                                      <TextInput
+                                        value={cv.name}
+                                        onChangeText={(v) => updateCustomVital(cv.id, "name", v)}
+                                        placeholder="Ex: Diurèse"
+                                        className="border border-border rounded-lg p-2 text-sm"
+                                      />
+                                    </View>
+                                    <View className="flex-1">
+                                      <Text className="text-[10px] text-muted mb-1">Valeur</Text>
+                                      <TextInput
+                                        value={cv.value}
+                                        onChangeText={(v) => updateCustomVital(cv.id, "value", v)}
+                                        placeholder="Ex: 500"
+                                        className="border border-border rounded-lg p-2 text-sm"
+                                      />
+                                    </View>
+                                    <View style={{ width: 70 }}>
+                                      <Text className="text-[10px] text-muted mb-1">Unité</Text>
+                                      <TextInput
+                                        value={cv.unit}
+                                        onChangeText={(v) => updateCustomVital(cv.id, "unit", v)}
+                                        placeholder="ml"
+                                        className="border border-border rounded-lg p-2 text-sm"
+                                      />
+                                    </View>
+                                    <Pressable
+                                      onPress={() => removeCustomVital(cv.id)}
+                                      className="w-9 h-9 rounded-lg bg-red-50 items-center justify-center"
+                                    >
+                                      <Feather name="trash-2" size={14} color="#dc3545" />
+                                    </Pressable>
+                                  </View>
+                                ))}
+                              </View>
+                            )}
+                            <Pressable
+                              onPress={addCustomVital}
+                              className="py-2.5 rounded-lg border border-dashed border-primary/40 items-center flex-row justify-center"
+                            >
+                              <Feather name="plus" size={14} color="#007bff" style={{ marginRight: 6 }} />
+                              <Text className="text-xs font-semibold text-primary">
+                                Ajouter un paramètre vital
+                              </Text>
+                            </Pressable>
+                          </View>
 
                           {/* Notes / Rapport */}
                           <Text className="text-xs font-bold text-foreground mb-1">

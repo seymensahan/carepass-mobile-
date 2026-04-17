@@ -364,6 +364,34 @@ export default function EmergencyScreen() {
                         {t("emergency.noAllergyNoCondition")}
                       </Text>
                     )}
+
+                  {/* QR code for this child — parent can share separately */}
+                  {activeChild.qrToken ? (
+                    <View className="mt-4 pt-4 border-t border-border/60 items-center">
+                      <View className="bg-white p-2 rounded-xl mb-2" style={s.card}>
+                        <QRCode
+                          value={`https://carypass.cm/emergency/${activeChild.qrToken}`}
+                          size={120}
+                          color="#212529"
+                          backgroundColor="#ffffff"
+                        />
+                      </View>
+                      <Text className="text-[10px] text-muted mb-2">{activeChild.carypassId}</Text>
+                      <Pressable
+                        onPress={async () => {
+                          try {
+                            await Share.share({
+                              message: `Fiche d'urgence de ${activeChild.firstName} ${activeChild.lastName}\nhttps://carypass.cm/emergency/${activeChild.qrToken}`,
+                            });
+                          } catch { /* cancelled */ }
+                        }}
+                        className="flex-row items-center bg-primary/10 rounded-full px-4 py-2"
+                      >
+                        <Feather name="share-2" size={14} color="#007bff" />
+                        <Text className="text-xs font-bold text-primary ml-1.5">Partager la fiche</Text>
+                      </Pressable>
+                    </View>
+                  ) : null}
                 </View>
               )}
             </View>

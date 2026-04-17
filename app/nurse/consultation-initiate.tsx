@@ -29,6 +29,24 @@ export default function NurseConsultationInitiateScreen() {
   const [oxygenSaturation, setSpO2] = useState("");
   const [respiratoryRate, setRR] = useState("");
   const [vitalNotes, setVitalNotes] = useState("");
+  const [customVitals, setCustomVitals] = useState<
+    { id: string; name: string; value: string; unit: string }[]
+  >([]);
+
+  const addCustomVital = () => {
+    setCustomVitals((prev) => [
+      ...prev,
+      { id: `cv_${Date.now()}_${prev.length}`, name: "", value: "", unit: "" },
+    ]);
+  };
+
+  const updateCustomVital = (id: string, field: "name" | "value" | "unit", value: string) => {
+    setCustomVitals((prev) => prev.map((cv) => (cv.id === id ? { ...cv, [field]: value } : cv)));
+  };
+
+  const removeCustomVital = (id: string) => {
+    setCustomVitals((prev) => prev.filter((cv) => cv.id !== id));
+  };
 
   // Lookup patient
   const { data: patient, isLoading: lookingUp, error: lookupError } = useQuery({
@@ -62,6 +80,16 @@ export default function NurseConsultationInitiateScreen() {
       return;
     }
 
+    // Merge custom vitals into vitalNotes so they're persisted alongside the standard ones
+    let finalVitalNotes = vitalNotes || "";
+    const validCustom = customVitals.filter((cv) => cv.name.trim() && cv.value.trim());
+    if (validCustom.length > 0) {
+      const lines = validCustom.map(
+        (cv) => `• ${cv.name.trim()}: ${cv.value.trim()}${cv.unit.trim() ? " " + cv.unit.trim() : ""}`,
+      );
+      finalVitalNotes = `[Paramètres personnalisés]\n${lines.join("\n")}${finalVitalNotes ? "\n\n" + finalVitalNotes : ""}`;
+    }
+
     initMut.mutate({
       patientId: patient?.carypassId || patientId!,
       motif: motif.trim(),
@@ -72,7 +100,7 @@ export default function NurseConsultationInitiateScreen() {
       height: height ? parseFloat(height) : undefined,
       oxygenSaturation: oxygenSaturation ? parseFloat(oxygenSaturation) : undefined,
       respiratoryRate: respiratoryRate ? parseInt(respiratoryRate) : undefined,
-      vitalNotes: vitalNotes || undefined,
+      vitalNotes: finalVitalNotes || undefined,
     });
   };
 
@@ -266,6 +294,65 @@ export default function NurseConsultationInitiateScreen() {
                 placeholderTextColor="#adb5bd"
               />
             </View>
+
+            {/* Custom vital parameters — for vitals not in the default list */}
+            {customVitals.length > 0 && (
+              <View className="mb-3">
+                <Text className="text-xs font-semibold text-muted mb-2 uppercase tracking-wide">
+                  Paramètres personnalisés
+                </Text>
+                {customVitals.map((cv) => (
+                  <View key={cv.id} className="flex-row gap-2 mb-2 items-end">
+                    <View className="flex-1">
+                      <Text className="text-[10px] text-muted mb-1">Nom</Text>
+                      <TextInput
+                        value={cv.name}
+                        onChangeText={(v) => updateCustomVital(cv.id, "name", v)}
+                        placeholder="Ex: Diurèse"
+                        className="bg-white rounded-xl border border-border px-3 h-11 text-sm text-foreground"
+                        placeholderTextColor="#adb5bd"
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-[10px] text-muted mb-1">Valeur</Text>
+                      <TextInput
+                        value={cv.value}
+                        onChangeText={(v) => updateCustomVital(cv.id, "value", v)}
+                        placeholder="500"
+                        className="bg-white rounded-xl border border-border px-3 h-11 text-sm text-foreground"
+                        placeholderTextColor="#adb5bd"
+                      />
+                    </View>
+                    <View style={{ width: 70 }}>
+                      <Text className="text-[10px] text-muted mb-1">Unité</Text>
+                      <TextInput
+                        value={cv.unit}
+                        onChangeText={(v) => updateCustomVital(cv.id, "unit", v)}
+                        placeholder="ml"
+                        className="bg-white rounded-xl border border-border px-3 h-11 text-sm text-foreground"
+                        placeholderTextColor="#adb5bd"
+                      />
+                    </View>
+                    <Pressable
+                      onPress={() => removeCustomVital(cv.id)}
+                      className="w-11 h-11 rounded-xl bg-red-50 items-center justify-center"
+                    >
+                      <Feather name="trash-2" size={16} color="#dc3545" />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            <Pressable
+              onPress={addCustomVital}
+              className="mb-3 py-3 rounded-xl border border-dashed border-primary/40 items-center flex-row justify-center bg-primary/5"
+            >
+              <Feather name="plus" size={15} color="#007bff" style={{ marginRight: 6 }} />
+              <Text className="text-xs font-semibold text-primary">
+                Ajouter un paramètre vital
+              </Text>
+            </Pressable>
 
             {/* Notes */}
             <View className="mb-3">

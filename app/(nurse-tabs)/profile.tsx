@@ -20,9 +20,35 @@ const s = StyleSheet.create({
 });
 
 export default function NurseProfileScreen() {
-  const { user, logout } = useAuth();
+  const { user, logout, switchRole, refreshUser } = useAuth();
   const router = useRouter();
   const currentLang = i18n.language;
+  const [isQuickSwitching, setIsQuickSwitching] = useState(false);
+
+  // Refresh user on mount to make sure availableRoles is up to date
+  React.useEffect(() => {
+    refreshUser().catch(() => {});
+  }, [refreshUser]);
+
+  const availableRoles: string[] = ((user as any)?.availableRoles || []).filter(Boolean);
+  const canSwitchToPatient = availableRoles.includes("patient");
+
+  const handleQuickSwitchToPatient = async () => {
+    if (!canSwitchToPatient || isQuickSwitching) return;
+    setIsQuickSwitching(true);
+    try {
+      const result = await switchRole("patient");
+      if (result.success) {
+        router.replace("/");
+      } else {
+        Alert.alert("Erreur", result.message || "Impossible de changer de rôle");
+      }
+    } catch {
+      Alert.alert("Erreur", "Une erreur est survenue");
+    } finally {
+      setIsQuickSwitching(false);
+    }
+  };
 
   const { data: profile } = useQuery({
     queryKey: ["nurse-profile"],
@@ -51,8 +77,21 @@ export default function NurseProfileScreen() {
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View className="px-6 pt-6 pb-2">
+        <View className="px-6 pt-6 pb-2 flex-row items-center justify-between">
           <Text className="text-2xl font-bold text-foreground">Mon profil</Text>
+          {canSwitchToPatient && (
+            <Pressable
+              onPress={handleQuickSwitchToPatient}
+              disabled={isQuickSwitching}
+              className="flex-row items-center px-3 py-2 rounded-full bg-primary/10"
+              style={{ opacity: isQuickSwitching ? 0.5 : 1 }}
+            >
+              <Feather name="user" size={14} color="#007bff" />
+              <Text className="text-primary text-xs font-semibold ml-1.5">
+                Passer en Patient
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Avatar + Name + Role */}

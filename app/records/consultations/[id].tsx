@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getConsultationById } from "../../../services/consultation.service";
 import Skeleton from "../../../components/ui/Skeleton";
+import { parseVitalNotes } from "../../../lib/vital-notes";
 
 export default function ConsultationDetailScreen() {
   const { t } = useTranslation();
@@ -181,7 +182,25 @@ export default function ConsultationDetailScreen() {
                 {consultation.vitals.heightCm !== undefined && (
                   <VitalCard icon="bar-chart-2" color="#28a745" label="Taille" value={`${consultation.vitals.heightCm} cm`} />
                 )}
+                {parseVitalNotes(consultation.vitals.notes).customVitals.map((cv, idx) => (
+                  <VitalCard
+                    key={`cv-${idx}`}
+                    icon="plus-circle"
+                    color="#fd7e14"
+                    label={cv.name}
+                    value={cv.unit ? `${cv.value} ${cv.unit}` : cv.value}
+                  />
+                ))}
               </View>
+              {(() => {
+                const clean = parseVitalNotes(consultation.vitals.notes).cleanNotes;
+                return clean ? (
+                  <View className="mt-3 pt-3 border-t border-border">
+                    <Text className="text-xs font-semibold text-muted mb-1">Notes infirmière</Text>
+                    <Text className="text-xs text-foreground italic">{clean}</Text>
+                  </View>
+                ) : null;
+              })()}
               {consultation.vitals.symptoms && consultation.vitals.symptoms.length > 0 && (
                 <View className="mt-3 pt-3 border-t border-border">
                   <Text className="text-xs font-semibold text-muted mb-2">Symptômes signalés</Text>
