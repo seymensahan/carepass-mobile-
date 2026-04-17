@@ -34,6 +34,7 @@ const DURATION_OPTIONS: { key: GrantDuration; label: string }[] = [
   { key: "1_mois", label: "1 mois" },
   { key: "3_mois", label: "3 mois" },
   { key: "permanent", label: "Permanent" },
+  { key: "custom", label: "Personnalisée" },
 ];
 
 interface PermissionItem {

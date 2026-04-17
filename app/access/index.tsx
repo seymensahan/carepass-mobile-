@@ -4,11 +4,13 @@ import {
   Animated,
   Modal,
   PanResponder,
+  Platform,
   Pressable,
   ScrollView,
   Text,
   View,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -40,6 +42,7 @@ const DURATION_OPTIONS: { key: GrantDuration; label: string }[] = [
   { key: "1_mois", label: "1 mois" },
   { key: "3_mois", label: "3 mois" },
   { key: "permanent", label: "Permanent" },
+  { key: "custom", label: "Personnalisée" },
 ];
 
 const ALL_PERMISSIONS: GrantPermissions = {
@@ -58,6 +61,9 @@ export default function AccessManagementScreen() {
   const [approveModal, setApproveModal] = useState<AccessRequest | null>(null);
   const [approveDuration, setApproveDuration] =
     useState<GrantDuration>("1_semaine");
+  // Custom expiration date (ISO) used when approveDuration === "custom"
+  const [customExpiresAt, setCustomExpiresAt] = useState<string>("");
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
 
   const { data: activeGrants, isLoading: loadingActive } = useQuery({
     queryKey: ["active-grants"],
@@ -88,16 +94,19 @@ export default function AccessManagementScreen() {
       requestId,
       duration,
       permissions,
+      customExpiresAt: expiresAt,
     }: {
       requestId: string;
       duration: GrantDuration;
       permissions: GrantPermissions;
-    }) => approveRequest(requestId, duration, permissions),
+      customExpiresAt?: string;
+    }) => approveRequest(requestId, duration, permissions, expiresAt),
     onSuccess: () => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       queryClient.invalidateQueries({ queryKey: ["pending-requests"] });
       queryClient.invalidateQueries({ queryKey: ["active-grants"] });
       setApproveModal(null);
+      setCustomExpiresAt("");
     },
   });
 
@@ -149,10 +158,16 @@ export default function AccessManagementScreen() {
 
   const handleApproveConfirm = () => {
     if (!approveModal) return;
+    // Require custom expiration date when "Personnalisée" is chosen
+    if (approveDuration === "custom" && !customExpiresAt) {
+      Alert.alert("Date requise", "Veuillez choisir la date d'expiration personnalisée.");
+      return;
+    }
     approveMutation.mutate({
       requestId: approveModal.id,
       duration: approveDuration,
       permissions: ALL_PERMISSIONS,
+      customExpiresAt: approveDuration === "custom" ? customExpiresAt : undefined,
     });
   };
 
@@ -408,7 +423,7 @@ export default function AccessManagementScreen() {
             <Text className="text-sm font-semibold text-foreground mb-2">
               Durée de l'accès
             </Text>
-            <View className="flex-row flex-wrap gap-2 mb-6">
+            <View className="flex-row flex-wrap gap-2 mb-4">
               {DURATION_OPTIONS.map((opt) => (
                 <Pressable
                   key={opt.key}
@@ -431,6 +446,48 @@ export default function AccessManagementScreen() {
                 </Pressable>
               ))}
             </View>
+
+            {/* Custom date picker — only shown when "Personnalisée" is selected */}
+            {approveDuration === "custom" && (
+              <View className="mb-6">
+                <Text className="text-xs font-semibold text-foreground mb-2">
+                  Date d'expiration personnalisée
+                </Text>
+                <Pressable
+                  onPress={() => setShowCustomDatePicker(true)}
+                  className="flex-row items-center justify-between bg-white border border-border rounded-xl px-4 py-3"
+                >
+                  <View className="flex-row items-center">
+                    <Feather name="calendar" size={16} color="#6c757d" />
+                    <Text className={`ml-2 text-sm ${customExpiresAt ? "text-foreground font-medium" : "text-muted"}`}>
+                      {customExpiresAt
+                        ? new Date(customExpiresAt).toLocaleDateString("fr-FR", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })
+                        : "Sélectionner une date"}
+                    </Text>
+                  </View>
+                  <Feather name="chevron-down" size={16} color="#6c757d" />
+                </Pressable>
+                {showCustomDatePicker && (
+                  <DateTimePicker
+                    value={customExpiresAt ? new Date(customExpiresAt) : new Date(Date.now() + 7 * 86400000)}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    minimumDate={new Date(Date.now() + 86400000)}
+                    onChange={(event, selectedDate) => {
+                      setShowCustomDatePicker(Platform.OS === "ios");
+                      if (event.type !== "dismissed" && selectedDate) {
+                        setCustomExpiresAt(selectedDate.toISOString());
+                      }
+                    }}
+                  />
+                )}
+              </View>
+            )}
+            {approveDuration !== "custom" && <View className="mb-2" />}
 
             <Button
               title="Confirmer l'accès"

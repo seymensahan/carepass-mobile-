@@ -118,11 +118,16 @@ export async function getPendingRequests(): Promise<AccessRequest[]> {
 export async function approveRequest(
   requestId: string,
   duration: GrantDuration,
-  permissions: GrantPermissions
+  permissions: GrantPermissions,
+  customExpiresAt?: string // ISO 8601, used when duration === "custom"
 ): Promise<AccessGrant> {
+  const body: Record<string, unknown> = { duration, permissions };
+  if (duration === "custom" && customExpiresAt) {
+    body.expiresAt = customExpiresAt;
+  }
   const response = await api.patch<Any>(
     `/access-requests/${requestId}/approve`,
-    { body: { duration, permissions } }
+    { body }
   );
   const raw = response.data;
   const g = raw?.data ?? raw;
@@ -134,7 +139,7 @@ export async function approveRequest(
     duration,
     permissions,
     grantedAt: new Date().toISOString(),
-    expiresAt: null,
+    expiresAt: customExpiresAt || null,
     isActive: true,
   };
 }
@@ -146,11 +151,14 @@ export async function rejectRequest(requestId: string): Promise<void> {
 export async function grantAccess(
   doctorId: string,
   duration: GrantDuration,
-  permissions: GrantPermissions
+  permissions: GrantPermissions,
+  customExpiresAt?: string // ISO 8601, used when duration === "custom"
 ): Promise<AccessGrant> {
-  const response = await api.post<Any>("/access-grants", {
-    body: { doctorId, duration, permissions },
-  });
+  const body: Record<string, unknown> = { doctorId, duration, permissions };
+  if (duration === "custom" && customExpiresAt) {
+    body.expiresAt = customExpiresAt;
+  }
+  const response = await api.post<Any>("/access-grants", { body });
   const raw = response.data;
   const g = raw?.data ?? raw;
   if (g?.id) return mapGrant(g);
@@ -166,7 +174,7 @@ export async function grantAccess(
     duration,
     permissions,
     grantedAt: new Date().toISOString(),
-    expiresAt: null,
+    expiresAt: customExpiresAt || null,
     isActive: true,
   };
 }

@@ -3,7 +3,8 @@ export type GrantDuration =
   | "1_semaine"
   | "1_mois"
   | "3_mois"
-  | "permanent";
+  | "permanent"
+  | "custom";
 
 export interface DoctorPreview {
   id: string;

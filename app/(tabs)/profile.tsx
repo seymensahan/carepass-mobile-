@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import {
   Alert,
   Linking,
@@ -34,9 +34,34 @@ const s = StyleSheet.create({
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
-  const { logout } = useAuth();
+  const { user, logout, switchRole } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [isQuickSwitching, setIsQuickSwitching] = useState(false);
+
+  // Determine if user has a non-patient role available (for 1-click quick switch)
+  const availableRoles: string[] = ((user as any)?.availableRoles || []).filter(Boolean);
+  const otherRole = availableRoles.find((r) => r !== "patient" && (r === "doctor" || r === "nurse"));
+  const otherRoleLabel = otherRole === "doctor" ? "Médecin" : otherRole === "nurse" ? "Infirmier" : null;
+  const otherRoleIcon: keyof typeof Feather.glyphMap | null =
+    otherRole === "doctor" ? "activity" : otherRole === "nurse" ? "heart" : null;
+
+  const handleQuickSwitch = async () => {
+    if (!otherRole || isQuickSwitching) return;
+    setIsQuickSwitching(true);
+    try {
+      const result = await switchRole(otherRole);
+      if (result.success) {
+        router.replace("/");
+      } else {
+        Alert.alert("Erreur", result.message || "Impossible de changer de rôle");
+      }
+    } catch {
+      Alert.alert("Erreur", "Une erreur est survenue");
+    } finally {
+      setIsQuickSwitching(false);
+    }
+  };
 
   const cachedProfile = useProfileStore((s) => s.profile);
 
@@ -131,8 +156,21 @@ export default function ProfileScreen() {
         }
       >
         {/* Header */}
-        <View className="px-6 pt-6 pb-2">
+        <View className="px-6 pt-6 pb-2 flex-row items-center justify-between">
           <Text className="text-2xl font-bold text-foreground">{t("profile.title")}</Text>
+          {otherRole && otherRoleIcon && otherRoleLabel && (
+            <Pressable
+              onPress={handleQuickSwitch}
+              disabled={isQuickSwitching}
+              className="flex-row items-center px-3 py-2 rounded-full bg-primary/10"
+              style={{ opacity: isQuickSwitching ? 0.5 : 1 }}
+            >
+              <Feather name={otherRoleIcon} size={14} color="#007bff" />
+              <Text className="text-primary text-xs font-semibold ml-1.5">
+                Passer en {otherRoleLabel}
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Avatar + Name + ID */}
