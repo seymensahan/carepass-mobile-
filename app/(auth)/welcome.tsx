@@ -1,5 +1,5 @@
 import React from "react";
-import { Image, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -51,6 +51,12 @@ export default function WelcomeScreen() {
           onPress={() => router.push("/(auth)/register")}
           variant="outline"
         />
+        <Pressable onPress={() => router.push("/(auth)/register-doctor" as any)} className="items-center mt-4">
+          <Text className="text-xs text-muted">
+            Vous êtes médecin ?{" "}
+            <Text style={{ color: "#006B5A", fontWeight: "600" }}>Créer un compte médecin</Text>
+          </Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
