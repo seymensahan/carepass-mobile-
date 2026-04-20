@@ -499,14 +499,25 @@ export default function RegisterScreen() {
             )}
 
             {step === 1 && (
-              <View className="flex-row justify-center mt-4">
-                <Text className="text-muted text-sm">{t("register.hasAccount")} </Text>
-                <Pressable onPress={() => router.push("/(auth)/login")}>
-                  <Text className="text-primary text-sm font-semibold">
-                    {t("register.login")}
+              <>
+                <View className="flex-row justify-center mt-4">
+                  <Text className="text-muted text-sm">{t("register.hasAccount")} </Text>
+                  <Pressable onPress={() => router.push("/(auth)/login")}>
+                    <Text className="text-primary text-sm font-semibold">
+                      {t("register.login")}
+                    </Text>
+                  </Pressable>
+                </View>
+                <Pressable
+                  onPress={() => router.push("/(auth)/register-doctor" as any)}
+                  className="mt-4 mx-auto flex-row items-center gap-2 px-4 py-2.5 rounded-full border border-emerald-200 bg-emerald-50"
+                >
+                  <Feather name="activity" size={14} color="#006B5A" />
+                  <Text className="text-sm font-semibold" style={{ color: "#006B5A" }}>
+                    {t("register.doctorRegister")}
                   </Text>
                 </Pressable>
-              </View>
+              </>
             )}
           </View>
         </ScrollView>

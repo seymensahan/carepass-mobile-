@@ -44,10 +44,10 @@ export default function DoctorProfileScreen() {
       if (result.success) {
         router.replace("/");
       } else {
-        Alert.alert("Erreur", result.message || "Impossible de changer de rôle");
+        Alert.alert(t("doctorProfile.error"), result.message || t("doctorProfile.switchRoleError"));
       }
     } catch {
-      Alert.alert("Erreur", "Une erreur est survenue");
+      Alert.alert(t("doctorProfile.error"), t("doctorProfile.genericError"));
     } finally {
       setIsQuickSwitching(false);
     }
@@ -69,10 +69,10 @@ export default function DoctorProfileScreen() {
   });
 
   const handleLogout = () => {
-    Alert.alert("Déconnexion", "Êtes-vous sûr de vouloir vous déconnecter ?", [
-      { text: "Annuler", style: "cancel" },
+    Alert.alert(t("doctorProfile.logoutConfirmTitle"), t("doctorProfile.logoutConfirmMessage"), [
+      { text: t("doctorProfile.cancel"), style: "cancel" },
       {
-        text: "Se déconnecter",
+        text: t("doctorProfile.confirmLogout"),
         style: "destructive",
         onPress: async () => {
           await logout();
@@ -95,7 +95,7 @@ export default function DoctorProfileScreen() {
       >
         {/* Header */}
         <View className="px-6 pt-6 pb-2 flex-row items-center justify-between">
-          <Text className="text-2xl font-bold text-foreground">Mon profil</Text>
+          <Text className="text-2xl font-bold text-foreground">{t("doctorProfile.title")}</Text>
           {canSwitchToPatient && (
             <Pressable
               onPress={handleQuickSwitchToPatient}
@@ -105,7 +105,7 @@ export default function DoctorProfileScreen() {
             >
               <Feather name="user" size={14} color="#007bff" />
               <Text className="text-primary text-xs font-semibold ml-1.5">
-                Passer en Patient
+                {t("doctorProfile.switchToPatient")}
               </Text>
             </Pressable>
           )}
@@ -127,13 +127,13 @@ export default function DoctorProfileScreen() {
           </Text>
           <View className="mt-2 bg-white px-4 py-1.5 rounded-full" style={s.card}>
             <Text className="text-xs text-primary font-medium">
-              {profile?.specialty || "Médecin"}
+              {profile?.specialty || t("doctorProfile.defaultSpecialty")}
             </Text>
           </View>
           {profile?.isVerified && (
             <View className="flex-row items-center gap-1.5 mt-2 bg-green-50 px-3 py-1.5 rounded-full">
               <Feather name="check-circle" size={12} color="#28a745" />
-              <Text className="text-xs font-semibold text-green-700">Profil vérifié</Text>
+              <Text className="text-xs font-semibold text-green-700">{t("doctorProfile.verified")}</Text>
             </View>
           )}
         </View>
@@ -143,36 +143,36 @@ export default function DoctorProfileScreen() {
 
         {/* Personal Information */}
         <View className="px-6 mb-5">
-          <Text className="text-base font-bold text-foreground mb-3">Informations personnelles</Text>
+          <Text className="text-base font-bold text-foreground mb-3">{t("doctorProfile.personalInfo")}</Text>
           <View className="bg-white rounded-3xl overflow-hidden" style={s.card}>
             {[
               {
                 icon: "user" as const,
-                label: "Nom complet",
+                label: t("doctorProfile.fullName"),
                 value: `Dr. ${profile?.firstName || user?.firstName} ${profile?.lastName || user?.lastName}`,
                 color: "#007bff",
               },
               {
                 icon: "mail" as const,
-                label: "Email",
+                label: t("doctorProfile.email"),
                 value: profile?.email || user?.email,
                 color: "#ffc107",
               },
               {
                 icon: "phone" as const,
-                label: "Téléphone",
+                label: t("doctorProfile.phone"),
                 value: profile?.phone || user?.phone,
                 color: "#dc3545",
               },
               {
                 icon: "award" as const,
-                label: "N° de licence",
+                label: t("doctorProfile.licenseNumber"),
                 value: profile?.licenseNumber,
                 color: "#6f42c1",
               },
               {
                 icon: "map-pin" as const,
-                label: "Ville",
+                label: t("doctorProfile.city"),
                 value: profile?.city,
                 color: "#28a745",
               },
@@ -204,12 +204,12 @@ export default function DoctorProfileScreen() {
         {institutions.length > 0 && (
           <View className="px-6 mb-5">
             <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-base font-bold text-foreground">Mes institutions</Text>
+              <Text className="text-base font-bold text-foreground">{t("doctorProfile.myInstitutions")}</Text>
               <Pressable
                 onPress={() => router.push("/doctor/institutions" as any)}
                 className="px-3 py-1.5 rounded-full bg-primary/10"
               >
-                <Text className="text-primary text-xs font-semibold">Gérer</Text>
+                <Text className="text-primary text-xs font-semibold">{t("doctorProfile.manage")}</Text>
               </Pressable>
             </View>
             <View className="bg-white rounded-3xl overflow-hidden" style={s.card}>
@@ -227,7 +227,7 @@ export default function DoctorProfileScreen() {
                     <Text className="text-sm font-semibold text-foreground">{inst.name}</Text>
                     <Text className="text-xs text-muted mt-0.5">
                       {inst.city}
-                      {inst.isPrimary ? " · Principal" : ""}
+                      {inst.isPrimary ? ` · ${t("doctorProfile.primary")}` : ""}
                     </Text>
                   </View>
                 </View>
@@ -247,8 +247,8 @@ export default function DoctorProfileScreen() {
               <Feather name="credit-card" size={17} color="#007bff" />
             </View>
             <View className="flex-1">
-              <Text className="text-sm font-semibold text-foreground">Portefeuille</Text>
-              <Text className="text-xs text-muted mt-0.5">Gains & retraits</Text>
+              <Text className="text-sm font-semibold text-foreground">{t("doctorProfile.wallet")}</Text>
+              <Text className="text-xs text-muted mt-0.5">{t("doctorProfile.walletSubtitle")}</Text>
             </View>
             {wallet?.balance != null && (
               <View className="bg-primary/10 px-3 py-1.5 rounded-full mr-2">
@@ -261,45 +261,9 @@ export default function DoctorProfileScreen() {
           </Pressable>
         </View>
 
-        {/* Premium Card (key feature kept) */}
-        <View className="px-6 mb-5">
-          <View className="bg-primary rounded-3xl overflow-hidden" style={s.card}>
-            <View className="p-5">
-              <View className="flex-row items-center gap-3 mb-4">
-                <View className="w-10 h-10 rounded-xl bg-white/15 items-center justify-center">
-                  <Feather name="zap" size={18} color="#ffd700" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-base font-bold text-white">Premium</Text>
-                  <Text className="text-xs text-white/60">Débloquez toutes les fonctionnalités</Text>
-                </View>
-              </View>
-              <View className="gap-2 mb-4">
-                {[
-                  "Synchronisation multi-établissements",
-                  "Agenda unifié",
-                  "Statistiques avancées",
-                  "Support prioritaire",
-                ].map((text) => (
-                  <View key={text} className="flex-row items-center gap-2.5">
-                    <Feather name="check" size={14} color="#ffd700" />
-                    <Text className="text-xs text-white/85">{text}</Text>
-                  </View>
-                ))}
-              </View>
-              <Pressable
-                onPress={() => router.push("/subscription/pricing" as any)}
-                className="bg-white/20 rounded-2xl py-3 items-center"
-              >
-                <Text className="text-white font-bold text-sm">S&apos;abonner Premium</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-
         {/* Settings */}
         <View className="px-6 mb-5">
-          <Text className="text-base font-bold text-foreground mb-3">Paramètres</Text>
+          <Text className="text-base font-bold text-foreground mb-3">{t("doctorProfile.settings")}</Text>
           <View className="bg-white rounded-3xl overflow-hidden" style={s.card}>
             {/* My Team */}
             <Pressable
@@ -309,7 +273,7 @@ export default function DoctorProfileScreen() {
               <View className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center mr-3">
                 <Feather name="users" size={17} color="#007bff" />
               </View>
-              <Text className="flex-1 text-sm font-semibold text-foreground">Mon équipe</Text>
+              <Text className="flex-1 text-sm font-semibold text-foreground">{t("doctorProfile.myTeam")}</Text>
               <Feather name="chevron-right" size={18} color="#6c757d" />
             </Pressable>
 
@@ -321,7 +285,7 @@ export default function DoctorProfileScreen() {
               <View className="w-10 h-10 rounded-xl bg-secondary/10 items-center justify-center mr-3">
                 <Feather name="credit-card" size={17} color="#28a745" />
               </View>
-              <Text className="flex-1 text-sm font-semibold text-foreground">Mon abonnement</Text>
+              <Text className="flex-1 text-sm font-semibold text-foreground">{t("doctorProfile.mySubscription")}</Text>
               <Feather name="chevron-right" size={18} color="#6c757d" />
             </Pressable>
 
@@ -330,7 +294,7 @@ export default function DoctorProfileScreen() {
               <View className="w-10 h-10 rounded-xl bg-primary/10 items-center justify-center mr-3">
                 <Feather name="globe" size={17} color="#007bff" />
               </View>
-              <Text className="flex-1 text-sm font-semibold text-foreground">Langue</Text>
+              <Text className="flex-1 text-sm font-semibold text-foreground">{t("doctorProfile.language")}</Text>
               <View className="flex-row bg-background rounded-xl overflow-hidden">
                 <Pressable
                   onPress={() => handleChangeLanguage("fr")}
@@ -364,7 +328,7 @@ export default function DoctorProfileScreen() {
               <View className="w-10 h-10 rounded-xl bg-accent/10 items-center justify-center mr-3">
                 <Feather name="bell" size={17} color="#ffc107" />
               </View>
-              <Text className="flex-1 text-sm font-semibold text-foreground">Notifications</Text>
+              <Text className="flex-1 text-sm font-semibold text-foreground">{t("doctorProfile.notifications")}</Text>
               <Switch
                 value={true}
                 trackColor={{ false: "#dee2e6", true: "#28a745" }}
@@ -382,7 +346,7 @@ export default function DoctorProfileScreen() {
             style={s.card}
           >
             <Feather name="log-out" size={18} color="#dc3545" />
-            <Text className="text-danger font-semibold">Déconnexion</Text>
+            <Text className="text-danger font-semibold">{t("doctorProfile.logout")}</Text>
           </Pressable>
         </View>
       </ScrollView>
