@@ -40,3 +40,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# App Store Connect API Key (DO NOT COMMIT)
+private_keys/
