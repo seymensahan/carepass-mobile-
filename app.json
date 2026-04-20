@@ -14,7 +14,7 @@
       "backgroundColor": "#007bff"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.carypass.carypass",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
