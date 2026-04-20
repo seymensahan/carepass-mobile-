@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.carypass.app",
+      "bundleIdentifier": "com.carypass.carypass",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
