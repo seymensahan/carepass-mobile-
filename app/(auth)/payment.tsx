@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
@@ -14,7 +14,7 @@ type MNO = "mtn" | "orange";
 export default function PaymentScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, completeTwoFactorLogin } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState("");
   const [selectedMNO, setSelectedMNO] = useState<MNO>("mtn");
   const [isLoading, setIsLoading] = useState(false);
@@ -72,8 +72,64 @@ export default function PaymentScreen() {
     }
   }, [phoneNumber]);
 
-  // No polling needed — the webhook creates the account.
-  // The user just needs to confirm on their phone, then go to login.
+  // Auto-poll the registration status every 4 seconds while pending.
+  // This is critical because the Pawapay webhook cannot reach localhost
+  // in dev — without polling, the account would never be created on the
+  // user's device. Stops automatically on completed/failed.
+  useEffect(() => {
+    if (status !== "pending" || !depositId) return;
+
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const res = await api.get<any>(
+          `/payments/registration/${depositId}/poll`,
+          { authenticated: false },
+        );
+        if (cancelled) return;
+
+        const body = res.data?.data ?? res.data;
+        const pollStatus = body?.status ?? res.data?.status;
+
+        if (pollStatus === "completed") {
+          // Auto-login and route to dashboard
+          const credentials = body?.data ?? body;
+          if (credentials?.accessToken && credentials?.user) {
+            await completeTwoFactorLogin(
+              credentials.accessToken,
+              credentials.refreshToken,
+              credentials.user,
+            );
+            setStatus("completed");
+            // Route by role (registration is patient by default here)
+            const role = credentials.user.role;
+            const dest =
+              role === "doctor"
+                ? "/(doctor-tabs)/home"
+                : role === "nurse"
+                  ? "/(nurse-tabs)/home"
+                  : "/(tabs)/home";
+            router.replace(dest as any);
+            return;
+          }
+        }
+        if (pollStatus === "failed") {
+          setStatus("failed");
+          Alert.alert("Paiement échoué", body?.message || "Le paiement n'a pas abouti.");
+        }
+      } catch {
+        // ignore network errors, keep polling
+      }
+    };
+
+    // Initial poll + interval
+    poll();
+    const id = setInterval(poll, 4000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [status, depositId, completeTwoFactorLogin, router]);
 
   const handleValidatePromo = async () => {
     if (!promoCode.trim()) return;
@@ -210,36 +266,98 @@ export default function PaymentScreen() {
     }
   };
 
-  // Pending state — user must confirm on phone, then account is created via webhook
+  // Pending state — user must confirm on phone, polling auto-detects completion.
+  // No "Aller à la connexion" button: as soon as Pawapay reports COMPLETED,
+  // the polling effect logs the user in and redirects to their dashboard.
   if (status === "pending") {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 items-center justify-center px-8">
           <View className="w-20 h-20 rounded-full bg-blue-50 items-center justify-center mb-6">
-            <Feather name="smartphone" size={36} color="#007bff" />
+            <ActivityIndicator size="large" color="#007bff" />
           </View>
           <Text className="text-xl font-bold text-foreground text-center mb-2">
             Confirmez le paiement
           </Text>
           <Text className="text-sm text-muted text-center mb-4">
             Un message a été envoyé sur votre téléphone.{"\n"}
-            Entrez votre code PIN {selectedMNO === "mtn" ? "MTN MoMo" : "Orange Money"} pour confirmer.
+            Entrez votre code PIN{" "}
+            <Text className="font-semibold text-foreground">
+              {selectedMNO === "mtn" ? "MTN MoMo" : "Orange Money"}
+            </Text>{" "}
+            pour confirmer.
           </Text>
-          <Text className="text-xs text-muted text-center mb-8">
-            Votre compte sera créé automatiquement après confirmation du paiement.{"\n"}
-            Vous pourrez ensuite vous connecter.
+
+          {/* Live status pill */}
+          <View className="flex-row items-center bg-blue-50 rounded-full px-4 py-2 mb-6">
+            <View className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
+            <Text className="text-xs font-semibold text-blue-700">
+              En attente de confirmation…
+            </Text>
+          </View>
+
+          <Text className="text-xs text-muted text-center mb-8 px-4">
+            Vous serez automatiquement redirigé vers votre tableau de bord
+            dès que le paiement est confirmé. Cette page se met à jour
+            toute seule, ne fermez pas l'application.
           </Text>
+
           <Pressable
-            onPress={() => router.replace("/(auth)/login")}
-            className="bg-primary rounded-2xl py-4 px-12 mb-4"
-          >
-            <Text className="text-white font-bold text-base">Aller à la connexion</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => { setStatus("idle"); setDepositId(null); }}
+            onPress={() => {
+              setStatus("idle");
+              setDepositId(null);
+            }}
             className="border border-border rounded-xl py-3 px-8"
           >
-            <Text className="text-sm text-muted font-semibold">Réessayer</Text>
+            <Text className="text-sm text-muted font-semibold">Annuler</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Completed state — brief success splash before the polling effect routes.
+  if (status === "completed") {
+    return (
+      <SafeAreaView className="flex-1 bg-background">
+        <View className="flex-1 items-center justify-center px-8">
+          <View className="w-20 h-20 rounded-full bg-green-50 items-center justify-center mb-6">
+            <Feather name="check-circle" size={40} color="#28a745" />
+          </View>
+          <Text className="text-xl font-bold text-foreground text-center mb-2">
+            Paiement confirmé !
+          </Text>
+          <Text className="text-sm text-muted text-center">
+            Redirection vers votre tableau de bord…
+          </Text>
+          <ActivityIndicator size="small" color="#007bff" className="mt-4" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Failed state
+  if (status === "failed") {
+    return (
+      <SafeAreaView className="flex-1 bg-background">
+        <View className="flex-1 items-center justify-center px-8">
+          <View className="w-20 h-20 rounded-full bg-red-50 items-center justify-center mb-6">
+            <Feather name="x-circle" size={40} color="#dc3545" />
+          </View>
+          <Text className="text-xl font-bold text-foreground text-center mb-2">
+            Paiement échoué
+          </Text>
+          <Text className="text-sm text-muted text-center mb-8">
+            Le paiement n'a pas abouti. Vous pouvez réessayer.
+          </Text>
+          <Pressable
+            onPress={() => {
+              setStatus("idle");
+              setDepositId(null);
+            }}
+            className="bg-primary rounded-2xl py-4 px-12"
+          >
+            <Text className="text-white font-bold text-base">Réessayer</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -404,13 +522,8 @@ export default function PaymentScreen() {
           )}
         </View>
 
-        {status === "failed" && (
-          <View className="mx-6 mt-4 bg-red-50 rounded-xl p-4">
-            <Text className="text-sm text-red-600 text-center">
-              {t("payment.paymentFailed")}
-            </Text>
-          </View>
-        )}
+        {/* failed/completed/pending states are rendered via early returns above —
+            no inline status banner needed here. */}
       </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

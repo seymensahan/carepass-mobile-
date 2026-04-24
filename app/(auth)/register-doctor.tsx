@@ -18,6 +18,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { api } from "../../lib/api-client";
 import PhoneInput from "../../components/ui/PhoneInput";
+import { useAuth } from "../../contexts/AuthContext";
 
 const TEAL = "#006B5A";
 
@@ -39,6 +40,7 @@ const SPECIALTIES = [
 
 export default function RegisterDoctorScreen() {
   const router = useRouter();
+  const { completeTwoFactorLogin } = useAuth();
 
   const schema = z
     .object({
@@ -49,7 +51,10 @@ export default function RegisterDoctorScreen() {
       password: z.string().min(6, "Minimum 6 caractères"),
       confirmPassword: z.string(),
       specialty: z.string().min(2, "Spécialité requise"),
-      licenseNumber: z.string().min(3, "Numéro de licence requis"),
+      // Licence non requise: tous les médecins du Cameroun n'ont pas
+      // nécessairement un numéro d'inscription à l'Ordre. Si vide, on
+      // génère automatiquement un identifiant temporaire côté serveur.
+      licenseNumber: z.string().optional(),
       city: z.string().optional(),
     })
     .refine((d) => d.password === d.confirmPassword, {
@@ -74,6 +79,38 @@ export default function RegisterDoctorScreen() {
   const [selectedSpec, setSelectedSpec] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  // Voucher (promo code)
+  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherValidating, setVoucherValidating] = useState(false);
+  const [voucherValid, setVoucherValid] = useState<boolean | null>(null);
+  const [voucherDiscount, setVoucherDiscount] = useState(0);
+  const [voucherMessage, setVoucherMessage] = useState("");
+
+  const isFreeWithVoucher = voucherValid === true && voucherDiscount >= 100;
+  const finalPrice = Math.max(0, Math.round(planPrice * (1 - voucherDiscount / 100)));
+
+  const handleValidateVoucher = async () => {
+    const code = voucherCode.trim().toUpperCase();
+    if (!code) return;
+    setVoucherValidating(true);
+    setVoucherValid(null);
+    setVoucherMessage("");
+    try {
+      const res = await api.post<any>("/vouchers/validate-public", { body: { code } });
+      const inner = res.data?.data ?? res.data;
+      const discount = inner?.discountPercent ?? 100;
+      setVoucherValid(true);
+      setVoucherDiscount(discount);
+      setVoucherMessage(`Code valide — ${discount}% de réduction`);
+    } catch (err: any) {
+      setVoucherValid(false);
+      setVoucherDiscount(0);
+      setVoucherMessage(err?.message || "Code promo invalide");
+    } finally {
+      setVoucherValidating(false);
+    }
+  };
+
   useEffect(() => {
     (async () => {
       try {
@@ -96,6 +133,64 @@ export default function RegisterDoctorScreen() {
       Alert.alert("CGU", "Vous devez accepter les CGU pour continuer.");
       return;
     }
+
+    // If voucher gives 100% discount, skip payment and register directly
+    if (isFreeWithVoucher) {
+      setSubmitting(true);
+      try {
+        // 1. Create the account
+        const regRes = await api.post<any>("/auth/register", {
+          body: {
+            role: "doctor",
+            email: data.email,
+            password: data.password,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            phone: data.phone,
+            doctorSpecialty: data.specialty,
+            doctorLicenseNumber: data.licenseNumber,
+            doctorCity: data.city,
+          },
+        });
+        const regData = regRes.data?.data ?? regRes.data;
+        const accessToken = regData?.accessToken;
+        const refreshToken = regData?.refreshToken;
+        const newUser = regData?.user;
+        if (!accessToken || !newUser) {
+          Alert.alert("Erreur", "Inscription échouée. Veuillez réessayer.");
+          setSubmitting(false);
+          return;
+        }
+        // 2. Redeem the voucher (requires auth — pass token directly since it's not yet in SecureStore)
+        const redeemRes = await api.post<any>("/vouchers/redeem", {
+          body: { code: voucherCode.trim().toUpperCase() },
+          authenticated: false,
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (redeemRes.error) {
+          Alert.alert(
+            "Code promo",
+            `Compte créé, mais l'activation du voucher a échoué: ${redeemRes.error}. Contactez le support.`,
+          );
+          setSubmitting(false);
+          return;
+        }
+        // 3. Save session and redirect to doctor dashboard
+        await completeTwoFactorLogin(accessToken, refreshToken, newUser);
+        router.replace("/(doctor-tabs)/home");
+        return;
+      } catch (err: any) {
+        Alert.alert(
+          "Erreur",
+          err?.message || "Impossible de valider l'inscription avec le code promo.",
+        );
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    // Normal payment flow
     if (!paymentPhone || paymentPhone.replace(/\D/g, "").length < 9) {
       Alert.alert("Erreur", "Numéro Mobile Money invalide.");
       return;
@@ -123,6 +218,7 @@ export default function RegisterDoctorScreen() {
           planId: resolvedPlanId,
           phoneNumber: paymentPhone,
           period: "yearly",
+          voucherCode: voucherValid ? voucherCode.trim().toUpperCase() : undefined,
           registrationData: {
             role: "doctor",
             email: data.email,
@@ -342,7 +438,10 @@ export default function RegisterDoctorScreen() {
             {/* License + City */}
             <View className="flex-row gap-3 mt-4">
               <View className="flex-1">
-                <Text className="text-xs font-semibold text-foreground mb-1.5">N° Licence</Text>
+                <Text className="text-xs font-semibold text-foreground mb-1.5">
+                  N° Licence{" "}
+                  <Text className="text-muted font-normal">(facultatif)</Text>
+                </Text>
                 <Controller
                   control={control}
                   name="licenseNumber"
@@ -424,16 +523,82 @@ export default function RegisterDoctorScreen() {
               {errors.confirmPassword && <Text className="text-[11px] text-red-500 mt-1">{errors.confirmPassword.message}</Text>}
             </View>
 
-            {/* Payment */}
+            {/* Voucher / Promo code */}
             <View className="mt-6 pt-4 border-t border-border">
               <View className="flex-row items-center gap-2 mb-2">
-                <Feather name="smartphone" size={14} color={TEAL} />
-                <Text className="text-sm font-bold text-foreground">Paiement Mobile Money</Text>
+                <Feather name="tag" size={14} color={TEAL} />
+                <Text className="text-sm font-bold text-foreground">Code promo (facultatif)</Text>
               </View>
-              <Text className="text-xs text-muted mb-2">Vous recevrez une demande de confirmation sur ce numéro.</Text>
-              <Text className="text-xs font-semibold text-foreground mb-1.5">Numéro MTN ou Orange</Text>
-              <PhoneInput value={paymentPhone} onChangeText={setPaymentPhone} />
+              <Text className="text-xs text-muted mb-2">
+                Si vous disposez d'un code de voucher, saisissez-le ici pour bénéficier de 6 mois gratuits.
+              </Text>
+              <View className="flex-row gap-2">
+                <TextInput
+                  value={voucherCode}
+                  onChangeText={(v) => {
+                    setVoucherCode(v.toUpperCase());
+                    setVoucherValid(null);
+                    setVoucherMessage("");
+                  }}
+                  placeholder="EX: DOCT-ABCD-1234"
+                  autoCapitalize="characters"
+                  className="flex-1 bg-white border border-border rounded-xl h-11 px-3 text-sm"
+                  placeholderTextColor="#adb5bd"
+                  editable={!voucherValidating}
+                />
+                <Pressable
+                  onPress={handleValidateVoucher}
+                  disabled={!voucherCode.trim() || voucherValidating}
+                  className="h-11 px-4 rounded-xl items-center justify-center"
+                  style={{
+                    backgroundColor:
+                      !voucherCode.trim() || voucherValidating ? "#adb5bd" : TEAL,
+                  }}
+                >
+                  {voucherValidating ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text className="text-white text-xs font-bold">Valider</Text>
+                  )}
+                </Pressable>
+              </View>
+              {voucherMessage ? (
+                <Text
+                  className="text-[11px] mt-2"
+                  style={{ color: voucherValid ? "#28a745" : "#dc3545" }}
+                >
+                  {voucherMessage}
+                </Text>
+              ) : null}
             </View>
+
+            {/* Payment — hidden if voucher covers 100% */}
+            {!isFreeWithVoucher ? (
+              <View className="mt-6 pt-4 border-t border-border">
+                <View className="flex-row items-center gap-2 mb-2">
+                  <Feather name="smartphone" size={14} color={TEAL} />
+                  <Text className="text-sm font-bold text-foreground">Paiement Mobile Money</Text>
+                </View>
+                <Text className="text-xs text-muted mb-2">
+                  Vous recevrez une demande de confirmation sur ce numéro.
+                </Text>
+                <Text className="text-xs font-semibold text-foreground mb-1.5">Numéro MTN ou Orange</Text>
+                <PhoneInput value={paymentPhone} onChangeText={setPaymentPhone} />
+              </View>
+            ) : (
+              <View className="mt-6 pt-4 border-t border-border">
+                <View
+                  className="rounded-2xl p-3 flex-row items-center gap-3"
+                  style={{ backgroundColor: "#28a74515" }}
+                >
+                  <Feather name="gift" size={18} color="#28a745" />
+                  <Text className="flex-1 text-xs text-foreground">
+                    Inscription gratuite avec votre code promo (6 mois offerts).
+                    Aucun paiement requis.
+                  </Text>
+                </View>
+              </View>
+            )}
 
             {/* CGU */}
             <Pressable
@@ -464,7 +629,9 @@ export default function RegisterDoctorScreen() {
                 <Feather name="shield" size={16} color="#fff" style={{ marginRight: 8 }} />
               )}
               <Text className="text-white font-bold">
-                Payer {planPrice.toLocaleString("fr-FR")} FCFA
+                {isFreeWithVoucher
+                  ? "Activer gratuitement"
+                  : `Payer ${finalPrice.toLocaleString("fr-FR")} FCFA`}
               </Text>
             </Pressable>
 

@@ -112,6 +112,12 @@ export async function getPendingRequests(): Promise<AccessRequest[]> {
       requestedAt: r.requestedAt || r.createdAt,
       message: r.reason,
       status: r.status as AccessRequest["status"],
+      forDependent: r.forDependent
+        ? {
+            firstName: r.forDependent.firstName,
+            lastName: r.forDependent.lastName,
+          }
+        : undefined,
     }));
 }
 

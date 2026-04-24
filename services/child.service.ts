@@ -201,3 +201,35 @@ export async function deleteEmergencyProtocol(
 ): Promise<void> {
   // No dedicated backend endpoint
 }
+
+export interface PromotionResult {
+  success: boolean;
+  alreadyPromoted: boolean;
+  carypassId: string;
+  emergencyToken: string;
+  patientId: string;
+}
+
+/**
+ * Promote a Child to a full Patient with its own CaryPass.
+ * Idempotent — returns the existing CaryPass if the child has already been promoted.
+ */
+export async function promoteChildToPatient(
+  childId: string
+): Promise<PromotionResult | null> {
+  try {
+    const response = await api.post<Any>(`/children/${childId}/promote-to-patient`);
+    if (response.error) return null;
+    const inner = response.data?.data ?? response.data;
+    if (!inner?.carypassId) return null;
+    return {
+      success: true,
+      alreadyPromoted: !!inner.alreadyPromoted,
+      carypassId: inner.carypassId,
+      emergencyToken: inner.emergencyToken,
+      patientId: inner.patientId,
+    };
+  } catch {
+    return null;
+  }
+}

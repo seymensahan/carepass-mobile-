@@ -13,6 +13,7 @@ export default function DoctorLayout() {
       <Stack.Screen name="institutions" />
       <Stack.Screen name="sync-dashboard" />
       <Stack.Screen name="wallet" />
+      <Stack.Screen name="team" />
     </Stack>
   );
 }

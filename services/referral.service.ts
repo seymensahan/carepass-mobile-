@@ -28,7 +28,10 @@ export interface ReferralValidation {
 export async function generateCode(): Promise<ReferralCode | null> {
   try {
     const response = await api.post<Any>("/referral/generate");
-    return response.data?.data ?? response.data ?? null;
+    if (response.error) return null;
+    const inner = response.data?.data ?? response.data;
+    if (!inner || !inner.code) return null;
+    return inner as ReferralCode;
   } catch {
     return null;
   }
@@ -36,11 +39,17 @@ export async function generateCode(): Promise<ReferralCode | null> {
 
 /**
  * Get the doctor's current referral code and stats.
+ * Returns null if no code exists yet (caller should generate one).
  */
 export async function getMyCode(): Promise<ReferralCode | null> {
   try {
     const response = await api.get<Any>("/referral/my-code");
-    return response.data?.data ?? response.data ?? null;
+    if (response.error) return null;
+    // Backend wraps as { success, data, message }
+    // When no code exists, data is explicitly null — return null so caller can generate.
+    const inner = response.data?.data ?? response.data;
+    if (!inner || !inner.code) return null;
+    return inner as ReferralCode;
   } catch {
     return null;
   }
@@ -66,6 +75,8 @@ export async function getMyReferrals(
 
 /**
  * Validate a referral code (public, used during patient registration).
+ * Backend returns { success, data: { code, doctor: { firstName, lastName, ... } } }
+ * or { success: false, message } when invalid.
  */
 export async function validateCode(
   code: string
@@ -75,7 +86,14 @@ export async function validateCode(
       authenticated: false,
     });
     if (response.error) return null;
-    return response.data?.data ?? response.data ?? null;
+    const body = response.data;
+    if (!body || body.success === false) return null;
+    const inner = body.data ?? body;
+    if (!inner?.code || !inner?.doctor) return null;
+    return {
+      valid: true,
+      doctorName: `Dr. ${inner.doctor.firstName ?? ''} ${inner.doctor.lastName ?? ''}`.trim(),
+    };
   } catch {
     return null;
   }

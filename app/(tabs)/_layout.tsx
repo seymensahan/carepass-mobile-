@@ -5,6 +5,7 @@ import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import OfflineBanner from "../../components/OfflineBanner";
+import { SubscriptionGate } from "../../components/SubscriptionGate";
 
 export default function TabsLayout() {
   const { t } = useTranslation();
@@ -19,6 +20,7 @@ export default function TabsLayout() {
   const tabBarHeight = 56 + bottomPadding;
 
   return (
+    <SubscriptionGate>
     <View style={{ flex: 1 }}>
     <OfflineBanner />
     <Tabs
@@ -83,5 +85,6 @@ export default function TabsLayout() {
       />
     </Tabs>
     </View>
+    </SubscriptionGate>
   );
 }

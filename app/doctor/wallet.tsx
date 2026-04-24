@@ -3,9 +3,12 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
+  ScrollView,
   Text,
   TextInput,
   View,
@@ -30,6 +33,7 @@ const TRANSACTION_CONFIG: Record<
   { icon: keyof typeof Feather.glyphMap; color: string; prefix: string }
 > = {
   referral_earning: { icon: "user-plus", color: "#28a745", prefix: "+" },
+  manual_credit: { icon: "plus-circle", color: "#28a745", prefix: "+" },
   subscription_debit: { icon: "credit-card", color: "#dc3545", prefix: "-" },
   withdrawal: { icon: "arrow-down-circle", color: "#ff8c00", prefix: "-" },
 };
@@ -44,6 +48,20 @@ export default function WalletScreen() {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawPhone, setWithdrawPhone] = useState("");
+  const [activeTab, setActiveTab] = useState<"deposits" | "withdrawals">("deposits");
+
+  // Filter transactions per tab — deposits = referral earnings + manual credits;
+  // withdrawals = withdrawals + subscription debits (anything that leaves the wallet).
+  const filteredTransactions = React.useMemo(() => {
+    if (activeTab === "deposits") {
+      return allTransactions.filter(
+        (t) => t.type === "referral_earning" || t.type === "manual_credit",
+      );
+    }
+    return allTransactions.filter(
+      (t) => t.type === "withdrawal" || t.type === "subscription_debit",
+    );
+  }, [allTransactions, activeTab]);
 
   // ─── Queries ───
   const { data: wallet, isLoading: walletLoading, refetch: refetchWallet } = useQuery({
@@ -138,18 +156,26 @@ export default function WalletScreen() {
     refetchTx();
   }, [refetchWallet, refetchReferral, refetchTx]);
 
+  // Dynamic minimum balance comes from the backend (depends on the current
+  // doctor plan price). Falls back to 10 000 FCFA if not yet loaded.
+  const minimumBalance = wallet?.minimumBalance ?? 10000;
+  const availableForWithdrawal = wallet?.availableForWithdrawal ?? 0;
+
   const handleWithdraw = () => {
     const amount = Number(withdrawAmount);
-    if (!amount || amount < 10000) {
-      Alert.alert("Erreur", "Le montant minimum de retrait est de 10 000 FCFA.");
+    if (!amount || amount <= 0) {
+      Alert.alert("Erreur", "Veuillez entrer un montant valide.");
       return;
     }
     if (!withdrawPhone || withdrawPhone.replace(/[^0-9]/g, "").length < 9) {
       Alert.alert("Erreur", "Veuillez entrer un numero de telephone valide.");
       return;
     }
-    if (wallet && amount > wallet.balance) {
-      Alert.alert("Erreur", "Solde insuffisant.");
+    if (amount > availableForWithdrawal) {
+      Alert.alert(
+        "Solde insuffisant",
+        `Vous devez conserver au minimum ${formatBalance(minimumBalance)} FCFA pour votre abonnement annuel. Disponible pour retrait : ${formatBalance(availableForWithdrawal)} FCFA.`,
+      );
       return;
     }
     withdrawMutation.mutate();
@@ -284,11 +310,73 @@ export default function WalletScreen() {
         )}
       </View>
 
-      {/* Transaction History Header */}
-      <View className="px-6 mt-6 mb-2">
-        <Text className="text-base font-bold text-foreground">
+      {/* Transaction History Header + Tabs */}
+      <View className="px-6 mt-6 mb-3">
+        <Text className="text-base font-bold text-foreground mb-3">
           Historique des transactions
         </Text>
+        <View className="flex-row bg-background rounded-xl p-1">
+          <Pressable
+            onPress={() => setActiveTab("deposits")}
+            className={`flex-1 flex-row items-center justify-center py-2.5 rounded-lg ${
+              activeTab === "deposits" ? "bg-white" : ""
+            }`}
+            style={
+              activeTab === "deposits"
+                ? {
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.08,
+                    shadowRadius: 2,
+                    elevation: 1,
+                  }
+                : undefined
+            }
+          >
+            <Feather
+              name="arrow-down-left"
+              size={14}
+              color={activeTab === "deposits" ? "#28a745" : "#6c757d"}
+            />
+            <Text
+              className={`text-xs font-semibold ml-1.5 ${
+                activeTab === "deposits" ? "text-foreground" : "text-muted"
+              }`}
+            >
+              Dépôts
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setActiveTab("withdrawals")}
+            className={`flex-1 flex-row items-center justify-center py-2.5 rounded-lg ${
+              activeTab === "withdrawals" ? "bg-white" : ""
+            }`}
+            style={
+              activeTab === "withdrawals"
+                ? {
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.08,
+                    shadowRadius: 2,
+                    elevation: 1,
+                  }
+                : undefined
+            }
+          >
+            <Feather
+              name="arrow-up-right"
+              size={14}
+              color={activeTab === "withdrawals" ? "#ff8c00" : "#6c757d"}
+            />
+            <Text
+              className={`text-xs font-semibold ml-1.5 ${
+                activeTab === "withdrawals" ? "text-foreground" : "text-muted"
+              }`}
+            >
+              Retraits
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
       {txLoading && page === 1 && (
@@ -297,10 +385,23 @@ export default function WalletScreen() {
         </View>
       )}
 
-      {!txLoading && allTransactions.length === 0 && (
+      {!txLoading && filteredTransactions.length === 0 && (
         <View className="items-center py-8 px-6">
-          <Feather name="inbox" size={40} color="#dee2e6" />
-          <Text className="text-sm text-muted mt-3">Aucune transaction</Text>
+          <Feather
+            name={activeTab === "deposits" ? "trending-up" : "trending-down"}
+            size={40}
+            color="#dee2e6"
+          />
+          <Text className="text-sm text-muted mt-3">
+            {activeTab === "deposits"
+              ? "Aucun dépôt pour le moment"
+              : "Aucun retrait pour le moment"}
+          </Text>
+          {activeTab === "deposits" && (
+            <Text className="text-xs text-muted mt-1 text-center px-8">
+              Les gains de parrainage apparaîtront ici.
+            </Text>
+          )}
         </View>
       )}
     </>
@@ -309,7 +410,7 @@ export default function WalletScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <FlatList
-        data={allTransactions}
+        data={filteredTransactions}
         keyExtractor={(item) => item.id}
         renderItem={renderTransaction}
         ListHeaderComponent={renderHeader}
@@ -339,66 +440,94 @@ export default function WalletScreen() {
         transparent
         onRequestClose={() => setShowWithdrawModal(false)}
       >
-        <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white rounded-t-3xl px-6 pt-6 pb-10">
-            <View className="flex-row items-center justify-between mb-6">
-              <Text className="text-lg font-bold text-foreground">
-                Retirer des fonds
-              </Text>
-              <Pressable onPress={() => setShowWithdrawModal(false)}>
-                <Feather name="x" size={24} color="#6c757d" />
-              </Pressable>
-            </View>
+        {/* Dismiss area */}
+        <Pressable
+          className="flex-1 bg-black/50"
+          onPress={() => setShowWithdrawModal(false)}
+        >
+          {/* Inner — KeyboardAvoidingView lifts content above the keyboard */}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            className="flex-1 justify-end"
+            // The Pressable parent dismisses on tap; stop propagation here
+            pointerEvents="box-none"
+          >
+            <Pressable onPress={(e) => e.stopPropagation()} className="bg-white rounded-t-3xl">
+              <ScrollView
+                className="max-h-[85vh]"
+                contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 32 }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                <View className="flex-row items-center justify-between mb-6">
+                  <Text className="text-lg font-bold text-foreground">
+                    Retirer des fonds
+                  </Text>
+                  <Pressable onPress={() => setShowWithdrawModal(false)} hitSlop={10}>
+                    <Feather name="x" size={24} color="#6c757d" />
+                  </Pressable>
+                </View>
 
-            {/* Amount */}
-            <Text className="text-sm font-medium text-foreground mb-1.5">
-              Montant (FCFA)
-            </Text>
-            <TextInput
-              value={withdrawAmount}
-              onChangeText={setWithdrawAmount}
-              placeholder="Ex: 15 000"
-              keyboardType="numeric"
-              className="h-12 px-4 rounded-xl border border-border bg-background text-base text-foreground mb-4"
-              placeholderTextColor="#adb5bd"
-            />
+                {/* Available for withdrawal info */}
+                <View className="bg-primary/5 rounded-xl p-3 mb-4">
+                  <Text className="text-xs text-muted">Disponible pour retrait</Text>
+                  <Text className="text-base font-bold text-primary mt-0.5">
+                    {formatBalance(availableForWithdrawal)} FCFA
+                  </Text>
+                </View>
 
-            {/* Phone */}
-            <Text className="text-sm font-medium text-foreground mb-1.5">
-              Numero Mobile Money
-            </Text>
-            <TextInput
-              value={withdrawPhone}
-              onChangeText={setWithdrawPhone}
-              placeholder="6XX XXX XXX"
-              keyboardType="phone-pad"
-              className="h-12 px-4 rounded-xl border border-border bg-background text-base text-foreground mb-3"
-              placeholderTextColor="#adb5bd"
-            />
+                {/* Amount */}
+                <Text className="text-sm font-medium text-foreground mb-1.5">
+                  Montant (FCFA)
+                </Text>
+                <TextInput
+                  value={withdrawAmount}
+                  onChangeText={setWithdrawAmount}
+                  placeholder={`Ex: ${formatBalance(Math.max(1000, Math.floor(availableForWithdrawal / 2)))}`}
+                  keyboardType="numeric"
+                  className="h-12 w-full px-4 rounded-xl border border-border bg-background text-base text-foreground mb-4"
+                  placeholderTextColor="#adb5bd"
+                />
 
-            {/* Warning */}
-            <View className="bg-yellow-50 rounded-xl p-3 mb-6">
-              <Text className="text-xs text-yellow-700">
-                Solde minimum de 10 000 FCFA requis pour un retrait.
-              </Text>
-            </View>
+                {/* Phone */}
+                <Text className="text-sm font-medium text-foreground mb-1.5">
+                  Numero Mobile Money
+                </Text>
+                <TextInput
+                  value={withdrawPhone}
+                  onChangeText={setWithdrawPhone}
+                  placeholder="6XX XXX XXX"
+                  keyboardType="phone-pad"
+                  className="h-12 w-full px-4 rounded-xl border border-border bg-background text-base text-foreground mb-3"
+                  placeholderTextColor="#adb5bd"
+                />
 
-            {/* Confirm */}
-            <Pressable
-              onPress={handleWithdraw}
-              disabled={withdrawMutation.isPending}
-              className={`rounded-2xl py-4 items-center ${
-                withdrawMutation.isPending ? "bg-primary/50" : "bg-primary"
-              }`}
-            >
-              <Text className="text-white font-bold text-base">
-                {withdrawMutation.isPending
-                  ? "Traitement..."
-                  : "Confirmer le retrait"}
-              </Text>
+                {/* Warning — uses the dynamic minimum balance from the backend */}
+                <View className="bg-yellow-50 rounded-xl p-3 mb-6">
+                  <Text className="text-xs text-yellow-700">
+                    Vous devez conserver au minimum {formatBalance(minimumBalance)} FCFA dans
+                    votre portefeuille pour le renouvellement annuel de votre abonnement.
+                  </Text>
+                </View>
+
+                {/* Confirm */}
+                <Pressable
+                  onPress={handleWithdraw}
+                  disabled={withdrawMutation.isPending}
+                  className={`rounded-2xl py-4 items-center ${
+                    withdrawMutation.isPending ? "bg-primary/50" : "bg-primary"
+                  }`}
+                >
+                  <Text className="text-white font-bold text-base">
+                    {withdrawMutation.isPending
+                      ? "Traitement..."
+                      : "Confirmer le retrait"}
+                  </Text>
+                </Pressable>
+              </ScrollView>
             </Pressable>
-          </View>
-        </View>
+          </KeyboardAvoidingView>
+        </Pressable>
       </Modal>
     </SafeAreaView>
   );

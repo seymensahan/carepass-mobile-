@@ -247,6 +247,14 @@ export default function AccessManagementScreen() {
                       <Text className="text-xs text-muted">
                         {req.doctor.specialty} · {req.doctor.hospital}
                       </Text>
+                      {req.forDependent && (
+                        <View className="mt-1.5 self-start flex-row items-center bg-primary/10 rounded-full px-2 py-0.5">
+                          <Feather name="users" size={10} color="#007bff" />
+                          <Text className="text-[10px] font-semibold text-primary ml-1">
+                            Pour {req.forDependent.firstName} {req.forDependent.lastName}
+                          </Text>
+                        </View>
+                      )}
                       <Text className="text-xs text-muted mt-0.5">
                         Demandé{" "}
                         {formatDistanceToNow(new Date(req.requestedAt), {

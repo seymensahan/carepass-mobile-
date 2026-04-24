@@ -1,12 +1,24 @@
 import React, { useMemo, useState } from "react";
-import { Linking, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Linking,
+  Modal,
+  Pressable,
+  ScrollView,
+  Share,
+  Text,
+  View,
+} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, differenceInMonths, differenceInYears } from "date-fns";
 import { fr } from "date-fns/locale";
-import { getChildById } from "../../services/child.service";
+import * as Clipboard from "expo-clipboard";
+import QRCode from "react-native-qrcode-svg";
+import { getChildById, promoteChildToPatient } from "../../services/child.service";
 import Skeleton from "../../components/ui/Skeleton";
 import type { ChildWithRecords } from "../../types/child";
 import type { VaccinationStatus } from "../../types/vaccination";
@@ -22,13 +34,63 @@ const TABS: { key: TabKey; label: string; icon: keyof typeof Feather.glyphMap }[
 export default function ChildProfileScreen() {
   const { childId } = useLocalSearchParams<{ childId: string }>();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabKey>("info");
+
+  // Share-with-doctor modal state — null = closed, otherwise contains the
+  // CaryPass info needed to display the QR.
+  const [shareInfo, setShareInfo] = useState<{
+    carypassId: string;
+    alreadyPromoted: boolean;
+  } | null>(null);
 
   const { data: child, isLoading } = useQuery({
     queryKey: ["child", childId],
     queryFn: () => getChildById(childId!),
     enabled: !!childId,
   });
+
+  // Promote-to-patient mutation. Triggered when the parent taps "Partager
+  // avec un médecin" — generates a CaryPass for the dependent if needed.
+  const promoteMut = useMutation({
+    mutationFn: () => promoteChildToPatient(childId!),
+    onSuccess: (result) => {
+      if (!result?.success) {
+        Alert.alert("Erreur", "Impossible de générer le CaryPass de cet enfant.");
+        return;
+      }
+      setShareInfo({
+        carypassId: result.carypassId,
+        alreadyPromoted: result.alreadyPromoted,
+      });
+      queryClient.invalidateQueries({ queryKey: ["child", childId] });
+    },
+    onError: () => {
+      Alert.alert("Erreur", "Une erreur est survenue. Réessayez.");
+    },
+  });
+
+  const handleShareWithDoctor = () => {
+    if (!child) return;
+    promoteMut.mutate();
+  };
+
+  const handleCopyCarypassId = async () => {
+    if (!shareInfo) return;
+    await Clipboard.setStringAsync(shareInfo.carypassId);
+    Alert.alert("Copié", "CaryPass copié dans le presse-papiers.");
+  };
+
+  const handleShareCarypassId = async () => {
+    if (!shareInfo || !child) return;
+    try {
+      await Share.share({
+        message: `CaryPass de ${child.firstName} ${child.lastName} : ${shareInfo.carypassId}\n\nVotre médecin peut utiliser ce code pour demander l'accès au dossier médical.`,
+      });
+    } catch {
+      // user cancelled
+    }
+  };
 
   if (isLoading) {
     return (
@@ -74,16 +136,29 @@ export default function ChildProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View className="flex-row items-center px-6 pt-6 pb-2">
+        <View className="flex-row items-center px-6 pt-6 pb-2 gap-2">
           <Pressable
             onPress={() => router.back()}
-            className="w-10 h-10 rounded-full bg-white border border-border items-center justify-center mr-3"
+            className="w-10 h-10 rounded-full bg-white border border-border items-center justify-center"
           >
             <Feather name="arrow-left" size={20} color="#212529" />
           </Pressable>
-          <Text className="text-xl font-bold text-foreground flex-1">
+          <Text className="text-xl font-bold text-foreground flex-1 ml-2">
             Profil enfant
           </Text>
+          {/* Share with doctor */}
+          <Pressable
+            onPress={handleShareWithDoctor}
+            disabled={promoteMut.isPending}
+            className="w-10 h-10 rounded-full bg-primary/10 items-center justify-center"
+          >
+            {promoteMut.isPending ? (
+              <ActivityIndicator size="small" color="#007bff" />
+            ) : (
+              <Feather name="share-2" size={18} color="#007bff" />
+            )}
+          </Pressable>
+          {/* Emergency protocol */}
           <Pressable
             onPress={() =>
               router.push(`/children/${childId}/emergency-protocol`)
@@ -154,6 +229,74 @@ export default function ChildProfileScreen() {
         )}
         {activeTab === "consultations" && <ConsultationsTab child={child} />}
       </ScrollView>
+
+      {/* ─── Share with doctor modal ─── */}
+      <Modal
+        visible={!!shareInfo}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShareInfo(null)}
+      >
+        <View className="flex-1 bg-black/50 justify-end">
+          <View className="bg-white rounded-t-3xl px-6 pt-6 pb-10">
+            {/* Header */}
+            <View className="flex-row items-center justify-between mb-2">
+              <Text className="text-lg font-bold text-foreground">
+                Partager avec un médecin
+              </Text>
+              <Pressable onPress={() => setShareInfo(null)} hitSlop={10}>
+                <Feather name="x" size={24} color="#6c757d" />
+              </Pressable>
+            </View>
+
+            <Text className="text-xs text-muted mb-4">
+              {shareInfo?.alreadyPromoted
+                ? `CaryPass de ${child.firstName}. Le médecin peut le scanner ou le saisir manuellement.`
+                : `Le CaryPass de ${child.firstName} a été créé. Vous restez tuteur et devrez approuver les demandes d'accès.`}
+            </Text>
+
+            {/* QR code */}
+            {shareInfo?.carypassId && (
+              <View className="items-center bg-background rounded-2xl py-6 mb-4">
+                <View className="bg-white p-3 rounded-xl mb-3" style={{ borderWidth: 1, borderColor: "#dee2e6" }}>
+                  <QRCode value={shareInfo.carypassId} size={180} />
+                </View>
+                <Text className="text-xs text-muted">CaryPass</Text>
+                <Text className="text-lg font-bold text-primary mt-1">
+                  {shareInfo.carypassId}
+                </Text>
+              </View>
+            )}
+
+            {/* Actions */}
+            <View className="flex-row gap-3">
+              <Pressable
+                onPress={handleCopyCarypassId}
+                className="flex-1 flex-row items-center justify-center gap-2 bg-primary/10 rounded-xl py-3"
+              >
+                <Feather name="copy" size={16} color="#007bff" />
+                <Text className="text-primary font-semibold text-sm">Copier</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleShareCarypassId}
+                className="flex-1 flex-row items-center justify-center gap-2 bg-secondary/10 rounded-xl py-3"
+              >
+                <Feather name="share-2" size={16} color="#28a745" />
+                <Text className="text-secondary font-semibold text-sm">Partager</Text>
+              </Pressable>
+            </View>
+
+            {/* Info */}
+            <View className="mt-4 bg-blue-50 rounded-xl p-3 flex-row items-start gap-2">
+              <Feather name="info" size={14} color="#007bff" style={{ marginTop: 2 }} />
+              <Text className="flex-1 text-xs text-blue-700 leading-5">
+                Quand le médecin demandera l&apos;accès, vous recevrez une
+                notification pour approuver à la place de votre enfant.
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

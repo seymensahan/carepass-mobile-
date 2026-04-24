@@ -42,6 +42,12 @@ export interface AccessRequest {
   requestedAt: string;
   message?: string;
   status: RequestStatus;
+  // When set, the request targets a dependent (child/managed patient)
+  // rather than the logged-in user. Used to show "Pour [name]" labels.
+  forDependent?: {
+    firstName: string;
+    lastName: string;
+  };
 }
 
 export type AuditActionType =

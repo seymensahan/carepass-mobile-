@@ -4,14 +4,19 @@ import { api } from "../lib/api-client";
 type Any = any;
 
 export interface Wallet {
-  id: string;
+  walletId?: string;
+  id?: string;
+  userId?: string;
   balance: number;
-  userId: string;
+  // Dynamic — equals the current annual doctor subscription price.
+  // Doctors must keep at least this amount in the wallet.
+  minimumBalance?: number;
+  availableForWithdrawal?: number;
 }
 
 export interface WalletTransaction {
   id: string;
-  type: "referral_earning" | "subscription_debit" | "withdrawal";
+  type: "referral_earning" | "subscription_debit" | "withdrawal" | "manual_credit";
   amount: number;
   description: string;
   createdAt: string;
@@ -30,12 +35,23 @@ export interface WithdrawalResult {
 }
 
 /**
- * Get the doctor's wallet (balance, id).
+ * Get the doctor's wallet (balance, minimumBalance, availableForWithdrawal).
  */
 export async function getWallet(): Promise<Wallet | null> {
   try {
     const response = await api.get<Any>("/wallet");
-    return response.data?.data ?? response.data ?? null;
+    if (response.error) return null;
+    const inner = response.data?.data ?? response.data;
+    if (!inner) return null;
+    return {
+      walletId: inner.walletId,
+      id: inner.id ?? inner.walletId,
+      userId: inner.userId,
+      balance: Number(inner.balance ?? 0),
+      minimumBalance: inner.minimumBalance != null ? Number(inner.minimumBalance) : undefined,
+      availableForWithdrawal:
+        inner.availableForWithdrawal != null ? Number(inner.availableForWithdrawal) : undefined,
+    };
   } catch {
     return null;
   }

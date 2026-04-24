@@ -261,11 +261,36 @@ export default function DoctorProfileScreen() {
           </Pressable>
         </View>
 
+        {/* My Team — prominent access */}
+        <View className="px-6 mb-5">
+          <Pressable
+            onPress={() => router.push("/doctor/team" as any)}
+            className="bg-white rounded-3xl overflow-hidden flex-row items-center px-5 py-4"
+            style={s.card}
+          >
+            <View
+              className="w-10 h-10 rounded-xl items-center justify-center mr-3"
+              style={{ backgroundColor: "#28a74512" }}
+            >
+              <Feather name="user-plus" size={17} color="#28a745" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-foreground">
+                Mon équipe
+              </Text>
+              <Text className="text-xs text-muted mt-0.5">
+                Inviter des infirmier(e)s et gérer mon équipe
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={18} color="#6c757d" />
+          </Pressable>
+        </View>
+
         {/* Settings */}
         <View className="px-6 mb-5">
           <Text className="text-base font-bold text-foreground mb-3">{t("doctorProfile.settings")}</Text>
           <View className="bg-white rounded-3xl overflow-hidden" style={s.card}>
-            {/* My Team */}
+            {/* My Team (kept in settings too for backward compat) */}
             <Pressable
               onPress={() => router.push("/doctor/team" as any)}
               className="flex-row items-center px-5 py-4 border-b border-border/40"
