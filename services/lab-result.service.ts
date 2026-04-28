@@ -157,7 +157,7 @@ export async function diagnoseLabResult(
     body: { diagnosis },
   });
   if (response.error) {
-    return { success: false, message: response.error.message || "Erreur" };
+    return { success: false, message: response.error || "Erreur" };
   }
   return { success: true };
 }
