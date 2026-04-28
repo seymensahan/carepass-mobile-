@@ -15,10 +15,9 @@ export default function WelcomeScreen() {
         {/* Logo */}
         <Image
           source={require("../../assets/logo-main.png")}
-          style={{ width: 300, height: 180 }}
+          style={{ width: 300, height: 180, marginBottom: -40 }}
           resizeMode="contain"
         />
-        <View className="h-4" />
 
         {/* Tagline */}
         <Text className="text-lg text-muted mb-3">

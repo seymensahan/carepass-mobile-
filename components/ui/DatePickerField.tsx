@@ -24,15 +24,12 @@ export default function DatePickerField({
   minimumDate,
   maximumDate,
 }: DatePickerFieldProps) {
-  // Map legacy "time" mode to "datetime" since the beautiful picker doesn't have time-only
-  const effectiveMode = mode === "time" ? "datetime" : mode;
-
   return (
     <BeautifulDatePicker
       label={label}
       value={value}
       onChange={onChange}
-      mode={effectiveMode}
+      mode={mode}
       placeholder={placeholder}
       minDate={minimumDate}
       maxDate={maximumDate}

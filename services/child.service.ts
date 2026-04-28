@@ -6,7 +6,12 @@ import type {
   EmergencyProtocol,
 } from "../types/child";
 import type { Vaccination } from "../types/vaccination";
-import type { Consultation } from "../types/medical";
+import type {
+  Consultation,
+  ChronicCondition,
+  Medication,
+  LabResult,
+} from "../types/medical";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -79,9 +84,79 @@ export async function getChildren(): Promise<Child[]> {
   return list.map(mapChild);
 }
 
+function mapConsultation(c: Any): Consultation {
+  return {
+    id: c.id,
+    date: c.date || c.createdAt || "",
+    doctorName: c.doctor?.user
+      ? `Dr ${c.doctor.user.firstName} ${c.doctor.user.lastName}`
+      : c.doctorName || "Médecin",
+    specialty: c.doctor?.specialty || c.specialty || "",
+    hospital: c.location || c.hospital || "",
+    type: (c.type as Consultation["type"]) || "consultation",
+    reason: c.reason || c.motif || "",
+    doctorNotes: c.notes || c.doctorNotes || "",
+    diagnosis: c.diagnosis || "",
+    diagnosisCodes: c.diagnosisCodes,
+    prescriptions: (c.prescriptions || []).map((p: Any) => ({
+      id: p.id,
+      medicationName: p.medicationName || p.name || "",
+      dosage: p.dosage || "",
+      frequency: p.frequency || "",
+      duration: p.duration || "",
+      notes: p.notes,
+    })),
+    linkedLabResultIds: c.linkedLabResultIds || [],
+    nextAppointmentDate: c.nextAppointmentDate,
+  };
+}
+
+function mapCondition(c: Any): ChronicCondition {
+  return {
+    id: c.id,
+    name: c.name || "",
+    diagnosedDate: c.diagnosedAt || c.createdAt || "",
+    status: c.status === "resolved" ? "en_rémission" : "actif",
+    notes: c.treatment || c.notes,
+  };
+}
+
+function mapMedication(p: Any): Medication {
+  return {
+    id: p.id,
+    name: p.medicationName || p.name || "",
+    dosage: p.dosage || "",
+    frequency: p.frequency || "",
+    prescribedBy: p.doctorName || "—",
+    startDate: p.startDate || p.createdAt || "",
+    endDate: p.endDate,
+    status: p.status === "completed" ? "terminé" : "en_cours",
+    reason: p.reason,
+  };
+}
+
+function mapLabResult(l: Any): LabResult {
+  return {
+    id: l.id,
+    title: l.title || l.testName || "Résultat",
+    date: l.date || l.createdAt || "",
+    category: (l.category as LabResult["category"]) || "autre",
+    laboratory: l.laboratoryName || l.laboratory || "",
+    prescribedBy: l.prescribedBy || "",
+    status: l.isAbnormal ? "anormal" : "normal",
+    values: l.values || [],
+    fileType: l.fileType || "pdf",
+    notes: l.notes,
+  };
+}
+
 export async function getChildById(
   id: string
 ): Promise<ChildWithRecords | null> {
+  // The backend `findOne` endpoint now returns enriched data when the child has
+  // been promoted (consultations / conditions / labs / prescriptions live on
+  // the linked Patient). The legacy /vaccinations endpoint remains as a
+  // fallback for unpromoted children whose vaccinations sit on the Child row.
   const [childRes, vaccRes] = await Promise.all([
     api.get<Any>(`/children/${id}`),
     api.get<Any>(`/children/${id}/vaccinations`),
@@ -95,12 +170,59 @@ export async function getChildById(
     Array.isArray(rawV) ? rawV : Array.isArray(rawV?.data) ? rawV.data : [];
 
   const child = mapChild(c);
-  const vaccinations: Vaccination[] = vaccList.map((v: Any) =>
-    mapVaccination(v, id)
-  );
-  const consultations: Consultation[] = [];
+  const promoted = c.promotedPatient;
 
-  return { ...child, vaccinations, consultations };
+  // Allergies: prefer the promoted patient's (richer schema with reaction etc.)
+  if (promoted?.allergies?.length) {
+    child.allergies = promoted.allergies.map((a: Any) => ({
+      id: a.id,
+      name: a.name || a.allergen || "",
+      severity:
+        a.severity === "severe"
+          ? ("sévère" as const)
+          : a.severity === "moderee" || a.severity === "moderate"
+            ? ("modérée" as const)
+            : a.severity === "legere" || a.severity === "mild"
+              ? ("légère" as const)
+              : (a.severity as "légère" | "modérée" | "sévère") ?? "modérée",
+    }));
+  }
+
+  // Emergency contacts: prefer promoted patient's (rich list with email/isPrimary)
+  if (promoted?.emergencyContacts?.length) {
+    child.emergencyContacts = promoted.emergencyContacts.map((e: Any) => ({
+      id: e.id,
+      name: e.name || "",
+      relation: e.relationship || e.relation || "",
+      phone: e.phone || "",
+    }));
+  }
+
+  const vaccinations: Vaccination[] = (
+    promoted?.vaccinations?.length ? promoted.vaccinations : vaccList
+  ).map((v: Any) => mapVaccination(v, id));
+
+  const consultations: Consultation[] = (promoted?.consultations || []).map(
+    mapConsultation
+  );
+  const conditions: ChronicCondition[] = (
+    promoted?.medicalConditions || []
+  ).map(mapCondition);
+  const medications: Medication[] = (promoted?.prescriptions || []).map(
+    mapMedication
+  );
+  const labResults: LabResult[] = (promoted?.labResults || []).map(mapLabResult);
+
+  return {
+    ...child,
+    vaccinations,
+    consultations,
+    conditions,
+    medications,
+    labResults,
+    isPromoted: !!c.isPromoted || !!promoted,
+    carypassId: c.carypassId ?? promoted?.carypassId ?? null,
+  };
 }
 
 export async function addChild(data: AddChildData): Promise<Child> {

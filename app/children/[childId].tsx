@@ -23,12 +23,21 @@ import Skeleton from "../../components/ui/Skeleton";
 import type { ChildWithRecords } from "../../types/child";
 import type { VaccinationStatus } from "../../types/vaccination";
 
-type TabKey = "info" | "vaccinations" | "consultations";
+type TabKey =
+  | "info"
+  | "vaccinations"
+  | "consultations"
+  | "conditions"
+  | "medications"
+  | "labs";
 
 const TABS: { key: TabKey; label: string; icon: keyof typeof Feather.glyphMap }[] = [
-  { key: "info", label: "Informations", icon: "user" },
-  { key: "vaccinations", label: "Vaccinations", icon: "shield" },
-  { key: "consultations", label: "Consultations", icon: "clipboard" },
+  { key: "info", label: "Infos", icon: "user" },
+  { key: "consultations", label: "Consult.", icon: "clipboard" },
+  { key: "vaccinations", label: "Vaccins", icon: "shield" },
+  { key: "conditions", label: "Pathologies", icon: "activity" },
+  { key: "medications", label: "Médicaments", icon: "package" },
+  { key: "labs", label: "Labos", icon: "droplet" },
 ];
 
 export default function ChildProfileScreen() {
@@ -178,7 +187,7 @@ export default function ChildProfileScreen() {
             {child.firstName} {child.lastName}
           </Text>
           <Text className="text-sm text-muted mt-0.5">{age}</Text>
-          <View className="flex-row items-center mt-2 gap-2">
+          <View className="flex-row items-center mt-2 gap-2 flex-wrap justify-center">
             {child.bloodGroup && (
               <View className="px-3 py-1 rounded-full bg-danger/10">
                 <Text className="text-xs font-bold text-danger">
@@ -193,17 +202,39 @@ export default function ChildProfileScreen() {
                 </Text>
               </View>
             )}
+            {/* Distinguishes the child's own account from the parent's data */}
+            {child.isPromoted && child.carypassId && (
+              <View className="px-3 py-1 rounded-full bg-secondary/10 flex-row items-center">
+                <Feather name="credit-card" size={11} color="#28a745" />
+                <Text className="text-xs font-bold text-secondary ml-1">
+                  {child.carypassId}
+                </Text>
+              </View>
+            )}
           </View>
+          {!child.isPromoted && (
+            <Text className="text-[11px] text-muted mt-2 italic text-center px-6">
+              Aucun CaryPass — appuyez sur le bouton partager pour créer un
+              compte indépendant et y rattacher consultations et examens.
+            </Text>
+          )}
         </View>
 
-        {/* Tabs */}
-        <View className="flex-row mx-6 mb-4 bg-white rounded-xl border border-border p-1">
+        {/* Tabs (horizontally scrollable — 6 sections don't fit otherwise) */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 24, gap: 8 }}
+          className="mb-4"
+        >
           {TABS.map((tab) => (
             <Pressable
               key={tab.key}
               onPress={() => setActiveTab(tab.key)}
-              className={`flex-1 flex-row items-center justify-center py-2.5 rounded-lg ${
-                activeTab === tab.key ? "bg-primary" : ""
+              className={`flex-row items-center justify-center px-3 py-2 rounded-xl border ${
+                activeTab === tab.key
+                  ? "bg-primary border-primary"
+                  : "bg-white border-border"
               }`}
             >
               <Feather
@@ -220,7 +251,7 @@ export default function ChildProfileScreen() {
               </Text>
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
 
         {/* Tab content */}
         {activeTab === "info" && <InfoTab child={child} />}
@@ -228,6 +259,9 @@ export default function ChildProfileScreen() {
           <VaccinationsTab child={child} router={router} />
         )}
         {activeTab === "consultations" && <ConsultationsTab child={child} />}
+        {activeTab === "conditions" && <ConditionsTab child={child} />}
+        {activeTab === "medications" && <MedicationsTab child={child} />}
+        {activeTab === "labs" && <LabsTab child={child} />}
       </ScrollView>
 
       {/* ─── Share with doctor modal ─── */}
@@ -568,6 +602,12 @@ function ConsultationsTab({ child }: { child: ChildWithRecords }) {
         <Text className="text-sm text-muted mt-3">
           Aucune consultation enregistrée
         </Text>
+        {!child.isPromoted && (
+          <Text className="text-xs text-muted mt-2 italic text-center px-4">
+            Pour qu'un médecin puisse rattacher une consultation à cet enfant,
+            créez d'abord son CaryPass via le bouton partager en haut.
+          </Text>
+        )}
       </View>
     );
   }
@@ -625,6 +665,171 @@ function ConsultationsTab({ child }: { child: ChildWithRecords }) {
               )}
             </View>
           </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// ─── Conditions Tab ───
+
+function ConditionsTab({ child }: { child: ChildWithRecords }) {
+  const conditions = child.conditions;
+
+  if (conditions.length === 0) {
+    return (
+      <View className="px-6 items-center py-8">
+        <Feather name="activity" size={40} color="#dee2e6" />
+        <Text className="text-sm text-muted mt-3">
+          Aucune pathologie chronique
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View className="px-6">
+      {conditions.map((c) => (
+        <View
+          key={c.id}
+          className="bg-white rounded-xl border border-border p-4 mb-2"
+        >
+          <View className="flex-row items-center mb-1">
+            <Text className="text-sm font-semibold text-foreground flex-1">
+              {c.name}
+            </Text>
+            <View
+              className={`px-2 py-1 rounded-full ${
+                c.status === "actif" ? "bg-danger/10" : "bg-secondary/10"
+              }`}
+            >
+              <Text
+                className={`text-[10px] font-bold ${
+                  c.status === "actif" ? "text-danger" : "text-secondary"
+                }`}
+              >
+                {c.status === "actif" ? "Actif" : "En rémission"}
+              </Text>
+            </View>
+          </View>
+          {c.diagnosedDate && (
+            <Text className="text-xs text-muted">
+              Diagnostiqué le{" "}
+              {format(new Date(c.diagnosedDate), "d MMM yyyy", { locale: fr })}
+            </Text>
+          )}
+          {c.notes && (
+            <Text className="text-xs text-foreground mt-2">{c.notes}</Text>
+          )}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// ─── Medications Tab ───
+
+function MedicationsTab({ child }: { child: ChildWithRecords }) {
+  const medications = child.medications;
+
+  if (medications.length === 0) {
+    return (
+      <View className="px-6 items-center py-8">
+        <Feather name="package" size={40} color="#dee2e6" />
+        <Text className="text-sm text-muted mt-3">Aucun médicament</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View className="px-6">
+      {medications.map((m) => (
+        <View
+          key={m.id}
+          className="bg-white rounded-xl border border-border p-4 mb-2"
+        >
+          <View className="flex-row items-center mb-1">
+            <Text className="text-sm font-semibold text-foreground flex-1">
+              {m.name}
+            </Text>
+            <View
+              className={`px-2 py-1 rounded-full ${
+                m.status === "en_cours" ? "bg-primary/10" : "bg-muted/10"
+              }`}
+            >
+              <Text
+                className={`text-[10px] font-bold ${
+                  m.status === "en_cours" ? "text-primary" : "text-muted"
+                }`}
+              >
+                {m.status === "en_cours" ? "En cours" : "Terminé"}
+              </Text>
+            </View>
+          </View>
+          <Text className="text-xs text-muted">
+            {m.dosage} · {m.frequency}
+          </Text>
+          {m.startDate && (
+            <Text className="text-[11px] text-muted mt-1">
+              Depuis le{" "}
+              {format(new Date(m.startDate), "d MMM yyyy", { locale: fr })}
+            </Text>
+          )}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// ─── Labs Tab ───
+
+function LabsTab({ child }: { child: ChildWithRecords }) {
+  const labResults = child.labResults;
+
+  if (labResults.length === 0) {
+    return (
+      <View className="px-6 items-center py-8">
+        <Feather name="droplet" size={40} color="#dee2e6" />
+        <Text className="text-sm text-muted mt-3">
+          Aucun résultat de laboratoire
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View className="px-6">
+      {labResults.map((l) => (
+        <View
+          key={l.id}
+          className="bg-white rounded-xl border border-border p-4 mb-2"
+        >
+          <View className="flex-row items-center mb-1">
+            <Text className="text-sm font-semibold text-foreground flex-1">
+              {l.title}
+            </Text>
+            <View
+              className={`px-2 py-1 rounded-full ${
+                l.status === "normal" ? "bg-secondary/10" : "bg-danger/10"
+              }`}
+            >
+              <Text
+                className={`text-[10px] font-bold ${
+                  l.status === "normal" ? "text-secondary" : "text-danger"
+                }`}
+              >
+                {l.status === "normal" ? "Normal" : "Anormal"}
+              </Text>
+            </View>
+          </View>
+          {l.laboratory && (
+            <Text className="text-xs text-muted">{l.laboratory}</Text>
+          )}
+          {l.date && (
+            <Text className="text-[11px] text-muted mt-1">
+              {format(new Date(l.date), "d MMM yyyy", { locale: fr })}
+            </Text>
+          )}
         </View>
       ))}
     </View>

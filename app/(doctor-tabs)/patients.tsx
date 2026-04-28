@@ -20,6 +20,10 @@ export default function DoctorPatientsScreen() {
   const { data: patients = [], isRefetching } = useQuery({
     queryKey: ["doctor-patients"],
     queryFn: doctorService.getPatients,
+    // Don't refetch on every focus/render — patient grants change rarely.
+    // The pull-to-refresh control still forces a fresh fetch when needed.
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
 
   const filtered = patients.filter((p) => {

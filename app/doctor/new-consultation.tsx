@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import * as doctorService from "../../services/doctor.service";
@@ -75,6 +75,16 @@ export default function NewConsultationScreen() {
   const [prescriptions, setPrescriptions] = useState<PrescriptionItem[]>([]);
   const [selectedLabTests, setSelectedLabTests] = useState<string[]>([]);
   const [showLabTests, setShowLabTests] = useState(false);
+  // Optional: route the lab orders to a specific laboratory.
+  // Empty = "any lab" (marketplace mode, current default).
+  const [selectedLabId, setSelectedLabId] = useState<string>("");
+  const [showLabPicker, setShowLabPicker] = useState(false);
+
+  const { data: laboratories = [] } = useQuery({
+    queryKey: ["laboratories"],
+    queryFn: doctorService.getLaboratories,
+    staleTime: 5 * 60_000, // labs change rarely — cache 5 min
+  });
 
   const addPrescription = () => {
     setPrescriptions([
@@ -116,6 +126,8 @@ export default function NewConsultationScreen() {
         notes: form.notes || undefined,
         prescriptions: prescriptions.filter((p) => p.medication) as any,
         labOrders: selectedLabTests.length > 0 ? selectedLabTests : undefined,
+        labInstitutionId:
+          selectedLabTests.length > 0 && selectedLabId ? selectedLabId : undefined,
       } as any);
       if (result.success) {
         queryClient.invalidateQueries({ queryKey: ["doctor-consultations"] });
@@ -377,6 +389,122 @@ export default function NewConsultationScreen() {
                   </Pressable>
                 );
               })}
+            </View>
+          )}
+
+          {/* Laboratoire ciblé — only shown once at least one test is picked */}
+          {selectedLabTests.length > 0 && (
+            <View className="mt-3">
+              <Pressable
+                onPress={() => setShowLabPicker((v) => !v)}
+                className="bg-white rounded-2xl p-4 border border-border flex-row items-center justify-between"
+                style={s.card}
+              >
+                <View className="flex-row items-center gap-2 flex-1">
+                  <View className="w-8 h-8 rounded-lg bg-purple-50 items-center justify-center">
+                    <Feather name="home" size={15} color="#6f42c1" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-sm font-bold text-foreground">
+                      Laboratoire
+                    </Text>
+                    <Text className="text-[11px] text-muted">
+                      {selectedLabId
+                        ? laboratories.find((l) => l.id === selectedLabId)?.name
+                          ?? "Laboratoire choisi"
+                        : "Tous les labos (premier disponible)"}
+                    </Text>
+                  </View>
+                </View>
+                <Feather
+                  name={showLabPicker ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color="#6c757d"
+                />
+              </Pressable>
+
+              {showLabPicker && (
+                <View className="bg-white rounded-2xl p-4 border border-border mt-2" style={s.card}>
+                  {/* "Any lab" option */}
+                  <Pressable
+                    onPress={() => {
+                      setSelectedLabId("");
+                      setShowLabPicker(false);
+                    }}
+                    className="flex-row items-center py-3 border-b border-gray-50"
+                  >
+                    <View
+                      className={`w-6 h-6 rounded-full items-center justify-center mr-3 ${
+                        selectedLabId === "" ? "bg-primary" : "bg-gray-100"
+                      }`}
+                    >
+                      {selectedLabId === "" && (
+                        <View className="w-2 h-2 rounded-full bg-white" />
+                      )}
+                    </View>
+                    <View className="flex-1">
+                      <Text
+                        className={`text-sm ${
+                          selectedLabId === ""
+                            ? "font-semibold text-primary"
+                            : "text-foreground"
+                        }`}
+                      >
+                        Tous les laboratoires
+                      </Text>
+                      <Text className="text-[11px] text-muted">
+                        Premier labo disponible (mode marketplace)
+                      </Text>
+                    </View>
+                  </Pressable>
+
+                  {laboratories.length === 0 && (
+                    <Text className="text-xs text-muted py-3 italic">
+                      Aucun laboratoire enregistré.
+                    </Text>
+                  )}
+
+                  {laboratories.map((lab) => {
+                    const selected = selectedLabId === lab.id;
+                    return (
+                      <Pressable
+                        key={lab.id}
+                        onPress={() => {
+                          setSelectedLabId(lab.id);
+                          setShowLabPicker(false);
+                        }}
+                        className="flex-row items-center py-3 border-b border-gray-50"
+                      >
+                        <View
+                          className={`w-6 h-6 rounded-full items-center justify-center mr-3 ${
+                            selected ? "bg-primary" : "bg-gray-100"
+                          }`}
+                        >
+                          {selected && (
+                            <View className="w-2 h-2 rounded-full bg-white" />
+                          )}
+                        </View>
+                        <View className="flex-1">
+                          <Text
+                            className={`text-sm ${
+                              selected
+                                ? "font-semibold text-primary"
+                                : "text-foreground"
+                            }`}
+                          >
+                            {lab.name}
+                          </Text>
+                          {(lab.city || lab.region) && (
+                            <Text className="text-[11px] text-muted">
+                              {[lab.city, lab.region].filter(Boolean).join(" · ")}
+                            </Text>
+                          )}
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
             </View>
           )}
         </View>

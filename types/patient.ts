@@ -62,6 +62,9 @@ export interface Notification {
   message: string;
   read: boolean;
   createdAt: string;
+  // Deep-link path set by the backend (e.g. `/records/lab-results/abc`).
+  // The notifications screen prefers this over hardcoded routing per type.
+  link?: string;
   data?: Record<string, string>;
 }
 

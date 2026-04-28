@@ -25,7 +25,7 @@ interface BeautifulDatePickerProps {
   label?: string;
   value: Date | string | null;
   onChange: (date: Date) => void;
-  mode?: "date" | "datetime";
+  mode?: "date" | "datetime" | "time";
   placeholder?: string;
   minDate?: Date;
   maxDate?: Date;
@@ -83,7 +83,18 @@ export default function BeautifulDatePicker({
   };
 
   const formatDisplay = (): string => {
-    if (!dateValue) return placeholder || (mode === "datetime" ? "Choisir date et heure" : "Choisir une date");
+    if (!dateValue) {
+      if (placeholder) return placeholder;
+      if (mode === "time") return "Choisir l'heure";
+      if (mode === "datetime") return "Choisir date et heure";
+      return "Choisir une date";
+    }
+
+    if (mode === "time") {
+      const h = String(dateValue.getHours()).padStart(2, "0");
+      const m = String(dateValue.getMinutes()).padStart(2, "0");
+      return `${h}:${m}`;
+    }
 
     const day = dateValue.getDate();
     const month = MONTH_NAMES[dateValue.getMonth()];
@@ -98,6 +109,17 @@ export default function BeautifulDatePicker({
   };
 
   const handleConfirm = () => {
+    if (mode === "time") {
+      const base = dateValue ?? new Date();
+      const finalDate = new Date(base);
+      const h = Math.min(23, Math.max(0, parseInt(hour, 10) || 0));
+      const mi = Math.min(59, Math.max(0, parseInt(minute, 10) || 0));
+      finalDate.setHours(h, mi, 0, 0);
+      onChange(finalDate);
+      setOpen(false);
+      return;
+    }
+
     if (!selectedDay) {
       setOpen(false);
       return;
@@ -126,7 +148,7 @@ export default function BeautifulDatePicker({
         }`}
       >
         <View className="w-9 h-9 rounded-xl bg-primary/10 items-center justify-center mr-3">
-          <Feather name={mode === "datetime" ? "clock" : "calendar"} size={16} color="#007bff" />
+          <Feather name={mode === "time" || mode === "datetime" ? "clock" : "calendar"} size={16} color="#007bff" />
         </View>
         <Text
           className={`flex-1 text-base ${dateValue ? "text-foreground font-medium" : "text-muted"}`}
@@ -157,7 +179,7 @@ export default function BeautifulDatePicker({
             <View className="px-5 pt-5 pb-3">
               <View className="flex-row items-center justify-between">
                 <Text className="text-lg font-bold text-foreground">
-                  {mode === "datetime" ? "Date et heure" : "Choisir une date"}
+                  {mode === "time" ? "Choisir l'heure" : mode === "datetime" ? "Date et heure" : "Choisir une date"}
                 </Text>
                 <Pressable onPress={() => setOpen(false)}>
                   <Feather name="x" size={22} color="#6c757d" />
@@ -165,7 +187,8 @@ export default function BeautifulDatePicker({
               </View>
             </View>
 
-            {/* Year/Month selectors */}
+            {/* Year/Month selectors — hidden in time-only mode */}
+            {mode !== "time" && (
             <View className="flex-row items-center justify-between px-5 pb-3">
               {/* Year */}
               <View className="flex-row items-center bg-background rounded-xl px-1">
@@ -207,8 +230,10 @@ export default function BeautifulDatePicker({
                 </Pressable>
               </View>
             </View>
+            )}
 
-            {/* Calendar */}
+            {/* Calendar — hidden in time-only mode */}
+            {mode !== "time" && (
             <Calendar
               key={`${calYear}-${calMonth}`}
               current={`${calYear}-${String(calMonth).padStart(2, "0")}-01`}
@@ -245,31 +270,32 @@ export default function BeautifulDatePicker({
                 textDayHeaderFontSize: 12,
               }}
             />
+            )}
 
-            {/* Time picker for datetime mode */}
-            {mode === "datetime" && (
-              <View className="px-5 pt-2 pb-3 border-t border-border/40 mt-2">
-                <Text className="text-xs text-muted mb-2">Heure</Text>
-                <View className="flex-row items-center gap-2">
-                  <View className="w-16 h-12 rounded-xl border border-border bg-background items-center justify-center">
+            {/* Time picker for datetime and time modes */}
+            {(mode === "datetime" || mode === "time") && (
+              <View className={`px-5 ${mode === "time" ? "pt-4 pb-4" : "pt-2 pb-3 border-t border-border/40 mt-2"}`}>
+                {mode === "datetime" && <Text className="text-xs text-muted mb-2">Heure</Text>}
+                <View className={`flex-row items-center ${mode === "time" ? "justify-center" : ""} gap-2`}>
+                  <View className={`${mode === "time" ? "w-24 h-16" : "w-16 h-12"} rounded-xl border border-border bg-background items-center justify-center`}>
                     <TextInput
                       value={hour}
                       onChangeText={(v) => setHour(v.replace(/[^0-9]/g, "").slice(0, 2))}
                       keyboardType="number-pad"
                       maxLength={2}
-                      className="text-lg font-bold text-foreground text-center w-full"
+                      className={`${mode === "time" ? "text-3xl" : "text-lg"} font-bold text-foreground text-center w-full`}
                       placeholder="HH"
                       placeholderTextColor="#adb5bd"
                     />
                   </View>
-                  <Text className="text-lg font-bold text-foreground">:</Text>
-                  <View className="w-16 h-12 rounded-xl border border-border bg-background items-center justify-center">
+                  <Text className={`${mode === "time" ? "text-3xl" : "text-lg"} font-bold text-foreground`}>:</Text>
+                  <View className={`${mode === "time" ? "w-24 h-16" : "w-16 h-12"} rounded-xl border border-border bg-background items-center justify-center`}>
                     <TextInput
                       value={minute}
                       onChangeText={(v) => setMinute(v.replace(/[^0-9]/g, "").slice(0, 2))}
                       keyboardType="number-pad"
                       maxLength={2}
-                      className="text-lg font-bold text-foreground text-center w-full"
+                      className={`${mode === "time" ? "text-3xl" : "text-lg"} font-bold text-foreground text-center w-full`}
                       placeholder="MM"
                       placeholderTextColor="#adb5bd"
                     />
@@ -288,9 +314,9 @@ export default function BeautifulDatePicker({
               </Pressable>
               <Pressable
                 onPress={handleConfirm}
-                disabled={!selectedDay}
+                disabled={mode !== "time" && !selectedDay}
                 className="flex-1 h-12 rounded-xl items-center justify-center"
-                style={{ backgroundColor: !selectedDay ? "#adb5bd" : "#007bff" }}
+                style={{ backgroundColor: mode !== "time" && !selectedDay ? "#adb5bd" : "#007bff" }}
               >
                 <Text className="text-sm font-bold text-white">Valider</Text>
               </Pressable>

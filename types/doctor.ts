@@ -139,6 +139,17 @@ export interface CreateConsultationData {
     duration: string;
     notes?: string;
   }>;
+  labOrders?: string[];
+  // Optional target lab. If omitted, the orders are visible to all labs
+  // (marketplace mode); if set, only the chosen lab institution receives them.
+  labInstitutionId?: string;
+}
+
+export interface LaboratoryOption {
+  id: string;
+  name: string;
+  city?: string;
+  region?: string;
 }
 
 export interface CreateAppointmentData {

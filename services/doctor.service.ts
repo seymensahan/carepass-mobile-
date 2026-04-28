@@ -11,6 +11,7 @@ import type {
   SyncedDashboard,
   CreateConsultationData,
   CreateAppointmentData,
+  LaboratoryOption,
 } from "../types/doctor";
 
 // ─── Helper: unwrap backend response ───
@@ -124,9 +125,10 @@ export async function updateProfile(data: Partial<DoctorProfile>): Promise<boole
 // ─── Patients ───
 
 export async function getPatients(): Promise<DoctorPatient[]> {
-  const result = await getDoctorProfile();
-  if (!result) return [];
-  const response = await api.get<any>(`/doctors/${result.doctorId}/patients`);
+  // /doctors/me/patients resolves the doctor from the JWT — no need to
+  // pre-fetch our own profile first (that chained call caused intermittent
+  // empty lists when /users/profile was slow).
+  const response = await api.get<any>("/doctors/me/patients");
   if (response.error) return [];
   const list = unwrapList(response.data);
   return list.map((p: any) => {
@@ -203,6 +205,22 @@ export async function getConsultationById(id: string): Promise<DoctorConsultatio
   const data = unwrapOne(response.data);
   if (!data) return null;
   return mapConsultation(data);
+}
+
+/**
+ * List verified laboratory institutions — used by the consultation creation
+ * screen so the doctor can route lab orders to a specific lab.
+ */
+export async function getLaboratories(): Promise<LaboratoryOption[]> {
+  const response = await api.get<any>("/institutions?type=laboratory&limit=100");
+  if (response.error) return [];
+  const list = unwrapList(response.data);
+  return list.map((i: any) => ({
+    id: i.id,
+    name: i.name || "",
+    city: i.city || undefined,
+    region: i.region || undefined,
+  }));
 }
 
 export async function createConsultation(data: CreateConsultationData): Promise<{ success: boolean; id?: string; message?: string; queued?: boolean }> {

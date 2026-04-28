@@ -76,10 +76,16 @@ export interface LabResult {
   laboratory: string;
   prescribedBy: string;
   status: LabResultStatus;
+  /** Backend workflow status: pending = waiting doctor, validated = doctor analyzed */
+  workflowStatus?: "pending" | "validated" | "rejected";
   values: LabResultValue[];
   linkedConsultationId?: string;
   fileType: "pdf" | "image";
+  fileUrl?: string;
   notes?: string;
+  doctorDiagnosis?: string;
+  diagnosedAt?: string;
+  diagnosedByName?: string;
 }
 
 // ─── Medications ───

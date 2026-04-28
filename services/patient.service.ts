@@ -119,6 +119,7 @@ export async function getNotifications(): Promise<Notification[]> {
     message: n.message,
     read: n.isRead ?? n.read ?? false,
     createdAt: n.createdAt,
+    link: n.link ?? undefined,
     data: n.data,
   }));
 }

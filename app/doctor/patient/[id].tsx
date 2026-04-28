@@ -219,6 +219,26 @@ export default function DoctorPatientDetailScreen() {
           </Pressable>
         </View>
 
+        {/* Demander l'accès — uses the patient's CaryPass ID (CP-YYYY-NNNNN),
+            NOT the internal UUID, because the access-request endpoint looks
+            patients up by their CaryPass ID. */}
+        {p.carypassId && (
+          <View className="mx-6 mb-5">
+            <Pressable
+              onPress={() =>
+                router.push(`/doctor/access-requests?carypassId=${p.carypassId}` as any)
+              }
+              className="bg-white border border-primary/40 rounded-2xl py-3 flex-row items-center justify-center gap-2"
+              style={s.card}
+            >
+              <Feather name="key" size={16} color="#007bff" />
+              <Text className="text-primary text-xs font-semibold">
+                Demander l'accès au dossier
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
         {/* Tab Bar */}
         <ScrollView
           horizontal
@@ -516,6 +536,7 @@ function ConsultationsTab({
 
 // ─── Lab Results Tab ───
 function LabResultsTab({ labResults }: { labResults: any[] }) {
+  const router = useRouter();
   if (labResults.length === 0) {
     return (
       <View className="items-center py-16">
@@ -530,7 +551,12 @@ function LabResultsTab({ labResults }: { labResults: any[] }) {
   return (
     <>
       {labResults.map((lr: any, i: number) => (
-        <View key={lr.id || i} className="bg-white rounded-2xl p-4 mb-3" style={s.card}>
+        <Pressable
+          key={lr.id || i}
+          onPress={() => lr.id && router.push(`/records/lab-results/${lr.id}` as any)}
+          className="bg-white rounded-2xl p-4 mb-3"
+          style={s.card}
+        >
           <View className="flex-row items-center mb-3">
             <View className="w-10 h-10 rounded-xl bg-blue-50 items-center justify-center mr-3">
               <Feather name="file-text" size={18} color="#007bff" />
@@ -544,15 +570,23 @@ function LabResultsTab({ labResults }: { labResults: any[] }) {
             </View>
             <View
               className={`px-2 py-0.5 rounded-full ${
-                lr.status === "completed" || lr.status === "normal" ? "bg-green-50" : "bg-yellow-50"
+                lr.status === "completed" || lr.status === "normal" || lr.status === "validated" ? "bg-green-50" : "bg-yellow-50"
               }`}
             >
               <Text
                 className={`text-[10px] font-semibold ${
-                  lr.status === "completed" || lr.status === "normal" ? "text-green-700" : "text-yellow-700"
+                  lr.status === "completed" || lr.status === "normal" || lr.status === "validated" ? "text-green-700" : "text-yellow-700"
                 }`}
               >
-                {lr.status === "completed" ? "Complété" : lr.status === "normal" ? "Normal" : lr.status || "En attente"}
+                {lr.status === "completed"
+                  ? "Complété"
+                  : lr.status === "validated"
+                    ? "Diagnostiqué"
+                    : lr.status === "normal"
+                      ? "Normal"
+                      : lr.status === "pending"
+                        ? "À diagnostiquer"
+                        : lr.status || "En attente"}
               </Text>
             </View>
           </View>
@@ -576,7 +610,16 @@ function LabResultsTab({ labResults }: { labResults: any[] }) {
                 )}
               </View>
             ))}
-        </View>
+          {/* Hint when no diagnosis is set yet */}
+          {(lr.status === "pending" || !lr.doctorDiagnosis) && (
+            <View className="mt-2 flex-row items-center gap-1.5 pt-2 border-t border-gray-50">
+              <Feather name="edit-3" size={11} color="#007bff" />
+              <Text className="text-[11px] text-primary font-medium">
+                Appuyer pour saisir le diagnostic
+              </Text>
+            </View>
+          )}
+        </Pressable>
       ))}
     </>
   );

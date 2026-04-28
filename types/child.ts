@@ -1,5 +1,10 @@
 import type { Vaccination } from "./vaccination";
-import type { Consultation } from "./medical";
+import type {
+  Consultation,
+  ChronicCondition,
+  Medication,
+  LabResult,
+} from "./medical";
 
 export interface GrowthData {
   date: string;
@@ -54,6 +59,13 @@ export interface ChildEmergencyContact {
 export interface ChildWithRecords extends Child {
   vaccinations: Vaccination[];
   consultations: Consultation[];
+  conditions: ChronicCondition[];
+  medications: Medication[];
+  labResults: LabResult[];
+  // True once the parent has promoted this Child to a full Patient.
+  // When true, `carypassId` is set and medical data lives on the linked Patient.
+  isPromoted: boolean;
+  carypassId: string | null;
 }
 
 export interface AddChildData {

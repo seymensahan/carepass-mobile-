@@ -1,24 +1,64 @@
-import React from "react";
-import { Alert, Pressable, ScrollView, Share, Text, View } from "react-native";
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Linking,
+  Pressable,
+  ScrollView,
+  Share,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { getLabResultById } from "../../../services/lab-result.service";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
+import {
+  diagnoseLabResult,
+  getLabResultById,
+} from "../../../services/lab-result.service";
 import Skeleton from "../../../components/ui/Skeleton";
+import { useAuth } from "../../../contexts/AuthContext";
 
 export default function LabResultDetailScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isDoctor = user?.role === "doctor";
+
+  const [diagnosis, setDiagnosis] = useState("");
+  const [isEditingDiagnosis, setIsEditingDiagnosis] = useState(false);
 
   const { data: result, isLoading } = useQuery({
     queryKey: ["lab-results", id],
     queryFn: () => getLabResultById(id),
     enabled: !!id,
+  });
+
+  const diagnoseMut = useMutation({
+    mutationFn: () => diagnoseLabResult(id, diagnosis.trim()),
+    onSuccess: (res) => {
+      if (!res.success) {
+        Alert.alert("Erreur", res.message || "Impossible d'enregistrer le diagnostic.");
+        return;
+      }
+      Alert.alert("Diagnostic enregistré", "Le patient a été notifié.");
+      setIsEditingDiagnosis(false);
+      setDiagnosis("");
+      queryClient.invalidateQueries({ queryKey: ["lab-results", id] });
+      queryClient.invalidateQueries({ queryKey: ["lab-results"] });
+    },
+    onError: () => {
+      Alert.alert("Erreur", "Une erreur réseau est survenue.");
+    },
   });
 
   const handleShare = async () => {
@@ -32,12 +72,83 @@ export default function LabResultDetailScreen() {
     }
   };
 
-  const handleDownload = () => {
-    Alert.alert(
-      "Téléchargement",
-      "Le fichier sera disponible dans vos téléchargements.",
-      [{ text: "OK" }]
-    );
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    if (!result?.fileUrl) {
+      Alert.alert("Fichier indisponible", "Aucun fichier n'est attaché à ce résultat.");
+      return;
+    }
+    // Reject obvious placeholder URLs (results uploaded before storage was
+    // configured). They look like "/uploads/lab-results/xxx-name.png" and
+    // would silently fail with a useless "impossible d'ouvrir" alert.
+    if (!/^https?:\/\//i.test(result.fileUrl)) {
+      Alert.alert(
+        "Fichier non disponible",
+        "Ce résultat a été enregistré avant la mise en service du stockage cloud. Demandez au laboratoire de ré-uploader le fichier.",
+      );
+      return;
+    }
+    setIsDownloading(true);
+
+    // Force the browser to treat the URL as a download (Cloudinary trick)
+    // by inserting `fl_attachment` after `/upload/`. Used both for the local
+    // download attempt and the browser fallback.
+    const downloadUrl = result.fileUrl.includes("/upload/")
+      ? result.fileUrl.replace("/upload/", "/upload/fl_attachment/")
+      : result.fileUrl;
+
+    // Detect file extension from the URL itself rather than trusting the
+    // backend's `fileType` field (which always defaults to "pdf" today).
+    const urlExt = (result.fileUrl.split(".").pop() || "").toLowerCase();
+    const isImage = ["jpg", "jpeg", "png", "gif", "webp", "heic"].includes(urlExt);
+    const ext = ["pdf", "jpg", "jpeg", "png"].includes(urlExt) ? urlExt : "pdf";
+    const mimeType = isImage
+      ? `image/${urlExt === "jpg" ? "jpeg" : urlExt}`
+      : "application/pdf";
+
+    // Try 1: download to cache + open native share sheet (best UX — patient
+    // can save to Files/Photos, share to WhatsApp, etc.)
+    try {
+      const safeTitle = (result.title || "resultat").replace(/[^a-zA-Z0-9-_]/g, "_");
+      const localPath = `${FileSystem.cacheDirectory}${safeTitle}_${id}.${ext}`;
+
+      const dl = await FileSystem.downloadAsync(downloadUrl, localPath);
+      if (dl.status === 200) {
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(dl.uri, {
+            mimeType,
+            dialogTitle: result.title,
+            UTI: isImage
+              ? urlExt === "png"
+                ? "public.png"
+                : "public.jpeg"
+              : "com.adobe.pdf",
+          });
+          setIsDownloading(false);
+          return;
+        }
+      } else {
+        console.warn(`[lab-result download] HTTP ${dl.status} for ${downloadUrl}`);
+      }
+    } catch (err) {
+      console.warn("[lab-result download] local download failed:", err);
+    }
+
+    // Try 2: hand the URL to the OS — Safari/Chrome will trigger a real
+    // download dialog because of `fl_attachment`. Less seamless than the
+    // share sheet but the file still ends up on the phone.
+    try {
+      await Linking.openURL(downloadUrl);
+    } catch {
+      Alert.alert(
+        "Téléchargement échoué",
+        "Impossible d'ouvrir le fichier. Vérifiez votre connexion et réessayez.",
+      );
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   if (isLoading) {
@@ -95,9 +206,14 @@ export default function LabResultDetailScreen() {
           <View className="flex-row gap-2">
             <Pressable
               onPress={handleDownload}
+              disabled={isDownloading}
               className="w-10 h-10 rounded-full bg-white border border-border items-center justify-center"
             >
-              <Feather name="download" size={18} color="#212529" />
+              {isDownloading ? (
+                <ActivityIndicator size="small" color="#212529" />
+              ) : (
+                <Feather name="download" size={18} color="#212529" />
+              )}
             </Pressable>
             <Pressable
               onPress={handleShare}
@@ -214,11 +330,112 @@ export default function LabResultDetailScreen() {
           </View>
         )}
 
+        {/* Doctor diagnosis — read-only display */}
+        {result.doctorDiagnosis && !isEditingDiagnosis && (
+          <View className="mx-6 mb-4">
+            <View className="flex-row items-center gap-2 mb-2">
+              <Feather name="user-check" size={14} color="#28a745" />
+              <Text className="text-base font-semibold text-foreground flex-1">
+                Diagnostic médecin
+              </Text>
+              {isDoctor && (
+                <Pressable
+                  onPress={() => {
+                    setDiagnosis(result.doctorDiagnosis ?? "");
+                    setIsEditingDiagnosis(true);
+                  }}
+                  className="flex-row items-center gap-1"
+                  hitSlop={8}
+                >
+                  <Feather name="edit-2" size={12} color="#007bff" />
+                  <Text className="text-xs text-primary font-semibold">
+                    Modifier
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+            <View className="bg-secondary/5 rounded-xl border border-secondary/30 p-4">
+              <Text className="text-sm text-foreground leading-5">
+                {result.doctorDiagnosis}
+              </Text>
+              {(result.diagnosedByName || result.diagnosedAt) && (
+                <Text className="text-[11px] text-muted mt-2">
+                  {result.diagnosedByName}
+                  {result.diagnosedAt
+                    ? ` · ${format(new Date(result.diagnosedAt), "d MMMM yyyy", { locale: fr })}`
+                    : ""}
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Doctor diagnosis — editable form (doctor + no diagnosis yet OR editing) */}
+        {isDoctor && (!result.doctorDiagnosis || isEditingDiagnosis) && (
+          <View className="mx-6 mb-4">
+            <View className="flex-row items-center gap-2 mb-2">
+              <Feather name="edit-3" size={14} color="#007bff" />
+              <Text className="text-base font-semibold text-foreground">
+                {result.doctorDiagnosis ? "Modifier le diagnostic" : "Saisir votre diagnostic"}
+              </Text>
+            </View>
+            <View className="bg-white rounded-xl border border-primary/30 p-4">
+              <TextInput
+                value={diagnosis}
+                onChangeText={setDiagnosis}
+                placeholder="Ex: Glycémie dans la norme. Pas de diabète. Recontrôle dans 6 mois."
+                placeholderTextColor="#adb5bd"
+                multiline
+                numberOfLines={5}
+                textAlignVertical="top"
+                className="text-sm text-foreground min-h-[100px]"
+              />
+              <View className="flex-row gap-2 mt-3">
+                {isEditingDiagnosis && (
+                  <Pressable
+                    onPress={() => {
+                      setIsEditingDiagnosis(false);
+                      setDiagnosis("");
+                    }}
+                    className="flex-1 rounded-xl py-3 items-center border border-border"
+                  >
+                    <Text className="text-muted font-medium text-sm">Annuler</Text>
+                  </Pressable>
+                )}
+                <Pressable
+                  onPress={() => diagnoseMut.mutate()}
+                  disabled={!diagnosis.trim() || diagnoseMut.isPending}
+                  className={`flex-1 rounded-xl py-3 items-center flex-row justify-center gap-2 ${
+                    diagnosis.trim() ? "bg-primary" : "bg-gray-200"
+                  }`}
+                >
+                  {diagnoseMut.isPending && (
+                    <ActivityIndicator size="small" color="#fff" />
+                  )}
+                  <Text className="text-white font-semibold text-sm">
+                    {result.doctorDiagnosis ? "Mettre à jour" : "Valider"}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Patient view — banner shown when no diagnosis yet */}
+        {!isDoctor && !result.doctorDiagnosis && result.workflowStatus === "pending" && (
+          <View className="mx-6 mb-4 bg-accent/10 border border-accent/30 rounded-xl p-3 flex-row items-center">
+            <Feather name="clock" size={14} color="#fd7e14" />
+            <Text className="text-xs text-foreground ml-2 flex-1">
+              En attente du diagnostic du médecin
+            </Text>
+          </View>
+        )}
+
         {/* Notes */}
         {result.notes && (
           <View className="mx-6 mb-4">
             <Text className="text-base font-semibold text-foreground mb-2">
-              Notes
+              Notes du laboratoire
             </Text>
             <View className="bg-white rounded-xl border border-border p-4">
               <Text className="text-sm text-foreground leading-5">

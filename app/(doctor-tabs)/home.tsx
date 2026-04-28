@@ -15,6 +15,7 @@ import { Feather } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../contexts/AuthContext";
 import * as doctorService from "../../services/doctor.service";
+import { api } from "../../lib/api-client";
 import QRScanner from "../../components/QRScanner";
 
 const s = StyleSheet.create({
@@ -33,16 +34,39 @@ export default function DoctorHomeScreen() {
   const queryClient = useQueryClient();
   const [scannerOpen, setScannerOpen] = useState(false);
 
-  const handleQRScan = (data: { carypassId?: string; token?: string; raw: string }) => {
+  const handleQRScan = async (data: { carypassId?: string; token?: string; raw: string }) => {
     setScannerOpen(false);
+
+    // Direct CaryPass scan (e.g. dependent QR): navigate immediately.
     if (data.carypassId) {
-      // Navigate to patient detail with the scanned carypassId
       router.push(`/doctor/patient/${data.carypassId}` as any);
-    } else if (data.token) {
-      router.push(`/doctor/patient/${data.token}` as any);
-    } else {
-      Alert.alert("QR non reconnu", "Ce QR code ne correspond pas à un patient CaryPass.");
+      return;
     }
+
+    // Emergency-token URL scan (adult patient QR): the token alone is not a
+    // CaryPass — we must resolve it via the public emergency endpoint to get
+    // the carypassId, otherwise downstream pages (patient detail, access
+    // requests) all fail with "Patient non trouvé".
+    if (data.token) {
+      try {
+        const res = await api.get<any>(`/emergency/${data.token}`, { authenticated: false });
+        const inner = res.data?.data ?? res.data;
+        const carypassId = inner?.carypassId;
+        if (carypassId) {
+          router.push(`/doctor/patient/${carypassId}` as any);
+          return;
+        }
+      } catch {
+        // fall through to error
+      }
+      Alert.alert(
+        "Patient introuvable",
+        "Impossible de résoudre ce QR. Vérifiez que le serveur est à jour.",
+      );
+      return;
+    }
+
+    Alert.alert("QR non reconnu", "Ce QR code ne correspond pas à un patient CaryPass.");
   };
 
   const { data: stats } = useQuery({

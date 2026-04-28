@@ -34,20 +34,32 @@ function mapCategory(examType: string): LabResultCategory {
 }
 
 function mapLabResult(r: Any): LabResult {
+  // Handle both backend (items) and legacy (values) shapes
+  const valuesArray = Array.isArray(r.items) ? r.items : Array.isArray(r.values) ? r.values : [];
+  const hasAbnormal = valuesArray.some((v: Any) => v.isAbnormal);
+  const prescriber =
+    r.labOrder?.doctor?.user
+      ? `Dr. ${r.labOrder.doctor.user.firstName} ${r.labOrder.doctor.user.lastName}`
+      : r.consultation?.doctor?.user
+        ? `Dr. ${r.consultation.doctor.user.firstName} ${r.consultation.doctor.user.lastName}`
+        : r.prescriber || r.prescribedBy || "";
+
   return {
     id: r.id,
-    title: r.examType || r.title || "",
-    date: r.examDate
-      ? new Date(r.examDate).toISOString().split("T")[0]
-      : r.createdAt?.split("T")[0] || "",
-    category: mapCategory(r.examType || r.title || ""),
-    laboratory: r.laboratory || "",
-    prescribedBy: r.prescriber || r.prescribedBy || "",
-    status:
-      r.resultStatus === "abnormal" || r.resultStatus === "critical"
-        ? "anormal"
-        : "normal",
-    values: (r.values || []).map((v: Any) => ({
+    title: r.title || r.examType || "",
+    date: r.date
+      ? new Date(r.date).toISOString().split("T")[0]
+      : r.examDate
+        ? new Date(r.examDate).toISOString().split("T")[0]
+        : r.createdAt?.split("T")[0] || "",
+    category: mapCategory(r.title || r.examType || ""),
+    laboratory: r.institution?.name || r.laboratory || "",
+    prescribedBy: prescriber,
+    status: hasAbnormal || r.resultStatus === "abnormal" || r.resultStatus === "critical"
+      ? "anormal"
+      : "normal",
+    workflowStatus: (r.status as "pending" | "validated" | "rejected") || "pending",
+    values: valuesArray.map((v: Any) => ({
       name: v.name || "",
       value: v.value || "",
       unit: v.unit || "",
@@ -56,7 +68,13 @@ function mapLabResult(r: Any): LabResult {
     })),
     linkedConsultationId: r.consultationId,
     fileType: (r.fileType as "pdf" | "image") || "pdf",
+    fileUrl: r.fileUrl,
     notes: r.notes,
+    doctorDiagnosis: r.doctorDiagnosis,
+    diagnosedAt: r.diagnosedAt,
+    diagnosedByName: r.diagnosedBy?.user
+      ? `Dr. ${r.diagnosedBy.user.firstName} ${r.diagnosedBy.user.lastName}`
+      : undefined,
   };
 }
 
@@ -125,4 +143,21 @@ export async function getLabResultById(
   const r = response.data?.data ?? response.data;
   if (!r || response.error) return null;
   return mapLabResult(r);
+}
+
+/**
+ * Doctor: write a diagnosis on a lab result.
+ * Backend marks the result as `validated` and notifies the patient.
+ */
+export async function diagnoseLabResult(
+  id: string,
+  diagnosis: string,
+): Promise<{ success: boolean; message?: string }> {
+  const response = await api.patch<Any>(`/lab-results/${id}/diagnose`, {
+    body: { diagnosis },
+  });
+  if (response.error) {
+    return { success: false, message: response.error.message || "Erreur" };
+  }
+  return { success: true };
 }

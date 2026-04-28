@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as doctorService from "../../services/doctor.service";
+import { api } from "../../lib/api-client";
 import QRScanner from "../../components/QRScanner";
 
 const s = StyleSheet.create({
@@ -16,21 +17,58 @@ export default function AccessRequestsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
+  // Optional ?carypassId=... — set when arriving from the "Demander l'accès"
+  // button on the patient page. Pre-fills the form so the doctor only needs
+  // to add the reason and tap Send.
+  const params = useLocalSearchParams<{ carypassId?: string }>();
   const [tab, setTab] = useState<"pending" | "active">("pending");
   const [carypassId, setCarypassId] = useState("");
   const [reason, setReason] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
 
-  const handleQRScan = (data: { carypassId?: string; token?: string; raw: string }) => {
-    setScannerOpen(false);
-    const id = data.carypassId || data.token;
-    if (id) {
-      setCarypassId(id);
+  useEffect(() => {
+    if (params.carypassId && !carypassId) {
+      setCarypassId(params.carypassId);
       setShowForm(true);
-    } else {
-      Alert.alert("QR non reconnu", "Ce QR code ne correspond pas à un patient CaryPass.");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.carypassId]);
+
+  const handleQRScan = async (data: { carypassId?: string; token?: string; raw: string }) => {
+    setScannerOpen(false);
+
+    // Direct CaryPass scan: pre-fill the form immediately.
+    if (data.carypassId) {
+      setCarypassId(data.carypassId);
+      setShowForm(true);
+      return;
+    }
+
+    // Emergency-token URL scan: resolve to CaryPass via the public emergency
+    // endpoint (the access-request backend looks up patients by carypassId,
+    // so sending the raw token would always fail with "Patient non trouvé").
+    if (data.token) {
+      try {
+        const res = await api.get<any>(`/emergency/${data.token}`, { authenticated: false });
+        const inner = res.data?.data ?? res.data;
+        const carypassId = inner?.carypassId;
+        if (carypassId) {
+          setCarypassId(carypassId);
+          setShowForm(true);
+          return;
+        }
+      } catch {
+        // fall through to error
+      }
+      Alert.alert(
+        "Patient introuvable",
+        "Impossible de résoudre ce QR. Vérifiez que le serveur est à jour.",
+      );
+      return;
+    }
+
+    Alert.alert("QR non reconnu", "Ce QR code ne correspond pas à un patient CaryPass.");
   };
 
   // Pending access requests

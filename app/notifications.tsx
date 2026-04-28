@@ -189,7 +189,22 @@ export default function NotificationsScreen() {
     if (!item.read) {
       readMutation.mutate(item.id);
     }
-    // Navigate based on type
+    // Prefer the backend-provided `link` — it's set when the notification is
+    // created and points at the exact resource (e.g. /records/lab-results/abc).
+    // Falls back to type-specific routing for legacy notifications without a link.
+    if (item.link) {
+      // Rewrite legacy/typo paths shipped before the backend was fixed.
+      // Prevents the "Unmatched Route" page on old notifications still in the DB.
+      const fixed = item.link
+        .replace("/doctor/consultations/", "/doctor/consultation/")
+        .replace(/\/+$/, ""); // strip trailing slashes that would 404
+      // Empty trailing segment after the rewrite means the original link had
+      // no resource ID — don't navigate to a 404.
+      if (fixed && !/\/$/.test(fixed) && fixed !== "/doctor/consultation") {
+        router.push(fixed as any);
+        return;
+      }
+    }
     if (item.type === "consultation_added" && item.data?.consultationId) {
       router.push(`/consultations/${item.data.consultationId}`);
     } else if (item.type === "lab_result_ready" && item.data?.consultationId) {
