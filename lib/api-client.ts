@@ -5,7 +5,7 @@ import Constants from "expo-constants";
 // Production URL — read from EXPO_PUBLIC_API_URL env var with fallback
 const PROD_URL =
   process.env.EXPO_PUBLIC_API_URL ||
-  "https://carypass-backend.zylo-platform.cloud/api";
+  "https://carepass-backend.zylo-platform.cloud/api";
 
 // Resolve the dev server URL dynamically:
 // - If EXPO_PUBLIC_DEV_API_URL is set, use it directly

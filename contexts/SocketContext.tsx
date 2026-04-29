@@ -7,7 +7,7 @@ import { Platform } from "react-native";
 // Socket URL — derived from EXPO_PUBLIC_API_URL (without the /api suffix)
 const PROD_URL = (
   process.env.EXPO_PUBLIC_API_URL ||
-  "https://carypass-backend.zylo-platform.cloud/api"
+  "https://carepass-backend.zylo-platform.cloud/api"
 ).replace(/\/api\/?$/, "");
 
 function getDevSocketUrl(): string {
