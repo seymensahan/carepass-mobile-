@@ -7,7 +7,9 @@ import {
   Pressable,
   ScrollView,
   Share,
+  Switch,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -18,7 +20,11 @@ import { format, differenceInMonths, differenceInYears } from "date-fns";
 import { fr } from "date-fns/locale";
 import * as Clipboard from "expo-clipboard";
 import QRCode from "react-native-qrcode-svg";
-import { getChildById, promoteChildToPatient } from "../../services/child.service";
+import {
+  getChildById,
+  promoteChildToPatient,
+  transferDependentManagement,
+} from "../../services/child.service";
 import Skeleton from "../../components/ui/Skeleton";
 import type { ChildWithRecords } from "../../types/child";
 import type { VaccinationStatus } from "../../types/vaccination";
@@ -52,6 +58,14 @@ export default function ChildProfileScreen() {
     carypassId: string;
     alreadyPromoted: boolean;
   } | null>(null);
+
+  // Transfer-management modal state for when the child reaches majority and
+  // takes over their own account.
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferEmail, setTransferEmail] = useState("");
+  const [transferPassword, setTransferPassword] = useState("");
+  const [transferConfirmPassword, setTransferConfirmPassword] = useState("");
+  const [keepReadAccess, setKeepReadAccess] = useState(true);
 
   const { data: child, isLoading } = useQuery({
     queryKey: ["child", childId],
@@ -99,6 +113,55 @@ export default function ChildProfileScreen() {
     } catch {
       // user cancelled
     }
+  };
+
+  const transferMut = useMutation({
+    mutationFn: () => {
+      const dependentPatientId = (child as any)?.promotedPatientId || (child as any)?.patientId;
+      return transferDependentManagement(dependentPatientId, {
+        newEmail: transferEmail.trim().toLowerCase(),
+        newPassword: transferPassword,
+        keepReadAccess,
+      });
+    },
+    onSuccess: (result) => {
+      if (!result.success) {
+        Alert.alert("Erreur", result.message || "Le transfert n'a pas pu être effectué.");
+        return;
+      }
+      Alert.alert(
+        "Transfert effectué",
+        `${child?.firstName} peut maintenant se connecter avec son propre compte.\n\n` +
+        `Email : ${transferEmail}\n\n` +
+        (keepReadAccess
+          ? "Vous conservez un accès en lecture pour suivre son dossier médical."
+          : "Vous n'avez plus accès au dossier médical."),
+      );
+      setTransferOpen(false);
+      setTransferEmail("");
+      setTransferPassword("");
+      setTransferConfirmPassword("");
+      queryClient.invalidateQueries({ queryKey: ["child", childId] });
+    },
+    onError: () => {
+      Alert.alert("Erreur", "Une erreur est survenue. Réessayez.");
+    },
+  });
+
+  const submitTransfer = () => {
+    if (!transferEmail.includes("@")) {
+      Alert.alert("Email invalide", "Veuillez saisir une adresse email valide.");
+      return;
+    }
+    if (transferPassword.length < 6) {
+      Alert.alert("Mot de passe trop court", "Au moins 6 caractères.");
+      return;
+    }
+    if (transferPassword !== transferConfirmPassword) {
+      Alert.alert("Mots de passe différents", "La confirmation ne correspond pas.");
+      return;
+    }
+    transferMut.mutate();
   };
 
   if (isLoading) {
@@ -220,6 +283,42 @@ export default function ChildProfileScreen() {
           )}
         </View>
 
+        {/* Majority transfer banner — shown when child is 16+ AND already
+            has a Patient (i.e. has been promoted to a real CaryPass) */}
+        {(() => {
+          const ageYears = differenceInYears(new Date(), new Date(child.dateOfBirth));
+          const canTransfer = ageYears >= 16 && child.isPromoted;
+          if (!canTransfer) return null;
+          return (
+            <View className="mx-6 mb-4 rounded-2xl bg-secondary/10 border border-secondary/30 p-4">
+              <View className="flex-row items-start gap-3">
+                <View className="w-10 h-10 rounded-xl bg-secondary/20 items-center justify-center">
+                  <Feather name="user-check" size={18} color="#28a745" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-bold text-foreground">
+                    {child.firstName} a {ageYears} ans
+                  </Text>
+                  <Text className="text-xs text-muted mt-1 leading-relaxed">
+                    Vous pouvez lui transférer son propre compte. Il choisira son
+                    email et mot de passe, et tout son historique médical
+                    restera intact.
+                  </Text>
+                  <Pressable
+                    onPress={() => setTransferOpen(true)}
+                    className="mt-3 self-start bg-secondary px-4 py-2 rounded-xl flex-row items-center"
+                  >
+                    <Feather name="send" size={14} color="#ffffff" />
+                    <Text className="text-white text-xs font-semibold ml-2">
+                      Transférer la gestion
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          );
+        })()}
+
         {/* Tabs (horizontally scrollable — 6 sections don't fit otherwise) */}
         <ScrollView
           horizontal
@@ -328,6 +427,114 @@ export default function ChildProfileScreen() {
                 notification pour approuver à la place de votre enfant.
               </Text>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ───────────── Transfer-management modal ───────────── */}
+      <Modal
+        visible={transferOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setTransferOpen(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-end">
+          <View className="bg-background rounded-t-3xl px-6 pt-6 pb-8 max-h-[90%]">
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View className="flex-row items-center justify-between mb-4">
+                <Text className="text-lg font-bold text-foreground">
+                  Transférer la gestion
+                </Text>
+                <Pressable
+                  onPress={() => setTransferOpen(false)}
+                  className="w-9 h-9 rounded-full bg-white border border-border items-center justify-center"
+                >
+                  <Feather name="x" size={18} color="#6c757d" />
+                </Pressable>
+              </View>
+
+              <Text className="text-sm text-muted mb-5 leading-relaxed">
+                {child?.firstName} pourra se connecter avec son propre email et
+                mot de passe. Tout son historique (consultations, vaccinations,
+                analyses) restera intact.
+              </Text>
+
+              <View className="mb-4">
+                <Text className="text-xs font-semibold text-foreground mb-2">
+                  Email de {child?.firstName}
+                </Text>
+                <TextInput
+                  value={transferEmail}
+                  onChangeText={setTransferEmail}
+                  placeholder="email@exemple.com"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                  className="bg-white border border-border rounded-xl px-4 py-3 text-foreground"
+                />
+              </View>
+
+              <View className="mb-4">
+                <Text className="text-xs font-semibold text-foreground mb-2">
+                  Mot de passe (≥ 6 caractères)
+                </Text>
+                <TextInput
+                  value={transferPassword}
+                  onChangeText={setTransferPassword}
+                  secureTextEntry
+                  placeholder="••••••••"
+                  className="bg-white border border-border rounded-xl px-4 py-3 text-foreground"
+                />
+              </View>
+
+              <View className="mb-4">
+                <Text className="text-xs font-semibold text-foreground mb-2">
+                  Confirmer le mot de passe
+                </Text>
+                <TextInput
+                  value={transferConfirmPassword}
+                  onChangeText={setTransferConfirmPassword}
+                  secureTextEntry
+                  placeholder="••••••••"
+                  className="bg-white border border-border rounded-xl px-4 py-3 text-foreground"
+                />
+              </View>
+
+              <View className="bg-primary/5 border border-primary/20 rounded-xl p-3 mb-5">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-1 pr-3">
+                    <Text className="text-sm font-semibold text-foreground">
+                      Garder un accès en lecture
+                    </Text>
+                    <Text className="text-[11px] text-muted mt-0.5">
+                      Vous pourrez consulter le dossier sans pouvoir le modifier.
+                    </Text>
+                  </View>
+                  <Switch
+                    value={keepReadAccess}
+                    onValueChange={setKeepReadAccess}
+                    thumbColor={keepReadAccess ? "#007bff" : "#adb5bd"}
+                  />
+                </View>
+              </View>
+
+              <Pressable
+                onPress={submitTransfer}
+                disabled={transferMut.isPending}
+                className="bg-secondary rounded-xl py-4 items-center"
+              >
+                {transferMut.isPending ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text className="text-white font-bold">Confirmer le transfert</Text>
+                )}
+              </Pressable>
+
+              <Text className="text-[11px] text-muted text-center mt-3 leading-relaxed">
+                Cette action est irréversible. {child?.firstName} aura le
+                contrôle complet de son compte.
+              </Text>
+            </ScrollView>
           </View>
         </View>
       </Modal>

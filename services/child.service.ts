@@ -355,3 +355,43 @@ export async function promoteChildToPatient(
     return null;
   }
 }
+
+export interface TransferDependentInput {
+  newEmail: string;
+  newPassword: string;
+  keepReadAccess?: boolean;
+}
+
+/**
+ * Transfer management of a dependent (child who has reached majority) to
+ * the dependent themselves: replaces the synthetic email with the real one,
+ * sets a real password, activates the User account so the dependent can log
+ * in. Backend enforces the minimum age (default 16 years).
+ */
+export async function transferDependentManagement(
+  dependentPatientId: string,
+  input: TransferDependentInput
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    const response = await api.post<Any>(
+      `/patients/dependents/${dependentPatientId}/transfer`,
+      input,
+    );
+    if (response.error) {
+      return {
+        success: false,
+        message: response.error?.message || "Le transfert a échoué",
+      };
+    }
+    const inner = response.data?.data ?? response.data;
+    return {
+      success: !!inner?.success,
+      message: inner?.message,
+    };
+  } catch (e: any) {
+    return {
+      success: false,
+      message: e?.response?.data?.message || "Erreur lors du transfert",
+    };
+  }
+}
