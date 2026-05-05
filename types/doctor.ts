@@ -15,6 +15,7 @@ export interface DoctorProfile {
   avatarUrl: string | null;
   institutionId: string | null;
   institutionName: string | null;
+  signatureUrl: string | null;
   createdAt: string;
 }
 

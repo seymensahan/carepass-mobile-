@@ -10,6 +10,7 @@ import * as doctorService from "../../services/doctor.service";
 import * as walletService from "../../services/wallet.service";
 import i18n from "../../i18n";
 import RoleSwitcher from "../../components/ui/RoleSwitcher";
+import { DoctorSignatureCard } from "../../components/DoctorSignatureCard";
 
 const s = StyleSheet.create({
   card: {
@@ -235,6 +236,9 @@ export default function DoctorProfileScreen() {
             </View>
           </View>
         )}
+
+        {/* Electronic signature for legally-binding prescriptions */}
+        <DoctorSignatureCard signatureUrl={profile?.signatureUrl ?? null} />
 
         {/* Wallet */}
         <View className="px-6 mb-5">

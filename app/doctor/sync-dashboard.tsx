@@ -36,10 +36,6 @@ export default function SyncDashboardScreen() {
             {syncData?.institutions?.length || 0} établissement(s) synchronisé(s)
           </Text>
         </View>
-        <View style={{ backgroundColor: "#007bff15", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, flexDirection: "row", alignItems: "center", gap: 4 }}>
-          <Feather name="zap" size={14} color="#007bff" />
-          <Text style={{ fontSize: 11, fontWeight: "600", color: "#007bff" }}>PREMIUM</Text>
-        </View>
       </View>
 
       <ScrollView

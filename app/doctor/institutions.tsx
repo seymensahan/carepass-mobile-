@@ -37,22 +37,25 @@ export default function InstitutionsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         contentContainerStyle={{ padding: 16, paddingTop: 0, paddingBottom: 32 }}
       >
-        {/* Premium Banner */}
-        <Card style={{ marginBottom: 16, padding: 16, backgroundColor: "#f0f4ff", borderColor: "#007bff", borderWidth: 1 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 }}>
-            <Feather name="zap" size={20} color="#007bff" />
-            <Text style={{ fontSize: 15, fontWeight: "700", color: "#007bff" }}>Synchronisation Premium</Text>
-          </View>
-          <Text style={{ fontSize: 13, color: "#495057", lineHeight: 20 }}>
-            Synchronisez votre agenda, consultations et gardes entre tous vos établissements.
-          </Text>
-          <TouchableOpacity
-            onPress={() => router.push("/doctor/sync-dashboard")}
-            style={{ marginTop: 12, backgroundColor: "#007bff", paddingVertical: 10, borderRadius: 8, alignItems: "center" }}
-          >
-            <Text style={{ color: "#fff", fontWeight: "600" }}>Voir le tableau de bord unifié</Text>
-          </TouchableOpacity>
-        </Card>
+        {/* Multi-institution unified view — included in the doctor's
+            standard subscription, no extra fee. */}
+        {institutions.length > 1 && (
+          <Card style={{ marginBottom: 16, padding: 16, backgroundColor: "#f0f4ff", borderColor: "#007bff", borderWidth: 1 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              <Feather name="layers" size={20} color="#007bff" />
+              <Text style={{ fontSize: 15, fontWeight: "700", color: "#007bff" }}>Vue unifiée</Text>
+            </View>
+            <Text style={{ fontSize: 13, color: "#495057", lineHeight: 20 }}>
+              Consultez votre agenda, vos consultations et vos patients agrégés sur tous vos établissements.
+            </Text>
+            <TouchableOpacity
+              onPress={() => router.push("/doctor/sync-dashboard")}
+              style={{ marginTop: 12, backgroundColor: "#007bff", paddingVertical: 10, borderRadius: 8, alignItems: "center" }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "600" }}>Voir le tableau de bord unifié</Text>
+            </TouchableOpacity>
+          </Card>
+        )}
 
         {/* Institution List */}
         {institutions.length === 0 ? (

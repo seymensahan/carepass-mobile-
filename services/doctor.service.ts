@@ -53,6 +53,7 @@ async function getDoctorProfile(): Promise<{ doctorId: string; profile: DoctorPr
       avatarUrl: d.avatarUrl || null,
       institutionId: doc.institutionId || null,
       institutionName: doc.institution?.name || null,
+      signatureUrl: doc.signatureUrl || null,
       createdAt: d.createdAt || "",
     },
   };

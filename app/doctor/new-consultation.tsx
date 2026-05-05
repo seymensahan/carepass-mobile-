@@ -16,6 +16,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import * as doctorService from "../../services/doctor.service";
+import QRScanner from "../../components/QRScanner";
 
 const s = StyleSheet.create({
   card: {
@@ -62,6 +63,7 @@ export default function NewConsultationScreen() {
   const { patientId } = useLocalSearchParams<{ patientId?: string }>();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const [form, setForm] = useState({
     patientId: patientId || "",
@@ -171,20 +173,56 @@ export default function NewConsultationScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
-        {/* Patient ID */}
+        {/* Patient ID — manual entry OR scan the patient's QR */}
         {!patientId && (
           <View className="mb-5">
             <Text className="text-xs font-semibold text-foreground mb-2">ID Patient *</Text>
-            <TextInput
-              value={form.patientId}
-              onChangeText={(v) => setForm({ ...form, patientId: v })}
-              placeholder="CaryPass ID du patient"
-              className="bg-white rounded-2xl px-4 py-3.5 text-sm text-foreground border border-border"
-              placeholderTextColor="#adb5bd"
-              style={s.card}
-            />
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TextInput
+                value={form.patientId}
+                onChangeText={(v) => setForm({ ...form, patientId: v })}
+                placeholder="CP-2025-XXXXX"
+                autoCapitalize="characters"
+                className="flex-1 bg-white rounded-2xl px-4 py-3.5 text-sm text-foreground border border-border"
+                placeholderTextColor="#adb5bd"
+                style={s.card}
+              />
+              <Pressable
+                onPress={() => setScannerOpen(true)}
+                style={{
+                  width: 52,
+                  borderRadius: 16,
+                  backgroundColor: "#007bff",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                accessibilityLabel="Scanner le QR du patient"
+              >
+                <Feather name="maximize" size={20} color="#fff" />
+              </Pressable>
+            </View>
+            <Text className="text-[11px] text-muted mt-2">
+              Scannez le QR du patient ou saisissez son CaryPass ID manuellement.
+            </Text>
           </View>
         )}
+
+        <QRScanner
+          visible={scannerOpen}
+          onClose={() => setScannerOpen(false)}
+          title="Scanner le CaryPass du patient"
+          onScan={(data) => {
+            setScannerOpen(false);
+            if (data.carypassId) {
+              setForm((f) => ({ ...f, patientId: data.carypassId! }));
+            } else {
+              Alert.alert(
+                "QR non reconnu",
+                "Ce QR ne correspond pas à un CaryPass valide.",
+              );
+            }
+          }}
+        />
 
         {/* Consultation Type */}
         <View className="mb-5">
