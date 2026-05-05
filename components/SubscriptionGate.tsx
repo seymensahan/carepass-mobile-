@@ -29,7 +29,7 @@ type Mode = "choose" | "voucher" | "payment";
  * For non-doctor users, this component is a passthrough.
  */
 export function SubscriptionGate({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const queryClient = useQueryClient();
 
   // Gate any role that needs an active subscription to use the platform.
@@ -293,6 +293,40 @@ export function SubscriptionGate({ children }: { children: React.ReactNode }) {
                   </Pressable>
                 </View>
               )}
+
+              {/* Escape hatch — let the user log out so they can switch
+                  accounts or clear cache without being trapped here. */}
+              <View className="border-t border-border mt-6 pt-4">
+                <Pressable
+                  onPress={() => {
+                    Alert.alert(
+                      "Se déconnecter",
+                      "Voulez-vous vous déconnecter de ce compte ?",
+                      [
+                        { text: "Annuler", style: "cancel" },
+                        {
+                          text: "Se déconnecter",
+                          style: "destructive",
+                          onPress: async () => {
+                            try {
+                              await logout?.();
+                            } catch {
+                              // ignore — fall through to query invalidation
+                            }
+                            queryClient.clear();
+                          },
+                        },
+                      ],
+                    );
+                  }}
+                  className="flex-row items-center justify-center py-2"
+                >
+                  <Feather name="log-out" size={14} color="#dc3545" />
+                  <Text className="text-sm font-semibold text-danger ml-2">
+                    Se déconnecter
+                  </Text>
+                </Pressable>
+              </View>
             </ScrollView>
           </View>
         </View>
