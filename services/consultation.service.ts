@@ -74,6 +74,14 @@ function mapConsultation(c: Any): Consultation {
         frequency: item.frequency || "",
         duration: item.duration || "",
         notes: item.notes,
+        // Pass the prescribing doctor's seal so the patient can see it on
+        // the prescription block (signature image + name + license).
+        doctorSignatureUrl: p.doctor?.signatureUrl ?? c.doctor?.signatureUrl ?? null,
+        doctorName: p.doctor?.user
+          ? `Dr. ${p.doctor.user.firstName} ${p.doctor.user.lastName}`
+          : c.doctor?.user
+          ? `Dr. ${c.doctor.user.firstName} ${c.doctor.user.lastName}`
+          : "",
       }))
     ),
     linkedLabResultIds: (c.labResults || []).map((lr: Any) => lr.id || lr),

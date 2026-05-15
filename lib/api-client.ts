@@ -31,8 +31,16 @@ function getDevUrl(): string {
 }
 
 const BASE_URL = __DEV__ ? getDevUrl() : PROD_URL;
+export const API_BASE_URL = BASE_URL;
 const TOKEN_KEY = "carypass_access_token";
 const REFRESH_KEY = "carypass_refresh_token";
+
+// Re-export the access token getter so download helpers (PDF export,
+// blob fetches) can attach the bearer header without going through
+// the JSON helpers.
+export async function getAccessToken(): Promise<string | null> {
+  return SecureStore.getItemAsync(TOKEN_KEY);
+}
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -63,8 +71,13 @@ export async function apiRequest<T>(
 ): Promise<ApiResponse<T>> {
   const { body, headers = {}, authenticated = true } = options;
 
+  // Detect FormData (multipart) so we don't JSON-stringify it and so we
+  // let fetch set the Content-Type with the right boundary itself.
+  const isFormData =
+    typeof FormData !== "undefined" && body instanceof FormData;
+
   const requestHeaders: Record<string, string> = {
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...headers,
   };
 
@@ -75,11 +88,15 @@ export async function apiRequest<T>(
     }
   }
 
+  const requestBody = body
+    ? (isFormData ? (body as any) : JSON.stringify(body))
+    : undefined;
+
   try {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       method,
       headers: requestHeaders,
-      body: body ? JSON.stringify(body) : undefined,
+      body: requestBody,
     });
 
     const json = await response.json().catch(() => null);
@@ -110,7 +127,7 @@ export async function apiRequest<T>(
             const retryRes = await fetch(`${BASE_URL}${endpoint}`, {
               method,
               headers: requestHeaders,
-              body: body ? JSON.stringify(body) : undefined,
+              body: requestBody,
             });
             const retryJson = await retryRes.json().catch(() => null);
             if (retryRes.ok) {

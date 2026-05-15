@@ -1,5 +1,5 @@
-import React from "react";
-import { Alert, Pressable, ScrollView, Share, Text, View } from "react-native";
+import React, { useState } from "react";
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, Share, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -7,7 +7,10 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
 import { getConsultationById } from "../../../services/consultation.service";
+import { API_BASE_URL, getAccessToken } from "../../../lib/api-client";
 import Skeleton from "../../../components/ui/Skeleton";
 import { parseVitalNotes } from "../../../lib/vital-notes";
 
@@ -21,6 +24,48 @@ export default function ConsultationDetailScreen() {
     queryFn: () => getConsultationById(id),
     enabled: !!id,
   });
+
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    if (!id || downloadingPdf) return;
+    setDownloadingPdf(true);
+    try {
+      const token = await getAccessToken();
+      if (!token) {
+        Alert.alert("Erreur", "Session expirée. Reconnectez-vous.");
+        return;
+      }
+      const url = `${API_BASE_URL}/export/consultations/${id}/pdf`;
+      const fileUri = `${FileSystem.cacheDirectory}ordonnance-${id}.pdf`;
+
+      const result = await FileSystem.downloadAsync(url, fileUri, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (result.status !== 200) {
+        throw new Error(`Téléchargement échoué (${result.status})`);
+      }
+
+      // Try to share / save via the OS sheet (works on iOS + Android).
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(result.uri, {
+          mimeType: "application/pdf",
+          dialogTitle: "Ordonnance CARYPASS",
+          UTI: "com.adobe.pdf",
+        });
+      } else {
+        Alert.alert(
+          "PDF téléchargé",
+          `Fichier enregistré dans le cache : ${result.uri}`,
+        );
+      }
+    } catch (e: any) {
+      Alert.alert("Erreur", e?.message || "Impossible de télécharger le PDF");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
 
   const handleShare = async () => {
     if (!consultation) return;
@@ -296,52 +341,168 @@ export default function ConsultationDetailScreen() {
           </View>
         )}
 
-        {/* Prescriptions */}
-        {consultation.prescriptions.length > 0 && (
-          <View className="mx-6 mb-4">
-            <Text className="text-base font-semibold text-foreground mb-2">
-              Prescriptions
-            </Text>
-            {consultation.prescriptions.map((rx, index) => (
+        {/* Prescriptions — single "ordonnance" card containing all
+            medications and the doctor's signature at the bottom, styled
+            to look like an actual paper prescription. */}
+        {consultation.prescriptions.length > 0 && (() => {
+          const firstWithSig = consultation.prescriptions.find(
+            (rx) => rx.doctorSignatureUrl,
+          );
+          const sigUrl = firstWithSig?.doctorSignatureUrl;
+          const docName =
+            firstWithSig?.doctorName ||
+            consultation.prescriptions.find((rx) => rx.doctorName)?.doctorName;
+
+          return (
+            <View className="mx-6 mb-4">
+              <Text className="text-base font-semibold text-foreground mb-2">
+                Ordonnance
+              </Text>
+
               <View
-                key={rx.id}
-                className={`bg-white rounded-xl border border-border p-4 ${
-                  index < consultation.prescriptions.length - 1 ? "mb-2" : ""
-                }`}
+                className="bg-white rounded-2xl overflow-hidden"
+                style={{
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.06,
+                  shadowRadius: 12,
+                  elevation: 3,
+                  borderWidth: 1,
+                  borderColor: "#dee2e6",
+                }}
               >
-                <View className="flex-row items-center mb-1.5">
-                  <View className="w-7 h-7 rounded-lg bg-secondary/10 items-center justify-center mr-2">
-                    <Feather name="package" size={14} color="#28a745" />
+                {/* Header — green band like a real prescription pad */}
+                <View
+                  className="flex-row items-center px-4 py-3"
+                  style={{ backgroundColor: "#28a74510", borderBottomWidth: 1, borderBottomColor: "#28a74525" }}
+                >
+                  <View className="w-8 h-8 rounded-xl bg-secondary/15 items-center justify-center mr-2">
+                    <Feather name="file-text" size={16} color="#28a745" />
                   </View>
-                  <Text className="text-sm font-semibold text-foreground flex-1">
-                    {rx.medicationName}
-                  </Text>
-                </View>
-                <View className="ml-9">
-                  <Text className="text-xs text-muted mb-0.5">
-                    <Text className="font-medium text-foreground">Dosage :</Text>{" "}
-                    {rx.dosage}
-                  </Text>
-                  <Text className="text-xs text-muted mb-0.5">
-                    <Text className="font-medium text-foreground">
-                      Fréquence :
-                    </Text>{" "}
-                    {rx.frequency}
-                  </Text>
-                  <Text className="text-xs text-muted mb-0.5">
-                    <Text className="font-medium text-foreground">Durée :</Text>{" "}
-                    {rx.duration}
-                  </Text>
-                  {rx.notes && (
-                    <Text className="text-xs text-accent mt-1 italic">
-                      {rx.notes}
+                  <View className="flex-1">
+                    <Text className="text-sm font-bold text-foreground">
+                      Ordonnance médicale
                     </Text>
+                    <Text className="text-[11px] text-muted">
+                      {consultation.prescriptions.length} médicament(s) prescrit(s)
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={handleDownloadPdf}
+                    disabled={downloadingPdf}
+                    className="flex-row items-center"
+                    style={{
+                      backgroundColor: "#28a745",
+                      paddingHorizontal: 12,
+                      paddingVertical: 7,
+                      borderRadius: 10,
+                      opacity: downloadingPdf ? 0.6 : 1,
+                    }}
+                    accessibilityLabel="Télécharger l'ordonnance en PDF"
+                  >
+                    {downloadingPdf ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Feather name="download" size={14} color="#fff" />
+                    )}
+                    <Text className="text-white text-xs font-semibold ml-1.5">
+                      PDF
+                    </Text>
+                  </Pressable>
+                </View>
+
+                {/* Medications list */}
+                <View className="px-4 py-3">
+                  {consultation.prescriptions.map((rx, index) => (
+                    <View
+                      key={rx.id}
+                      className={`${
+                        index < consultation.prescriptions.length - 1
+                          ? "border-b border-border/40 pb-3 mb-3"
+                          : ""
+                      }`}
+                    >
+                      <View className="flex-row items-baseline">
+                        <Text className="text-xs font-bold text-secondary mr-2">
+                          {String(index + 1).padStart(2, "0")}.
+                        </Text>
+                        <Text className="text-sm font-bold text-foreground flex-1">
+                          {rx.medicationName}
+                        </Text>
+                      </View>
+                      <View className="ml-7 mt-1">
+                        {rx.dosage ? (
+                          <Text className="text-xs text-foreground">
+                            <Text className="text-muted">Dosage : </Text>
+                            {rx.dosage}
+                          </Text>
+                        ) : null}
+                        {rx.frequency ? (
+                          <Text className="text-xs text-foreground">
+                            <Text className="text-muted">Fréquence : </Text>
+                            {rx.frequency}
+                          </Text>
+                        ) : null}
+                        {rx.duration ? (
+                          <Text className="text-xs text-foreground">
+                            <Text className="text-muted">Durée : </Text>
+                            {rx.duration}
+                          </Text>
+                        ) : null}
+                        {rx.notes ? (
+                          <Text className="text-[11px] text-accent italic mt-1">
+                            {rx.notes}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Footer — doctor signature block, right-aligned like on
+                    a paper prescription. Falls back gracefully when the
+                    doctor hasn't uploaded a signature yet. */}
+                <View
+                  className="px-4 py-3 items-end"
+                  style={{
+                    borderTopWidth: 1,
+                    borderTopColor: "#dee2e6",
+                    backgroundColor: "#fafafa",
+                  }}
+                >
+                  <Text className="text-[10px] uppercase text-muted mb-1 tracking-wider">
+                    Signature du médecin
+                  </Text>
+                  {sigUrl ? (
+                    <Image
+                      source={{ uri: sigUrl }}
+                      style={{ width: 140, height: 56 }}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <View
+                      style={{
+                        width: 140,
+                        height: 56,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Text className="text-[11px] text-muted italic">
+                        Non signée
+                      </Text>
+                    </View>
                   )}
+                  {docName ? (
+                    <Text className="text-xs font-semibold text-foreground mt-1">
+                      {docName}
+                    </Text>
+                  ) : null}
                 </View>
               </View>
-            ))}
-          </View>
-        )}
+            </View>
+          );
+        })()}
 
         {/* Linked Lab Results */}
         {consultation.linkedLabResultIds.length > 0 && (

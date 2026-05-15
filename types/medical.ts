@@ -9,6 +9,8 @@ export interface Prescription {
   frequency: string;
   duration: string;
   notes?: string;
+  doctorSignatureUrl?: string | null;
+  doctorName?: string;
 }
 
 export interface ConsultationVitals {
