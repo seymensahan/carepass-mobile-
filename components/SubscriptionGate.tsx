@@ -32,15 +32,14 @@ export function SubscriptionGate({ children }: { children: React.ReactNode }) {
   const { user, logout, switchRole } = useAuth() as any;
   const queryClient = useQueryClient();
 
-  // Subscription gate policy. Same logic as the web dashboard layout:
-  //   - doctor / institution_admin must always have an active sub.
-  //   - patient is gated only when the sub is EXPLICITLY expired. Patients
-  //     with no subscription at all (promoted children, transferred majors,
-  //     test accounts, dependents covered by a guardian's plan, users
-  //     switched in from a doctor account that holds the sub) keep access.
-  //     Blocking them would lock them out of their own medical record.
-  //   - nurse is exempt entirely — they're covered by the inviting doctor
-  //     or institution.
+  // Subscription gate policy:
+  //   - doctor / institution_admin / patient: blocked when the backend
+  //     reports no active subscription (isActive === false). Source of
+  //     truth is the backend's /subscriptions/my-status endpoint, which
+  //     self-heals false-positive expirations (rows wrongly stamped
+  //     'expired' while endDate is still in the future) and prefers any
+  //     truly-active sub over older expired rows on the same userId.
+  //   - nurse is exempt — covered by the inviting doctor / institution.
   const role = user?.role || "";
   const isProfessional = role === "doctor" || role === "institution_admin";
   const needsCheck = isProfessional || role === "patient";
@@ -57,12 +56,8 @@ export function SubscriptionGate({ children }: { children: React.ReactNode }) {
   });
 
   const isActive = !!data?.isActive;
-  const isExpired = data?.isExpired === true;
-  const hasNoSub = !!data && data.hasSubscription === false;
 
-  const showGate = !isLoading && (
-    isProfessional ? !isActive : (role === "patient" && isExpired)
-  );
+  const showGate = needsCheck && !isLoading && !isActive;
 
   // If the user can fall back to another role (e.g. a doctor account that
   // also has the patient role), offer that as a one-tap escape hatch on
@@ -182,11 +177,17 @@ export function SubscriptionGate({ children }: { children: React.ReactNode }) {
                   {data?.isExpired ? "Abonnement expiré" : "Activer votre abonnement"}
                 </Text>
                 <Text className="text-xs text-muted text-center mt-2 leading-5">
-                  {isProfessional
-                    ? (data?.isExpired
-                      ? "Votre abonnement médecin a expiré. Renouvelez pour continuer à utiliser la plateforme."
-                      : "Pour accéder à votre espace médecin, activez votre abonnement par paiement Mobile Money.")
-                    : "Votre abonnement patient a expiré. Renouvelez pour continuer à utiliser la plateforme."}
+                  {(() => {
+                    const space = role === "doctor"
+                      ? "médecin"
+                      : role === "institution_admin"
+                        ? "institution"
+                        : "patient";
+                    if (data?.isExpired) {
+                      return `Votre abonnement ${space} a expiré. Renouvelez pour continuer à utiliser la plateforme.`;
+                    }
+                    return `Pour accéder à votre espace ${space}, activez votre abonnement par paiement Mobile Money.`;
+                  })()}
                 </Text>
               </View>
 
