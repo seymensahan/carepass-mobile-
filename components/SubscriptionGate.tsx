@@ -29,14 +29,21 @@ type Mode = "choose" | "voucher" | "payment";
  * For non-doctor users, this component is a passthrough.
  */
 export function SubscriptionGate({ children }: { children: React.ReactNode }) {
-  const { user, logout } = useAuth();
+  const { user, logout, switchRole } = useAuth() as any;
   const queryClient = useQueryClient();
 
-  // Gate any role that needs an active subscription to use the platform.
-  // Nurses are exempt — their access is "covered" by their inviting doctor.
-  const ROLES_THAT_NEED_SUBSCRIPTION = ["doctor", "patient", "institution_admin"];
-  const needsSubscription =
-    !!user?.role && ROLES_THAT_NEED_SUBSCRIPTION.includes(user.role);
+  // Subscription gate policy. Same logic as the web dashboard layout:
+  //   - doctor / institution_admin must always have an active sub.
+  //   - patient is gated only when the sub is EXPLICITLY expired. Patients
+  //     with no subscription at all (promoted children, transferred majors,
+  //     test accounts, dependents covered by a guardian's plan, users
+  //     switched in from a doctor account that holds the sub) keep access.
+  //     Blocking them would lock them out of their own medical record.
+  //   - nurse is exempt entirely — they're covered by the inviting doctor
+  //     or institution.
+  const role = user?.role || "";
+  const isProfessional = role === "doctor" || role === "institution_admin";
+  const needsCheck = isProfessional || role === "patient";
 
   const { data, isLoading } = useQuery({
     queryKey: ["subscription-status", user?.id],
@@ -44,13 +51,27 @@ export function SubscriptionGate({ children }: { children: React.ReactNode }) {
       const res = await api.get<any>("/subscriptions/my-status");
       return res.data?.data ?? res.data;
     },
-    enabled: !!user && needsSubscription,
+    enabled: !!user && needsCheck,
     staleTime: 60_000,
     refetchOnWindowFocus: true,
   });
 
   const isActive = !!data?.isActive;
-  const showGate = needsSubscription && !isLoading && !isActive;
+  const isExpired = data?.isExpired === true;
+  const hasNoSub = !!data && data.hasSubscription === false;
+
+  const showGate = !isLoading && (
+    isProfessional ? !isActive : (role === "patient" && isExpired)
+  );
+
+  // If the user can fall back to another role (e.g. a doctor account that
+  // also has the patient role), offer that as a one-tap escape hatch on
+  // top of logout, since payment isn't the only way out.
+  const availableRoles: string[] = (user as any)?.availableRoles || [];
+  const otherRoles = availableRoles.filter(
+    (r) => r && r !== role && r !== "patient",
+  );
+  const fallbackRole = otherRoles[0];
 
   // Local modal state
   const [mode, setMode] = useState<Mode>("choose");
@@ -161,9 +182,11 @@ export function SubscriptionGate({ children }: { children: React.ReactNode }) {
                   {data?.isExpired ? "Abonnement expiré" : "Activer votre abonnement"}
                 </Text>
                 <Text className="text-xs text-muted text-center mt-2 leading-5">
-                  {data?.isExpired
-                    ? "Votre abonnement médecin a expiré. Renouvelez pour continuer à utiliser la plateforme."
-                    : "Pour accéder à votre espace médecin, activez votre abonnement par paiement Mobile Money."}
+                  {isProfessional
+                    ? (data?.isExpired
+                      ? "Votre abonnement médecin a expiré. Renouvelez pour continuer à utiliser la plateforme."
+                      : "Pour accéder à votre espace médecin, activez votre abonnement par paiement Mobile Money.")
+                    : "Votre abonnement patient a expiré. Renouvelez pour continuer à utiliser la plateforme."}
                 </Text>
               </View>
 
@@ -290,6 +313,52 @@ export function SubscriptionGate({ children }: { children: React.ReactNode }) {
                   </Pressable>
                   <Pressable onPress={() => setMode("choose")} className="items-center mt-3">
                     <Text className="text-xs text-muted">Retour</Text>
+                  </Pressable>
+                </View>
+              )}
+
+              {/* Role switcher — if the user holds another role on the same
+                  account (e.g. a doctor who also has a patient profile), let
+                  them jump back to that role instead of being forced to pay
+                  or log out. */}
+              {fallbackRole && (
+                <View className="border-t border-border mt-6 pt-4">
+                  <Pressable
+                    onPress={async () => {
+                      try {
+                        const res = await switchRole?.(fallbackRole);
+                        if (res && res.success === false) {
+                          Alert.alert(
+                            "Erreur",
+                            res.message || "Impossible de changer de rôle",
+                          );
+                          return;
+                        }
+                        queryClient.invalidateQueries({
+                          queryKey: ["subscription-status"],
+                        });
+                      } catch (e: any) {
+                        Alert.alert(
+                          "Erreur",
+                          e?.message || "Impossible de changer de rôle",
+                        );
+                      }
+                    }}
+                    className="flex-row items-center justify-center py-2"
+                  >
+                    <Feather name="refresh-cw" size={14} color={TEAL} />
+                    <Text
+                      className="text-sm font-semibold ml-2"
+                      style={{ color: TEAL }}
+                    >
+                      {fallbackRole === "doctor"
+                        ? "Revenir au compte médecin"
+                        : fallbackRole === "institution_admin"
+                          ? "Revenir au compte institution"
+                          : fallbackRole === "nurse"
+                            ? "Revenir au compte infirmier"
+                            : "Changer de rôle"}
+                    </Text>
                   </Pressable>
                 </View>
               )}
